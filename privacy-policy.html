@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隱私權政策 ｜ 單字探險家</title>
+<meta name="theme-color" content="#6C4BF6">
+<meta name="robots" content="index, follow">
+<style>
+  :root {
+    --brand: #6C4BF6;
+    --brand-dark: #4F32C4;
+    --accent: #00B4A6;
+    --ink: #3C3A4A;
+    --muted: #6E6B7D;
+    --line: #E4E2EF;
+    --bg: #F5F6FB;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Nunito", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+                 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.8;
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    background: var(--brand);
+    color: #fff;
+    padding: 34px 20px 30px;
+    text-align: center;
+    border-bottom: 4px solid var(--brand-dark);
+  }
+  header .mascot { font-size: 46px; line-height: 1; }
+  header h1 { margin: 10px 0 6px; font-size: 25px; letter-spacing: .5px; }
+  header p { margin: 0; font-size: 14px; opacity: .95; }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 18px 70px; }
+  .card {
+    background: #fff;
+    border: 2px solid var(--line);
+    border-bottom-width: 4px;
+    border-radius: 18px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .card.hl {
+    border-color: #B7E894;
+    background: #F4FFE9;
+  }
+  h2 {
+    font-size: 18px;
+    margin: 0 0 12px;
+    padding-left: 12px;
+    border-left: 5px solid var(--brand);
+    border-radius: 3px;
+    line-height: 1.4;
+  }
+  h3 { font-size: 15px; margin: 18px 0 6px; color: var(--brand-dark); }
+  p, li { font-size: 15px; }
+  ul { padding-left: 22px; margin: 8px 0; }
+  li { margin-bottom: 5px; }
+  code {
+    background: #F0F0F0;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 13px;
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    word-break: break-all;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #FAFAFA; font-weight: 800; }
+  .muted { color: var(--muted); font-size: 13.5px; }
+  a { color: var(--accent); text-decoration: none; font-weight: 700; }
+  a:hover { text-decoration: underline; }
+  .pill {
+    display: inline-block;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 12px;
+    font-size: 12.5px;
+    font-weight: 800;
+    margin-right: 6px;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 26px 18px 40px;
+  }
+  footer a { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mascot">🦊</div>
+  <h1>隱私權政策</h1>
+  <p>單字探險家 ｜ 智慧英文單字學習</p>
+</header>
+
+<main>
+
+  <div class="card hl">
+    <h2>一句話總結</h2>
+    <p>
+      <span class="pill">不收集</span><span class="pill">不註冊</span><span class="pill">不追蹤</span>
+      這個 App <strong>沒有後端伺服器</strong>，開發者<strong>不會收到你的任何資料</strong>。
+      你的所有學習紀錄（查詢歷史、錯題、測驗分數）都只存在<strong>你自己的裝置</strong>上。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>1. 我們收集哪些個人資料？</h2>
+    <p><strong>沒有。一個都沒有。</strong></p>
+    <ul>
+      <li>不需要註冊帳號，不要求 email、姓名、電話或生日。</li>
+      <li>沒有廣告 SDK，沒有行為分析（Analytics）SDK，沒有當機回報 SDK。</li>
+      <li>不讀取你的通訊錄、相簿、位置、麥克風或相機。</li>
+      <li>App 不會在背景傳送任何統計數據給開發者。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>2. 資料存在哪裡？</h2>
+    <p>
+      全部存在你裝置瀏覽器／App 的 <strong>本機儲存空間（localStorage）</strong>。
+      這些資料不會離開你的裝置，也不會與其他 App 共用。內容如下：
+    </p>
+    <table>
+      <thead>
+        <tr><th>儲存鍵名</th><th>用途</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>wrong_words_db</code></td><td>錯題本：你答錯的單字、答錯次數與時間戳記（用於 7 天後自動複習）</td></tr>
+        <tr><td><code>daily_quiz_record</code></td><td>每日測驗：今天各輪次的題目、你的作答與分數</td></tr>
+        <tr><td><code>learning_stats</code></td><td>學習統計：連續學習天數、累計答題數</td></tr>
+        <tr><td><code>dict_cache</code></td><td>查詢快取：已查過的單字釋義與字源（避免重複連網，30 天後自動失效）</td></tr>
+        <tr><td><code>zh_meaning_cache</code></td><td>中文釋義快取（同上）</td></tr>
+        <tr><td><code>search_history</code></td><td>最近查詢紀錄（最多 12 筆，顯示在你的畫面上）</td></tr>
+      </tbody>
+    </table>
+    <h3>如何刪除？</h3>
+    <ul>
+      <li>App 內：錯題本頁面有「🗑️ 重置全部資料」按鈕；查詢頁面有「清空查詢快取」按鈕。</li>
+      <li>解除安裝 App（或在瀏覽器清除網站資料）會一併刪除上述全部內容。</li>
+      <li>因為資料不在我們的伺服器上，我們<strong>無法</strong>代你刪除，也<strong>無法</strong>幫你取回。</li>
+    </ul>
+    <p class="muted">提醒：本機資料以「網址（origin）」為界。若你日後改用不同的網址開啟，舊紀錄不會跟著搬家。</p>
+  </div>
+
+  <div class="card">
+    <h2>3. 連線到哪些第三方服務？</h2>
+    <p>
+      查單字時，App 會<strong>直接從你的裝置</strong>向以下公開服務發出查詢請求。
+      請求中只包含<strong>你要查的那個英文單字</strong>，不包含任何可識別你身分的資訊。
+      這些服務的伺服器會如同任何網站請求一樣，看到你的 IP 位址與瀏覽器資訊。
+    </p>
+    <table>
+      <thead>
+        <tr><th>服務</th><th>用途</th><th>隱私權政策</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wikimedia Wiktionary<br><span class="muted">en.wiktionary.org</span></td>
+          <td>英文釋義、字源（Etymology）、音標</td>
+          <td><a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" target="_blank" rel="noopener">Wikimedia 隱私權政策</a></td>
+        </tr>
+        <tr>
+          <td>Datamuse<br><span class="muted">api.datamuse.com</span></td>
+          <td>英文定義、同義詞、拼字建議</td>
+          <td><a href="https://www.datamuse.com/api/" target="_blank" rel="noopener">Datamuse API 說明</a></td>
+        </tr>
+        <tr>
+          <td>Google 翻譯<br><span class="muted">translate.googleapis.com</span></td>
+          <td>把英文釋義翻譯成繁體中文</td>
+          <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 隱私權政策</a></td>
+        </tr>
+        <tr>
+          <td>MyMemory<br><span class="muted">api.mymemory.translated.net</span></td>
+          <td>翻譯備援來源（當主要來源失敗時使用）</td>
+          <td><a href="https://mymemory.translated.net/doc/privacypolicy.php" target="_blank" rel="noopener">MyMemory 隱私權政策</a></td>
+        </tr>
+        <tr>
+          <td>Tailwind CSS CDN<br><span class="muted">cdn.tailwindcss.com</span></td>
+          <td>載入介面樣式</td>
+          <td><a href="https://tailwindcss.com/privacy" target="_blank" rel="noopener">Tailwind 隱私說明</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted">
+      這些第三方服務可能依其自身政策記錄請求。我們無法控制、也不會收到這些紀錄。
+      若你完全不想連外，可以開啟飛航模式：App 會自動改用內建的離線備援語料繼續運作。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>4. 語音朗讀功能</h2>
+    <p>
+      點擊單字旁的喇叭圖示時，App 使用你裝置<strong>內建</strong>的語音合成引擎（Web Speech API）發音。
+      發音在你的裝置上完成，<strong>不會</strong>把文字送到任何伺服器，也<strong>不會</strong>存取麥克風。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>5. 兒童隱私</h2>
+    <p>
+      本 App 適合一般大眾與學生使用，內容為英文單字學習。
+      由於我們<strong>不收集任何個人資料</strong>，因此也不會收集兒童的個人資料。
+      本 App 不含廣告、不含應用程式內購買、不含社交功能、不含外部連結至成人內容。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>6. 權限說明</h2>
+    <p>本 App 不需要任何敏感權限。實際使用到的能力如下：</p>
+    <ul>
+      <li><strong>網路存取</strong>：查詢單字釋義與翻譯（必要）。</li>
+      <li><strong>本機儲存</strong>：保存你的學習進度（必要）。</li>
+      <li><strong>文字轉語音</strong>：朗讀單字發音（選用，你按了才會用）。</li>
+    </ul>
+    <p>不要求：定位、相機、麥克風、通訊錄、簡訊、通話紀錄、檔案存取。</p>
+  </div>
+
+  <div class="card">
+    <h2>7. 資料安全</h2>
+    <p>
+      所有查詢都經由 <strong>HTTPS 加密連線</strong>傳輸。
+      由於我們不儲存你的資料，也就沒有「資料外洩」的風險；唯一存放處是你自己的裝置，
+      安全性取決於你裝置本身的鎖定與加密設定。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>8. 政策變更</h2>
+    <p>
+      若本政策有實質變更，我們會更新本頁面並標註新的生效日期。
+      由於本 App 不收集聯絡資訊，我們無法逐一通知使用者，建議你偶爾回來查看本頁。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>9. 聯絡方式</h2>
+    <p>對本隱私權政策有任何疑問，歡迎透過下列管道聯絡：</p>
+    <ul>
+      <li>GitHub Issues：<a href="https://github.com/" target="_blank" rel="noopener">專案問題回報頁</a>（請替換為你的實際專案網址）</li>
+      <li>電子郵件：<code>your-email@example.com</code>（請替換為你的實際聯絡信箱）</li>
+    </ul>
+    <p class="muted">
+      ★ 上架前請務必把上面兩處佔位符換成你真實的專案網址與信箱——
+      Google Play 會人工檢視隱私政策頁，無效的聯絡方式可能導致審核不通過。
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  <p><strong>生效日期：</strong>2026 年 10 月 1 日　｜　<strong>版本：</strong>1.1</p>
+  <p><a href="./index.html">← 回到單字探險家</a></p>
+</footer>
+
+</body>
+</html>

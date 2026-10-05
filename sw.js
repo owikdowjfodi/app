@@ -16,7 +16,7 @@
  * 改版時請把 VERSION 往上加，舊快取會在 activate 時自動清掉。
  * ========================================================================== */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL_CACHE = 'word-explorer-shell-' + VERSION;
 const CDN_CACHE = 'word-explorer-cdn-' + VERSION;
 

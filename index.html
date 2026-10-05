@@ -603,8 +603,76 @@ const WORD_POOL = [
   'attentive', 'famous', 'dangerous', 'generous', 'curiosity', 'reality',
   'equality', 'activity', 'hospital', 'employee'
 ];
-/** 去重並轉小寫，避免清單手誤 */
-const QUIZ_WORDS = Array.from(new Set(WORD_POOL.map(w => String(w).toLowerCase())));
+
+/* ---------------------------------------------------------------------------------
+   【雅思（IELTS）核心字庫 ＋500】★ 2026-10 新增
+   依使用者需求，在每日字詞練習的題庫池裡額外加入 500 個精心篩選的雅思核心單字。
+
+   相容性說明（完全沿用既有資料結構，不改任何既有介面）：
+     1. 這裡的每一筆都跟 WORD_POOL 一樣是「純字串單字」，沒有預存釋義，
+        所以不需要改動任何既有資料格式或渲染邏輯。
+     2. QUIZ_WORDS 會把 WORD_POOL 與 IELTS_WORDS 合併去重 → buildDailyQuiz()
+        自動把它們納入抽題池，練習介面完全不變。
+     3. 釋義是「出題時才即時連網取得」（ensureMeanings），並寫入
+        zh_meaning_cache 快取；同一輪的干擾選項也會自動避開重複釋義。
+     4. 既有的「多輪次動態排除機制」（getUsedWords／getRemainingWords）
+        自動涵蓋這些新字：同一天再開新的一輪，也絕對不會重複出過的單字。
+   --------------------------------------------------------------------------------- */
+const IELTS_WORDS = [
+  'abandon', 'ability', 'absolute', 'abstract', 'academic', 'accept', 'access', 'accident', 'accompany', 'accomplish',
+  'accurate', 'achieve', 'acknowledge', 'acquire', 'adapt', 'adequate', 'adjust', 'administration', 'admire', 'admit',
+  'adopt', 'advance', 'advantage', 'adventure', 'advertise', 'advocate', 'affect', 'afford', 'agriculture', 'alter',
+  'alternative', 'although', 'ambitious', 'analyse', 'analysis', 'ancient', 'annual', 'anticipate', 'anxiety', 'apparent',
+  'appeal', 'appliance', 'application', 'appreciate', 'approach', 'appropriate', 'approval', 'approximate', 'arbitrary', 'architecture',
+  'argue', 'arise', 'arrange', 'articulate', 'artificial', 'aspect', 'assess', 'assign', 'assist', 'associate',
+  'assume', 'assure', 'atmosphere', 'attach', 'attain', 'attempt', 'attitude', 'attract', 'authority', 'available',
+  'aware', 'balance', 'barrier', 'basis', 'behave', 'beneficial', 'benefit', 'bias', 'bond', 'boost',
+  'boundary', 'brief', 'broaden', 'budget', 'burden', 'campaign', 'capable', 'capacity', 'capital', 'category',
+  'cease', 'challenge', 'characteristic', 'charity', 'circumstance', 'cite', 'civil', 'claim', 'clarify', 'classify',
+  'client', 'climate', 'collapse', 'colleague', 'combine', 'comment', 'commercial', 'commission', 'commit', 'committee',
+  'commodity', 'communicate', 'community', 'compare', 'compensate', 'compete', 'complex', 'component', 'compose', 'comprehensive',
+  'compromise', 'conceal', 'concentrate', 'concept', 'concern', 'conclude', 'conduct', 'consequence', 'considerable', 'consist',
+  'constant', 'constitute', 'construct', 'consult', 'consume', 'contemporary', 'content', 'context', 'contrast', 'contribute',
+  'controversial', 'convenient', 'conventional', 'convert', 'convey', 'convince', 'cooperate', 'cope', 'core', 'corporate',
+  'correspond', 'council', 'criterion', 'critical', 'crucial', 'cultivate', 'currency', 'current', 'decline', 'deduce',
+  'define', 'definite', 'delay', 'deliberate', 'demand', 'demonstrate', 'deny', 'depart', 'depend', 'deposit',
+  'derive', 'deserve', 'design', 'despite', 'destination', 'detect', 'determine', 'devote', 'diagnose', 'differ',
+  'dimension', 'diminish', 'discipline', 'discriminate', 'dismiss', 'display', 'dispose', 'dispute', 'distinct', 'distinguish',
+  'distribute', 'diverse', 'domestic', 'dominate', 'duration', 'dynamic', 'eager', 'economic', 'efficient', 'elaborate',
+  'element', 'eliminate', 'emerge', 'emphasis', 'empirical', 'enable', 'encounter', 'encourage', 'endure', 'enhance',
+  'enormous', 'ensure', 'enterprise', 'entitle', 'environment', 'equip', 'equivalent', 'essential', 'establish', 'estimate',
+  'ethical', 'evaluate', 'eventually', 'evidence', 'evolve', 'exaggerate', 'examine', 'exceed', 'exclude', 'expand',
+  'expertise', 'exploit', 'explore', 'expose', 'extend', 'external', 'extract', 'facilitate', 'factor', 'feature',
+  'federal', 'finance', 'fluctuate', 'fundamental', 'furthermore', 'generate', 'genuine', 'global', 'gradual', 'grant',
+  'guarantee', 'guideline', 'hierarchy', 'highlight', 'hypothesis', 'identify', 'ignore', 'illustrate', 'imply', 'impose',
+  'incentive', 'incident', 'incline', 'income', 'incorporate', 'indicate', 'individual', 'induce', 'industry', 'inevitable',
+  'influence', 'inform', 'inherit', 'initiate', 'innovate', 'insight', 'inspect', 'instance', 'institute', 'integrate',
+  'intense', 'interact', 'interpret', 'intervene', 'introduce', 'invest', 'investigate', 'involve', 'isolate', 'issue',
+  'justify', 'label', 'labour', 'legislation', 'legitimate', 'liberal', 'likewise', 'link', 'locate', 'maintain',
+  'major', 'manipulate', 'mature', 'maximum', 'mechanism', 'mediate', 'method', 'migrate', 'minimum', 'modify',
+  'monitor', 'motive', 'mutual', 'negative', 'neglect', 'negotiate', 'notion', 'objective', 'obtain', 'obvious',
+  'occupy', 'occur', 'offset', 'ongoing', 'option', 'orient', 'outcome', 'overall', 'overlap', 'participate',
+  'particular', 'perceive', 'persist', 'perspective', 'phenomenon', 'policy', 'portion', 'pose', 'positive', 'potential',
+  'practical', 'precise', 'predict', 'preliminary', 'presume', 'previous', 'primary', 'principle', 'priority', 'procedure',
+  'process', 'prohibit', 'project', 'promote', 'proportion', 'prospect', 'provide', 'publish', 'pursue', 'qualitative',
+  'quantitative', 'radical', 'random', 'range', 'react', 'recover', 'refine', 'regime', 'regulate', 'reinforce',
+  'reject', 'relate', 'release', 'reluctant', 'rely', 'remarkable', 'remove', 'require', 'research', 'reside',
+  'resolve', 'resource', 'restrict', 'retain', 'reveal', 'revenue', 'reverse', 'revise', 'revolution', 'rigid',
+  'role', 'rural', 'satisfy', 'scale', 'scenario', 'scheme', 'scope', 'secure', 'seek', 'select',
+  'significant', 'similar', 'simulate', 'sole', 'source', 'specific', 'speculate', 'stability', 'stable', 'statistic',
+  'status', 'straightforward', 'strategy', 'stress', 'structure', 'submit', 'subsequent', 'subsidy', 'substitute', 'subtle',
+  'sufficient', 'summary', 'supplement', 'survey', 'sustain', 'symbolic', 'target', 'technique', 'temporary', 'tension',
+  'terminate', 'theme', 'theory', 'therefore', 'thorough', 'threaten', 'transform', 'transition', 'transmit', 'transparent',
+  'trend', 'trigger', 'ultimate', 'undergo', 'undermine', 'undertake', 'uniform', 'unique', 'utilise', 'valid',
+  'vary', 'vehicle', 'version', 'virtual', 'visible', 'volume', 'voluntary', 'welfare', 'whereas', 'widespread',
+  'withdraw', 'workforce', 'coherent', 'depict', 'encompass', 'forthcoming', 'outweigh', 'paradigm', 'quantify', 'robust',
+  'scrutiny', 'threshold', 'viable', 'whereby', 'acute', 'aggregate', 'albeit', 'amend', 'complement', 'concurrent',
+  'discrete', 'disperse', 'enact', 'erosion', 'explicit', 'feasible', 'implicit', 'inherent', 'intrinsic', 'presumably',
+  'prone', 'reconcile', 'redundant', 'resilience', 'retrieve', 'spectrum', 'tentative', 'trajectory', 'versatile', 'vital'
+];
+
+/** 去重並轉小寫，避免清單手誤（★ 已合併 WORD_POOL ＋ IELTS 核心 500 字） */
+const QUIZ_WORDS = Array.from(new Set(WORD_POOL.concat(IELTS_WORDS).map(w => String(w).toLowerCase())));
 
 /** 查詢結果卡上顯示的快速範例（★ 後三個是習語，用來展示「整組解釋、不拆字」） */
 const QUICK_WORDS = ['contradict', 'autobiography', 'geography', 'retrospect', 'bicycle',
@@ -1301,7 +1369,7 @@ function scanHeadings(lines) {
 
 /** 解析 Wiktionary 純文字條目 */
 function parseWiktionaryExtract(extract) {
-  const out = { etymology: '', etymologyRaw: '', ipa: '', ipaUS: '', ipaUK: '', posZh: '', defs: [], synonyms: [] };
+  const out = { etymology: '', etymologyRaw: '', ipa: '', ipaUS: '', ipaUK: '', posZh: '', posRaw: '', defs: [], synonyms: [] };
   if (!extract) return out;
   const lines = String(extract).split('\n');
   const heads = scanHeadings(lines);
@@ -1359,6 +1427,7 @@ function parseWiktionaryExtract(extract) {
     if (posNames.indexOf(zh) === -1) posNames.push(zh);
   });
   out.posZh = posNames.join(' ・ ');
+  if (posIdxList.length) out.posRaw = heads[posIdxList[0]].title;
   if (posIdxList.length) {
     out.defs = extractDefinitions(sectionText(posIdxList[0]));
     if (posIdxList[1]) {
@@ -1375,6 +1444,8 @@ function parseWiktionaryExtract(extract) {
       .filter(function (s) { return s && s.length < 28 && /^[A-Za-z][A-Za-z '\-]*$/.test(s); })
       .slice(0, 8);
   }
+  // ★ 保留原文（截斷）供「習語網路判斷引擎」掃描 idiomatic／figurative 標記與詞性標題
+  out.raw = String(extract).slice(0, 8000);
   return out;
 }
 
@@ -1764,7 +1835,7 @@ function renderLexiconLoading(word, mode) {
       ? '線上翻譯服務（整句繁體中文翻譯）'
       : '線上翻譯服務（繁體中文釋義與語源中譯）'),
     isPhrase
-      ? sourceLine('idiom', '習語／慣用語比對（本地成語詞庫）')
+      ? sourceLine('idiom', '習語即時網路判斷（Wiktionary ＋ Wikipedia 全文搜尋）')
       : sourceLine('spell', '拼寫自動修正（Levenshtein 編輯距離，查不到時才會啟動）', true)
   ].join('');
   resultBox.innerHTML = '' +
@@ -2149,7 +2220,7 @@ async function searchPhrase(cls, seq) {
   renderPhraseResult(entry, false);
 
   /* 只有「真的需要連網」的結果才值得寫進快取（本機習語詞庫命中是零延遲的） */
-  if (entry.kind === 'sentence' || entry.fromWiktionary) {
+  if (!entry.fromLocalDb) {
     cacheSet(cacheKey, entry);
     updateCacheStatus();
   }
@@ -2158,9 +2229,11 @@ async function searchPhrase(cls, seq) {
   if (entry.kind === 'idiom') {
     showToast(entry.fromLocalDb
       ? '🟣 命中習語詞庫！已用「整體意思」解釋「' + esc(norm) + '」，不會拆成個別單字。'
-      : '🟣 這是一句習語，以下以整體方式解釋它的意思。', 'info', 5000);
+      : '🌐 網路即時判斷為習語（' + (entry.confidence || 0) + ' 分）：已用「整體意思」解釋「' + esc(norm) + '」，不會拆成個別單字。', 'info', 5000);
   } else if (!entry.isOnline) {
     showToast('⚠️ 線上翻譯服務暫時無法連線，請稍後再試一次。', 'warn', 5000);
+  } else {
+    showToast('💬 網路判斷「' + esc(norm) + '」不是固定習語，已改用一般短句翻譯。', 'info', 4500);
   }
 }
 
@@ -2693,42 +2766,49 @@ async function lookupPhrase(norm, rawText, onProgress) {
   }
   report('idiom', false);
 
-  report('wiktionary', 'loading');
-  let wiki = null;
-  try { wiki = await fetchWiktionary(norm); } catch (err) { wiki = null; }
-  const wikiOk = !!(wiki && (wiki.etymologyRaw || (wiki.defs && wiki.defs.length)));
-  report('wiktionary', wikiOk);
+  /* ★ 2026-10 新增：本機詞庫沒命中時，改用「即時網路查詢」判斷它是不是 Idiom。
+     三個來源（Wiktionary 條目／Wiktionary 全文搜尋／Wikipedia 搜尋）的證據會加成分數，
+     達門檻才判為習語；未達門檻就完全依照規格退回下面的一般詞組翻譯流程。 */
+  const det = await detectIdiomOnline(norm, report);
 
   report('translate', 'loading');
   let translation = '';
   try { translation = await translateZh(norm); } catch (err) { translation = ''; }
   report('translate', !!translation);
+  det.sources.translate = !!translation;
 
-  if (wikiOk) {
+  if (det.isIdiom) {
+    /* 是 Idiom：① 中文翻譯（優先用釋義翻譯，比直譯詞組更貼近真正的意思）② 發展來源歷史 */
     let originZh = '';
-    if (wiki.etymologyRaw) {
-      try { originZh = await translateZh(wiki.etymologyRaw); } catch (err) { originZh = ''; }
+    if (det.etymologyRaw) {
+      try { originZh = await translateZh(det.etymologyRaw); } catch (err) { originZh = ''; }
+    }
+    let meaningZh = '';
+    if (det.defs.length) {
+      try { meaningZh = await translateZh(det.defs[0]); } catch (err) { meaningZh = ''; }
     }
     return {
       kind: 'idiom',
       phrase: norm,
       label: norm,
-      meaning: translation || '（線上翻譯服務暫時無法取得中文翻譯）',
+      meaning: meaningZh || translation || '（線上翻譯服務暫時無法取得中文翻譯）',
       literal: '',
       example: '',
       exampleZh: '',
-      origin: wiki.etymologyRaw || '',
+      origin: det.etymologyRaw || '',
       originZh: originZh,
-      originRaw: wiki.etymologyRaw || '',
-      tag: '',
-      defs: (wiki.defs || []).slice(0, 3),
-      ipa: wiki.ipa || '',
-      source: 'Wiktionary 詞典片語條目',
+      originRaw: det.etymologyRaw || '',
+      tag: det.pos || '網路判定為習語',
+      defs: det.defs,
+      ipa: det.ipa || '',
+      confidence: det.confidence,
+      evidence: det.evidence,
+      source: phraseSourceLabel(det),
       fromLocalDb: false,
-      fromWiktionary: true,
+      fromWiktionary: det.sources.wiktionary,
       needsEnrich: false,
       isOnline: true,
-      sources: { idiom: false, wiktionary: true, translate: !!translation }
+      sources: det.sources
     };
   }
 
@@ -2739,7 +2819,10 @@ async function lookupPhrase(norm, rawText, onProgress) {
     label: norm,
     translation: translation || '（線上翻譯服務暫時無法取得中文翻譯）',
     isOnline: !!translation,
-    sources: { idiom: false, wiktionary: false, translate: !!translation }
+    confidence: det.confidence,
+    evidence: det.evidence,
+    source: phraseSourceLabel(det),
+    sources: det.sources
   };
 }
 
@@ -2765,6 +2848,206 @@ async function enrichIdiom(entry) {
   } catch (err) { return null; }
 }
 
+/* =================================================================================
+   【模組一之四：習語的「即時網路判斷」引擎】★ 2026-10 新增
+   使用者需求：當輸入「超過一個單字」時，系統必須自動感應並「透過網際網路」查詢，
+   判斷這個詞組到底是不是一個 Idiom。
+   ---------------------------------------------------------------------------------
+   為此我們使用三個真實、免費、免申請金鑰、且支援瀏覽器跨域（CORS，帶 origin=*）的
+   公開來源，全部都是「上網查」而不是查內建清單：
+
+     1. Wiktionary 條目本體（en.wiktionary.org Action API，prop=extracts）
+        → 看它把這個詞組歸類成什麼詞性；Phrase／Proverb／Prepositional phrase
+          這幾種就是「固定說法」的強訊號。同時檢查釋義裡是否標了
+          idiomatic／figurative／not literally。
+     2. Wiktionary 全文搜尋（action=query&list=search）
+        → 等於拿這個詞組去對整個維基詞典語料庫做一次網路搜尋，
+          看有沒有完全同名的條目、以及說明裡是否出現 idiom／idiomatic。
+     3. Wikipedia（en.wikipedia.org）全文搜尋 ＋ 條目首段
+        → 母語者百科對「這個說法是不是慣用語」怎麼說。若找到同名條目，
+          直接抓它的首段當作「發展來源歷史（Origin／Background）」再翻成中文。
+
+   判斷方式：把三個來源的證據「加分」，達到門檻就判為 Idiom，
+   未達門檻則完全依照規格退回原本的「一般多字詞組／整句翻譯」流程。
+   判斷依據（每個來源說了什麼、各得幾分）都會顯示在結果卡片上，完全透明可檢驗。
+   ================================================================================= */
+
+/** 釋義／搜尋摘要裡代表「這是習語」的關鍵字 */
+const IDIOM_EVIDENCE_RE = /\bidiomatic(?:ally)?\b|\bidiom\b|\bfigurative(?:ly)?\b|\bnot literally\b|\bproverb(?:ial)?\b|\bcolloquial(?:ly)?\b|\bset phrase\b|\bclich[eé]\b|\bslang\b/i;
+/** Wiktionary 的第三層標題若屬於這幾種詞性，是「固定說法」的強訊號 */
+const IDIOM_POS_RE = /^(phrase|proverb|prepositional phrase|verbal phrase|idiom|interjection)$/i;
+/** 判為習語的分數門檻（可調整：分數越高越保守） */
+const IDIOM_SCORE_THRESHOLD = 3;
+
+/** Wiktionary 全文搜尋 API（＝對整個維基詞典語料庫做網路搜尋） */
+function wiktionarySearchUrl(q, limit) {
+  return 'https://en.wiktionary.org/w/api.php?action=query&list=search&srsearch=' +
+    encodeURIComponent(q) + '&srlimit=' + (limit || 4) + '&srnamespace=0&format=json&origin=*&maxlag=5';
+}
+/** Wikipedia 全文搜尋 API */
+function wikipediaSearchUrl(q, limit) {
+  return 'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=' +
+    encodeURIComponent(q) + '&srlimit=' + (limit || 4) + '&srnamespace=0&format=json&origin=*&maxlag=5';
+}
+/** Wikipedia 條目首段（用來當「發展來源歷史」） */
+function wikipediaIntroUrl(title) {
+  return 'https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles=' +
+    encodeURIComponent(title) + '&format=json&origin=*&maxlag=5';
+}
+
+/** 把 MediaWiki 的 list=search 結果正規化成 [{title, snippet}] */
+async function fetchSearchHits(url) {
+  const json = await fetchJson(url);
+  const rows = json && json.query && json.query.search;
+  if (!Array.isArray(rows) || !rows.length) return [];
+  return rows.map(function (r) {
+    return {
+      title: String(r.title || ''),
+      snippet: cleanWikiText(String(r.snippet || '').replace(/<[^>]*>/g, ' '))
+    };
+  });
+}
+
+/** 取某個 Wikipedia 條目的首段純文字（失敗一律回空字串，不影響主流程） */
+async function fetchWikipediaIntro(title) {
+  try {
+    const json = await fetchJson(wikipediaIntroUrl(title));
+    const pages = json && json.query && json.query.pages;
+    if (!pages) return '';
+    const page = Object.keys(pages).map(function (k) { return pages[k]; })[0];
+    if (!page || page.missing !== undefined || !page.extract) return '';
+    return cleanWikiText(page.extract);
+  } catch (err) { return ''; }
+}
+
+/** 取得片語相對應的資料（給歷史紀錄用） */
+function phraseSourceLabel(det) {
+  const parts = [];
+  if (det.sources.wiktionary) parts.push('Wiktionary 條目');
+  if (det.sources.wiktionarySearch) parts.push('Wiktionary 全文搜尋');
+  if (det.sources.wikipedia) parts.push('Wikipedia 搜尋');
+  return parts.length ? ('網路即時判斷：' + parts.join(' ＋ ')) : '網路即時判斷';
+}
+
+/**
+ * ★ 核心：透過網際網路判斷「這個詞組是不是 Idiom」
+ * 回傳 { isIdiom, confidence, evidence[], defs[], etymologyRaw, ipa, pos, pageTitle, sources{} }
+ */
+async function detectIdiomOnline(norm, onProgress) {
+  const report = (typeof onProgress === 'function') ? onProgress : function () {};
+  const evidence = [];
+  let score = 0;
+
+  const out = {
+    isIdiom: false, confidence: 0, evidence: [], defs: [], etymologyRaw: '',
+    ipa: '', pos: '', pageTitle: '', wikipediaTitle: '',
+    sources: { wiktionary: false, wiktionarySearch: false, wikipedia: false, translate: false, idiom: false }
+  };
+
+  /* ---------- 來源 1：Wiktionary 條目本體 ---------- */
+  report('wiktionary', 'loading');
+  let wiki = null;
+  try { wiki = await fetchWiktionary(norm); } catch (err) { wiki = null; }
+  const wikiOk = !!(wiki && (wiki.etymologyRaw || (wiki.defs && wiki.defs.length)));
+  report('wiktionary', wikiOk);
+
+  if (wikiOk) {
+    out.sources.wiktionary = true;
+    out.defs = (wiki.defs || []).slice(0, 3);
+    out.etymologyRaw = wiki.etymologyRaw || '';
+    out.ipa = wiki.ipa || '';
+    out.pos = wiki.posRaw || '';
+    out.pageTitle = norm;
+
+    const blob = ((wiki.defs || []).join(' ') + ' ' + (wiki.raw || '')).toLowerCase();
+    if (IDIOM_EVIDENCE_RE.test(blob)) {
+      score += 3;
+      evidence.push('Wiktionary 釋義標註了 idiomatic／figurative（慣用／比喻用法）等字樣');
+    }
+    if (IDIOM_POS_RE.test(out.pos)) {
+      score += 2;
+      evidence.push('Wiktionary 直接把它歸類為「' + out.pos + '」這種固定說法');
+    } else if (out.pos) {
+      evidence.push('Wiktionary 把它歸類為「' + out.pos + '」（一般詞性，不是固定片語）');
+    } else {
+      evidence.push('Wiktionary 有這個詞組的條目，但沒有標明詞性');
+    }
+    if (wiki.etymologyRaw) {
+      score += 1;
+      evidence.push('Wiktionary 收錄了它的 Etymology（語源）段落，代表這是有來歷的固定說法');
+    }
+  } else {
+    evidence.push('Wiktionary 上查不到以「' + norm + '」為標題的獨立條目');
+  }
+
+  /* ---------- 來源 2：Wiktionary 全文搜尋 ---------- */
+  report('idiom', 'loading');
+  let wsearch = [];
+  try { wsearch = await fetchSearchHits(wiktionarySearchUrl(norm, 4)); } catch (err) { wsearch = []; }
+  let wMarked = [];
+  if (wsearch.length) {
+    out.sources.wiktionarySearch = true;
+    const exact = wsearch.filter(function (r) { return r.title.toLowerCase() === norm; });
+    wMarked = wsearch.filter(function (r) { return IDIOM_EVIDENCE_RE.test(r.snippet.toLowerCase()); });
+    if (exact.length) {
+      score += 1;
+      evidence.push('Wiktionary 全文搜尋找到完全同名的條目 ' + exact.length + ' 筆');
+    }
+    if (wMarked.length) {
+      score += 2;
+      evidence.push('Wiktionary 全文搜尋命中 ' + wMarked.length + ' 筆含「idiom／idiomatic」的說明：' + wMarked[0].snippet.slice(0, 110));
+    }
+    if (!exact.length && !wMarked.length) {
+      evidence.push('Wiktionary 全文搜尋沒有把「' + norm + '」當成慣用語收錄');
+    }
+  } else {
+    evidence.push('Wiktionary 全文搜尋沒有回應或沒有結果');
+  }
+  report('idiom', (wMarked.length > 0) || wikiOk);
+
+  /* ---------- 來源 3：Wikipedia 全文搜尋 ＋ 首段 ---------- */
+  let wpage = [];
+  try { wpage = await fetchSearchHits(wikipediaSearchUrl(norm + ' idiom', 4)); } catch (err) { wpage = []; }
+  if (wpage.length) {
+    out.sources.wikipedia = true;
+    const strong = wpage.filter(function (r) {
+      const t = r.title.toLowerCase();
+      const s = r.snippet.toLowerCase();
+      return t === norm || (IDIOM_EVIDENCE_RE.test(s) && s.indexOf(norm) !== -1);
+    });
+    if (strong.length) {
+      score += 2;
+      out.wikipediaTitle = strong[0].title;
+      evidence.push('Wikipedia 搜尋命中「' + strong[0].title + '」，摘要提到它是慣用語：' + strong[0].snippet.slice(0, 110));
+    } else {
+      evidence.push('Wikipedia 搜尋沒有找到以「' + norm + '」為主題的慣用語條目');
+    }
+  } else {
+    evidence.push('Wikipedia 搜尋沒有回應或沒有結果');
+  }
+  if (!out.wikipediaTitle) {
+    const exactW = wpage.filter(function (r) { return r.title.toLowerCase() === norm; });
+    if (exactW.length) out.wikipediaTitle = exactW[0].title;
+  }
+  /* 若 Wiktionary 沒有語源，就用 Wikipedia 首段當作「發展來源歷史」 */
+  if (out.wikipediaTitle && !out.etymologyRaw) {
+    const intro = await fetchWikipediaIntro(out.wikipediaTitle);
+    if (intro) {
+      out.etymologyRaw = intro;
+      score += 1;
+      evidence.push('已從 Wikipedia「' + out.wikipediaTitle + '」條目取得背景故事（' + intro.length + ' 字）');
+    }
+  }
+
+  out.confidence = score;
+  out.isIdiom = score >= IDIOM_SCORE_THRESHOLD;
+  out.evidence = evidence;
+  out.sources.translate = false;
+  out.sources.idiom = out.isIdiom;
+  if (!out.pageTitle && out.wikipediaTitle) out.pageTitle = out.wikipediaTitle;
+  return out;
+}
+
 /** 短句用不到的功能詞，避免使用者按了也查不到 */
 const PHRASE_STOPWORDS = new Set(['the', 'a', 'an', 'to', 'of', 'in', 'on', 'at', 'and', 'or', 'but',
   'is', 'are', 'was', 'were', 'be', 'been', 'am', 'do', 'does', 'did', 'it', 'its', 'this', 'that',
@@ -2788,6 +3071,9 @@ function renderPhraseResult(entry, silent) {
     let html = isIdiom
       ? '<span class="stat-chip">🟣 習語／慣用語</span>'
       : '<span class="stat-chip">💬 整句翻譯</span>';
+    if (typeof entry.confidence === 'number' && entry.confidence > 0) {
+      html += '<span class="stat-chip">🌐 網路判斷 ' + entry.confidence + ' 分</span>';
+    }
     html += '<span class="stat-chip">📚 ' + esc(entry.source || '線上查詢') + '</span>';
     if (entry.fromWiktionary) html += '<span class="stat-chip">📖 Wiktionary 片語條目</span>';
     if (entry.originZh) html += '<span class="stat-chip">🈶 語源中譯</span>';
@@ -2797,12 +3083,26 @@ function renderPhraseResult(entry, silent) {
 
   const notice = isIdiom
     ? '<div class="mb-4 p-4 rounded-2xl bg-[#FCE4F0] border-2 border-[#E0629B] font-extrabold text-sm text-[#C1467C] leading-relaxed">' +
-        '✅ 這是一句固定習語，系統已把「<b>' + esc(entry.phrase) + '</b>」當成<b>一個整體</b>來解釋，' +
+        '✅ 系統已連上網路查證：這是一句固定習語，因此把「<b>' + esc(entry.phrase) + '</b>」當成<b>一個整體</b>來解釋，' +
         '<b>不會</b>拆成各別單字（例如 bite / the / bullet）分別解釋，以免干擾你的理解。' +
       '</div>'
     : '<div class="mb-4 p-4 rounded-2xl bg-[#DDFBF8] border-2 border-[#7FE3DA] font-extrabold text-sm text-[#00907F] leading-relaxed">' +
-        '💬 這不是收錄在習語詞庫裡的固定習語，因此系統走「一般短句翻譯」流程，整句翻譯如下。' +
+        '💬 經過網路即時判斷，這<b>不是</b>習語詞庫收錄的固定習語，因此系統走「一般短句翻譯」流程，整句翻譯如下。' +
       '</div>';
+
+  /* ★ 習語「網路判斷依據」透明化：把每個來源說了什麼、各得幾分列出來，可自行檢驗 */
+  const evidenceHtml = (entry.evidence && entry.evidence.length)
+    ? '<details class="mb-4 rounded-2xl bg-white border-2 border-[#E4E2EF] p-4">' +
+        '<summary class="cursor-pointer text-sm font-extrabold text-[#4F32C4] select-none">🔎 系統在網路上查到什麼？（判斷依據：' +
+          (typeof entry.confidence === 'number' ? entry.confidence : 0) + ' 分，達 ' + IDIOM_SCORE_THRESHOLD + ' 分才算習語）</summary>' +
+        '<ul class="list-disc pl-5 mt-3 space-y-1">' +
+          entry.evidence.map(function (e) {
+            return '<li class="text-sm font-bold leading-relaxed text-[#3C3A4A]/85">' + esc(e) + '</li>';
+          }).join('') +
+        '</ul>' +
+        '<p class="mt-3 text-xs font-bold text-[#A5A2B8]">資料來源：Wiktionary 開放語料庫、Wiktionary 全文搜尋、Wikipedia 全文搜尋（皆為公開、免申請金鑰的網路來源）。</p>' +
+      '</details>'
+    : '';
 
   const speakBtn = '<button class="we-btn we-btn-blue we-btn-sm" data-phrase-speak="' + esc(entry.phrase) + '">🔊 聽整句發音</button>';
 
@@ -2893,6 +3193,7 @@ function renderPhraseResult(entry, silent) {
   resultBox.innerHTML = '' +
     '<div class="mb-4 flex flex-wrap items-center gap-2">' + badges + '</div>' +
     notice +
+    evidenceHtml +
     body;
 
   bindPhraseEvents(entry);

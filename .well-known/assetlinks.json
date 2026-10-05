@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.你的帳號.wordexplorer",
+    "sha256_cert_fingerprints": [
+      "AA:BB:CC:DD:...（你的簽章指紋）"
+    ]
+  }
+}]

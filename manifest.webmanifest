@@ -1,7 +1,7 @@
 {
   "name": "單字探險家 ｜ 智慧英文單字學習",
   "short_name": "單字探險家",
-  "description": "即時連網查詢英文單字的釋義、字源與詞綴拆解，自動修正拼錯的字，用每日多輪測驗與 7 天間隔複習把單字真正記住。所有學習紀錄只存在你自己的裝置。",
+  "description": "即時連網查詢英文單字的釋義、字源與詞綴拆解，自動修正拼錯的字，用每日多輪測驗與 7 天間隔複習把單字真正記住。內建 AI 雅思口說教練：隨機出題、即時糾正發音、評價你的想法。所有學習紀錄只存在你自己的裝置。",
   "lang": "zh-Hant",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -58,6 +58,20 @@
       "short_name": "錯題本",
       "description": "查看已到期與孵化中的錯題",
       "url": "./index.html#srs",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "AI 雅思口說教練",
+      "short_name": "口說教練",
+      "description": "隨機出題、即時糾正發音、AI 評價你的想法",
+      "url": "./index.html#speak",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "雅思攻略",
+      "short_name": "攻略",
+      "description": "四項評分標準、高分句型與 AI 讀書計畫",
+      "url": "./index.html#playbook",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]

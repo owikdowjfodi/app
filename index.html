@@ -190,6 +190,11 @@
     flex: 1;
   }
   .nav-btn-bottom .nav-icon { font-size: 1.5rem; line-height: 1; }
+  /* v1.5：底部導覽多了「口說」「攻略」兩個分頁，窄手機再縮一級避免擠壓 */
+  @media (max-width: 400px) {
+    .nav-btn-bottom { font-size: .62rem; padding: .4rem .2rem .3rem; gap: .1rem; }
+    .nav-btn-bottom .nav-icon { font-size: 1.3rem; }
+  }
 
   /* ---------- 結構拆解標籤 ---------- */
   .tag {
@@ -370,6 +375,43 @@
   }
   .src-dot { flex: 0 0 auto; font-size: .85rem; }
   .src-dot.loading { animation: weBlink 1s ease-in-out infinite; }
+
+  /* ==================== AI 口說教練 / 雅思攻略（v1.5） ==================== */
+  .sp-mode {
+    display: flex; flex-direction: column; align-items: flex-start; gap: .35rem;
+    text-align: left; padding: 1rem; border-radius: 1.25rem; background: #fff;
+    border: 2px solid var(--we-line); border-bottom-width: 4px; cursor: pointer;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .sp-mode:hover { border-color: var(--we-brand); transform: translateY(-2px); }
+  .sp-mode:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .sp-mode b { font-size: .95rem; font-weight: 800; }
+  .sp-mode small { font-size: .72rem; font-weight: 700; color: #A5A2B8; line-height: 1.35; }
+
+  .pw { display: inline-block; padding: 1px 6px; margin: 2px 3px 2px 0; border-radius: .5rem; font-weight: 800; }
+  .pw-ok    { background: #CDF7E4; color: #0F7A54; }
+  .pw-close { background: #FFF1D6; color: #96701A; }
+  .pw-miss  { background: #FFE0E6; color: #C4272C; text-decoration: underline wavy #E03E43; }
+  .pw-extra { background: #E9E7F5; color: #6E6B7D; text-decoration: line-through; }
+
+  .sp-bubble { max-width: 88%; padding: .7rem .9rem; border-radius: 1rem; font-weight: 700; font-size: .9rem; line-height: 1.5; white-space: pre-wrap; }
+  .sp-bubble-ai   { background: #EFEDF7; border: 2px solid var(--we-line); align-self: flex-start; }
+  .sp-bubble-me   { background: #E4FBF7; border: 2px solid #7FE3DA; align-self: flex-end; }
+  .sp-bubble-note { background: #FFF1D6; border: 2px solid #FFC44D; align-self: flex-start; font-size: .8rem; }
+
+  .sp-rec { display: inline-flex; align-items: center; gap: .45rem; font-weight: 800; font-size: .8rem; }
+  .sp-rec-dot { width: .7rem; height: .7rem; border-radius: 999px; background: #FF4B4B; animation: weBlink .9s ease-in-out infinite; }
+
+  .sp-timer { font-variant-numeric: tabular-nums; font-weight: 800; }
+  .sp-timer.warn { color: #E03E43; animation: weBlink .8s ease-in-out infinite; }
+
+  .sp-bar { height: .5rem; border-radius: 999px; background: #E9E7F5; overflow: hidden; }
+  .sp-bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #9B85FF, #6C4BF6); transition: width .5s ease; }
+
+  .sp-tagline { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-weight: 800; font-size: .7rem; background: #EFEDF7; color: #4F32C4; }
+  .sp-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .75rem; }
+  .sp-scroll-y { max-height: 22rem; overflow-y: auto; }
+  .sp-kv { display: flex; justify-content: space-between; gap: .75rem; font-weight: 800; font-size: .8rem; padding: .3rem 0; border-bottom: 1px dashed var(--we-line); }
 </style>
 </head>
 
@@ -401,6 +443,8 @@
         <span class="text-xl">🧠</span><span>錯題本</span>
         <span id="srs-badge-desktop" class="hidden ml-1 min-w-[22px] h-[22px] px-1 rounded-full bg-[#FF5A5F] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
       </button>
+      <button class="nav-btn" data-tab="speak"><span class="text-xl">🎤</span><span>口說教練</span></button>
+      <button class="nav-btn" data-tab="playbook"><span class="text-xl">📚</span><span>雅思攻略</span></button>
     </nav>
 
     <div class="flex items-center gap-2">
@@ -478,6 +522,31 @@
     <div id="srs-body"></div>
   </section>
 
+  <!-- ==========================================================
+       分頁 4：AI 口說教練（雅思 Speaking 備考）
+       ========================================================== -->
+  <section id="panel-speak" class="hidden">
+    <div class="text-center mb-6">
+      <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">🎤 AI 口說教練</h2>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">雅思口說隨機出題 ・ 即時糾正發音 ・ AI 評價你的想法與用字</p>
+    </div>
+    <div id="speak-ai-status" class="mb-4"></div>
+    <div id="speak-home"></div>
+    <div id="speak-stage" class="space-y-5"></div>
+    <div id="speak-history" class="mt-6"></div>
+  </section>
+
+  <!-- ==========================================================
+       分頁 5：雅思攻略（IELTS Playbook）
+       ========================================================== -->
+  <section id="panel-playbook" class="hidden">
+    <div class="text-center mb-6">
+      <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">📚 雅思攻略</h2>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">四項評分標準 ・ 高分句型 ・ 連網抓取官方資訊 ・ AI 幫你排讀書計畫</p>
+    </div>
+    <div id="playbook-body"></div>
+  </section>
+
 </main>
 
 <!-- ============================================================
@@ -493,6 +562,12 @@
   <button class="nav-btn nav-btn-bottom relative" data-tab="srs">
     <span class="nav-icon">🧠</span><span>錯題本</span>
     <span id="srs-badge-mobile" class="hidden absolute top-0 right-3 min-w-[20px] h-[20px] px-1 rounded-full bg-[#FF5A5F] text-white text-[10px] font-extrabold flex items-center justify-center">0</span>
+  </button>
+  <button class="nav-btn nav-btn-bottom" data-tab="speak">
+    <span class="nav-icon">🎤</span><span>口說</span>
+  </button>
+  <button class="nav-btn nav-btn-bottom" data-tab="playbook">
+    <span class="nav-icon">📚</span><span>攻略</span>
   </button>
 </nav>
 
@@ -1169,7 +1244,7 @@ const state = {
 
 function switchTab(tab) {
   state.activeTab = tab;
-  ['lexicon', 'quiz', 'srs'].forEach(t => {
+  ['lexicon', 'quiz', 'srs', 'speak', 'playbook'].forEach(t => {
     const panel = $('#panel-' + t);
     if (!panel) return;
     panel.classList.toggle('hidden', t !== tab);
@@ -1184,6 +1259,8 @@ function switchTab(tab) {
 
   if (tab === 'quiz') renderQuiz();
   if (tab === 'srs')  renderSRS();
+  if (tab === 'speak') renderSpeakTab();
+  if (tab === 'playbook') renderPlaybook();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   /* 把「目前在哪一頁」同步到網址的 #hash。
@@ -1202,7 +1279,7 @@ function applyHashRoute() {
   const raw = String(location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
   if (!raw) return false;
   /* 允許 #quiz、#srs、#lexicon 等寫法 */
-  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon') ? raw : null;
+  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook') ? raw : null;
   if (!tab || tab === state.activeTab) return false;
   switchTab(tab);
   return true;
@@ -4643,6 +4720,2155 @@ function renderQuickWords() {
       handleSearch();
     });
   });
+}
+
+/* =================================================================================
+   【模組五：AI 口說教練 ＋ 雅思攻略】★ v1.5 新增
+   ---------------------------------------------------------------------------------
+   設計原則：
+     1. 所有「需要 AI」的功能都必須在沒有 API 金鑰時也能降級運作（用本地題庫＋本地評分）。
+     2. 發音評分完全在本機做（用瀏覽器的語音辨識結果跟題目逐字比對），不消耗任何 API。
+     3. AI 只負責「人才能給的價值」：想法的深度評價、道地改寫、高分字彙替換、示範答案。
+     4. API 金鑰只存在使用者自己的 localStorage，永遠不會上傳到我們的伺服器（我們也沒有伺服器）。
+   ================================================================================= */
+
+/* ---------- 5-1. localStorage 鍵（另外宣告，不動到既有 LS_KEYS） ---------- */
+const LS_AI      = 'ai_settings';        // AI 供應商／金鑰／模型／自訂提示詞
+const LS_SPEAK   = 'speaking_records';   // 口說練習紀錄
+const LS_AIWORDS = 'ai_word_history';    // 用過的「AI 每日單字」
+const LS_PRONBAD = 'pron_mistakes';      // 常唸錯的字（跨場次累計）
+const LS_WEBINFO = 'ielts_web_cache';    // 線上抓回來的雅思資訊快取
+
+/* ---------- 5-2. AI 供應商（全部都是「瀏覽器直連」，不需要後端） ---------- */
+const AI_PROVIDERS = [
+  { id: 'openai',     type: 'openai',    label: 'OpenAI',                     base: 'https://api.openai.com/v1',                    model: 'gpt-4o-mini',                 keyUrl: 'https://platform.openai.com/api-keys' },
+  { id: 'gemini',     type: 'gemini',    label: 'Google Gemini（有免費額度）',  base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash',        keyUrl: 'https://aistudio.google.com/app/apikey' },
+  { id: 'groq',       type: 'openai',    label: 'Groq（超快、免費額度大）',      base: 'https://api.groq.com/openai/v1',               model: 'llama-3.3-70b-versatile',      keyUrl: 'https://console.groq.com/keys' },
+  { id: 'deepseek',   type: 'openai',    label: 'DeepSeek',                   base: 'https://api.deepseek.com/v1',                  model: 'deepseek-chat',                keyUrl: 'https://platform.deepseek.com/api_keys' },
+  { id: 'openrouter', type: 'openai',    label: 'OpenRouter（多模型聚合）',    base: 'https://openrouter.ai/api/v1',                 model: 'openai/gpt-4o-mini',           keyUrl: 'https://openrouter.ai/keys' },
+  { id: 'anthropic',  type: 'anthropic', label: 'Anthropic Claude',           base: 'https://api.anthropic.com/v1',                 model: 'claude-3-5-haiku-latest',      keyUrl: 'https://console.anthropic.com/settings/keys' },
+  { id: 'custom',     type: 'openai',    label: '自訂（任何 OpenAI 相容端點）', base: '',                                             model: '',                             keyUrl: '' }
+];
+
+/* ---------- 5-3. 預設提示詞（使用者可以在 AI 設定裡自由修改／還原） ---------- */
+const AI_DEFAULT_PROMPTS = {
+  coach: [
+    '你是 IELTS Speaking 的專業考官兼口說教練。使用者會給你「題目」與「他的回答轉錄」',
+    '（轉錄來自語音辨識，可能含錯字或漏字，請以他的真實意圖判斷，不要因為錯字扣分）。',
+    '你只能回傳一個 JSON 物件，不要有任何其他文字或 markdown 標記。格式如下：',
+    '{',
+    '  "band": 6.5,',
+    '  "scores": { "fluency": 6.5, "lexical": 6.0, "grammar": 6.5, "pronunciation": 6.0 },',
+    '  "summary": "整體評語，繁體中文 2-3 句",',
+    '  "idea": "針對他『想法與內容』的評價：論點是否具體、有沒有例子、有沒有離題、可以怎麼想得更深，繁體中文 3-4 句",',
+    '  "good": ["他做得好的地方（繁體中文）", "第二點"],',
+    '  "fix": [ { "wrong": "他說的原句（英文）", "right": "更道地的版本（英文）", "why": "為什麼（繁體中文）" } ],',
+    '  "vocab": [ { "basic": "他用的一般字", "upgrade": "建議的高分字或片語", "example": "示範句（英文）" } ],',
+    '  "pron": [ { "word": "可能唸錯的字", "ipa": "/音標/", "tip": "怎麼唸，繁體中文" } ],',
+    '  "model": "一個 7.5 分水準的示範答案（純英文，長度要符合題目要求）",',
+    '  "next": "下一步該練什麼，繁體中文一句"',
+    '}',
+    '規則：分數以 0.5 為單位、範圍 4.0-9.0；fix 最多 4 條；vocab 最多 4 條；pron 最多 5 個字；',
+    '示範答案長度要對應題型（Part 1 約 40 字、Part 2 約 200 字、Part 3 約 90 字）。'
+  ].join('\n'),
+
+  examiner: [
+    '你是 IELTS Speaking 考官。請依照指定的 Part 出題，題目風格要跟真題一致。',
+    '只回傳 JSON，不要其他文字：',
+    '{ "part": 2, "topic": "主題（繁體中文）", "questions": ["題目1(英文)", "題目2"],',
+    '  "cues": ["Part 2 專用的提示要點（英文短句）"], "advice": "這一題的回答策略（繁體中文 1-2 句）" }',
+    'Part 1：4 題生活化短題。Part 2：1 張 cue card（含 4 個 cues）。Part 3：4 題抽象討論題。'
+  ].join('\n'),
+
+  roleplay: [
+    '你是一位英語母語者，正在跟一位正在準備 IELTS 口說的學習者做角色扮演練習。',
+    '請全程用英文，每次回覆 2-4 句，語氣自然、像真人對話，並且「一定要」丟一個問題讓他繼續說。',
+    '回傳 JSON：{ "reply": "你的英文回覆", "note": "如果他的英文有明顯錯誤，用繁體中文簡短指出（沒有錯就給空字串）" }',
+    '只回傳 JSON，不要其他文字。'
+  ].join('\n'),
+
+  word: [
+    '你是 IELTS 單字教練。請挑一個「雅思口說/寫作常用、但對中級學習者偏難」的英文單字。',
+    '不可以挑選使用者提供的排除清單裡的字。',
+    '只回傳 JSON：{ "word": "小寫單字", "zh": "繁體中文意思", "ipa": "/音標/", "pos": "詞性",',
+    '  "example": "一個 IELTS 情境的例句（英文）", "collocation": "最常用的搭配（英文）",',
+    '  "why": "為什麼雅思考生該會這個字（繁體中文一句）", "synonyms": ["同義字1","同義字2"] }'
+  ].join('\n'),
+
+  plan: [
+    '你是 IELTS 備考規劃師。請根據使用者的目標分數、考試日期、每天可練習時間與弱項，',
+    '排出一個 7 天的口說＋單字衝刺計畫。只回傳 JSON：',
+    '{ "goal": "一句話總結策略（繁體中文）",',
+    '  "days": [ { "day": 1, "focus": "當天主題（繁體中文）", "minutes": 30,',
+    '              "tasks": ["具體任務1（繁體中文）", "任務2"], "speaking": "當天的口說練習指令（英文題目或任務）" } ],',
+    '  "tips": ["考前提醒1", "提醒2"] }'
+  ].join('\n')
+};
+
+/* ---------- 5-4. 雅思口說題庫（離線可用；AI 開啟時會再生成變化題） ---------- */
+const IELTS_PART1 = [
+  { topic: '工作與學習', qs: ['Do you work or are you a student?', 'What do you like most about your work or studies?', 'Would you like to change your job in the future?', 'How did you choose this subject or job?'] },
+  { topic: '家鄉與住所', qs: ['Where is your hometown?', 'What do you like about the area you live in?', 'Would you like to move to another city?', 'Is your hometown a good place for young people?'] },
+  { topic: '嗜好與休閒', qs: ['What do you usually do in your free time?', 'Do you prefer indoor or outdoor activities?', 'Have your hobbies changed since you were a child?', 'Is it important to have a hobby?'] },
+  { topic: '科技與手機', qs: ['How often do you use your phone?', 'What apps do you use most?', 'Do you think people spend too much time on screens?', 'How would your life change without the internet?'] },
+  { topic: '食物與烹飪', qs: ['Do you enjoy cooking?', 'What is a typical meal in your country?', 'Do you prefer eating at home or eating out?', 'Have your eating habits changed recently?'] },
+  { topic: '旅行與交通', qs: ['How do you usually travel around your city?', 'Do you like travelling by train?', 'What is the best trip you have ever taken?', 'Would you like to live abroad one day?'] },
+  { topic: '天氣與季節', qs: ['What is your favourite season?', 'Does the weather affect your mood?', 'Do you prefer hot or cold weather?', 'Has the weather in your city changed in recent years?'] },
+  { topic: '朋友與社交', qs: ['Do you prefer to spend time with a big group or a few friends?', 'How do you usually keep in touch with friends?', 'Is it easy to make new friends where you live?', 'What makes a good friend?'] },
+  { topic: '閱讀與媒體', qs: ['Do you read news every day?', 'Do you prefer paper books or e-books?', 'How do you usually get information?', 'Do you trust what you read online?'] },
+  { topic: '運動與健康', qs: ['Do you play any sports?', 'How do you stay healthy?', 'Do you think schools should have more PE lessons?', 'What would make people exercise more?'] }
+];
+
+const IELTS_PART2 = [
+  { topic: '人物', title: 'Describe a person who has influenced you', cues: ['who this person is', 'how you know this person', 'what qualities this person has', 'and explain why this person influenced you'] },
+  { topic: '地點', title: 'Describe a place you like to relax in', cues: ['where it is', 'how often you go there', 'what you do there', 'and explain why it helps you relax'] },
+  { topic: '物品', title: 'Describe something you bought that you were pleased with', cues: ['what it was', 'where you bought it', 'why you bought it', 'and explain why you were pleased with it'] },
+  { topic: '經驗', title: 'Describe a time when you helped someone', cues: ['who you helped', 'why they needed help', 'how you helped them', 'and explain how you felt about it'] },
+  { topic: '技能', title: 'Describe a skill you would like to learn', cues: ['what the skill is', 'why you want to learn it', 'how you would learn it', 'and explain how it would change your life'] },
+  { topic: '科技', title: 'Describe a piece of technology you find useful', cues: ['what it is', 'how you use it', 'how long you have had it', 'and explain why it is useful to you'] },
+  { topic: '活動', title: 'Describe an outdoor activity you enjoy', cues: ['what the activity is', 'where you do it', 'who you do it with', 'and explain why you enjoy it'] },
+  { topic: '計畫', title: 'Describe a goal you have set for yourself', cues: ['what the goal is', 'when you set it', 'what you are doing to reach it', 'and explain why this goal matters to you'] },
+  { topic: '文化', title: 'Describe a tradition in your country', cues: ['what the tradition is', 'when it happens', 'who takes part in it', 'and explain why it is important'] },
+  { topic: '挑戰', title: 'Describe a difficult decision you made', cues: ['what the decision was', 'what the options were', 'who you talked to about it', 'and explain why it was difficult'] }
+];
+
+const IELTS_PART3 = [
+  { topic: '教育', qs: ['How has education changed in your country in the last 20 years?', 'Should universities focus more on practical skills than on theory?', 'Do you think exams are a fair way to measure ability?', 'What role should parents play in a child\u2019s education?'] },
+  { topic: '科技與社會', qs: ['Is technology making people less social?', 'Should there be limits on how companies use personal data?', 'How might artificial intelligence change the job market?', 'Do you think everyone should have free internet access?'] },
+  { topic: '環境', qs: ['Whose responsibility is it to protect the environment?', 'Are individual actions or government policy more effective?', 'Why do some people ignore environmental problems?', 'How can cities be made greener?'] },
+  { topic: '工作與經濟', qs: ['Why do people change careers more often today?', 'Is a university degree still necessary for a good job?', 'How can governments reduce unemployment?', 'Should companies allow employees to work from home permanently?'] },
+  { topic: '城市與生活', qs: ['What makes a city a good place to live?', 'Should cities limit the number of cars?', 'How can governments make housing more affordable?', 'Are small towns better for families than big cities?'] },
+  { topic: '文化與全球化', qs: ['Does globalisation make cultures more similar?', 'Should governments protect local traditions?', 'How does tourism affect local culture?', 'Is it important to learn a foreign language today?'] },
+  { topic: '媒體', qs: ['How has social media changed the way people get news?', 'Should the media be regulated?', 'Why do fake stories spread so quickly?', 'Do you think advertising influences children too much?'] },
+  { topic: '健康', qs: ['Why are lifestyle diseases increasing?', 'Should unhealthy food be taxed?', 'How can employers support mental health?', 'Is healthcare a basic right?'] }
+];
+
+/* ---------- 5-5. 雅思攻略（離線可讀，中文撰寫） ---------- */
+const IELTS_STRATEGY = [
+  { icon: '🎯', title: '口說考試的實際流程', body: [
+    'Part 1（4–5 分鐘）：考官問你熟悉的生活題（工作、家鄉、嗜好）。每一題回答 2–3 句就好，不要背長篇稿。',
+    'Part 2（3–4 分鐘）：給你一張 cue card，1 分鐘準備、最多講 2 分鐘。這一題是分數的分水嶺。',
+    'Part 3（4–5 分鐘）：針對 Part 2 的主題追問抽象問題，考的是你能不能「論述」而不是「描述」。',
+    '全程約 11–14 分鐘，會被錄音。考官只負責問問題，不會提示你對錯。'
+  ]},
+  { icon: '📊', title: '四項評分標準（各佔 25%）', body: [
+    'Fluency & Coherence：能不能順順地講完、少停頓、句子之間有邏輯連接詞（However / That said / As a result）。',
+    'Lexical Resource：用字是否精準、有沒有搭配詞（make a decision，不是 do a decision）、會不會 paraphrase。',
+    'Grammatical Range & Accuracy：有沒有混用簡單句與複雜句（although / which / if 子句），時態對不對。',
+    'Pronunciation：不是要你去掉口音，而是要「清楚、重音正確、語調有起伏」，讓考官不用猜你在講什麼。'
+  ]},
+  { icon: '🧠', title: 'Part 2：2 分鐘獨白怎麼撐滿', body: [
+    '1 分鐘準備時，把 4 個 cues 各寫 2–3 個關鍵字，不要寫完整句子（會來不及看完）。',
+    '用「時間軸」展開：先講背景 → 中間發生什麼 → 結果與感受。這是最不容易斷的結構。',
+    '每一點都加一個細節：數字、名字、地點、時間。細節是流利度的燃料。',
+    '講到最後 15 秒還在講，比提早 40 秒結束好得多。練習時用手機計時 2 分鐘。',
+    '如果真的想不到，用「換句話說」救場：What I mean is … / To put it another way …'
+  ]},
+  { icon: '🤔', title: 'Part 3：把「描述」升級成「論述」', body: [
+    '公式：答案 → 理由 → 例子 → 但書。例如：I think … mainly because … For instance … though it depends on …',
+    '一定要有「讓步」句型：Admittedly … / While that is true, … / It is a double-edged sword.',
+    '被問到「為什麼」時，不要只講個人經驗，往上拉到社會、經濟、文化層次。',
+    '不會的字不要硬講，用解釋法：a kind of machine that …'
+  ]},
+  { icon: '🗣️', title: '發音：考官真正在意的事', body: [
+    '最影響分數的三件事：字尾子音（worked 的 /t/）、長短母音（ship / sheep）、重音位置（PHOtograph vs phoTOgraphy）。',
+    '語調要有起伏：陳述句結尾下降，列舉時前面幾項上揚。平板語調會讓 Fluency 也被扣分。',
+    '不要為了「像美國人」而刻意捲舌，清晰度比口音更重要。',
+    '每天做 5 分鐘跟讀（shadowing）：聽一句、暫停、模仿同樣的節奏與重音。'
+  ]},
+  { icon: '📚', title: '字彙：怎麼用才像高分答案', body: [
+    '少用 very / good / bad，換成 remarkably / beneficial / detrimental。',
+    '背「搭配詞」而不是單字：heavy rain、make progress、a wide range of。',
+    '同一個概念準備 3 種說法，避免整段重複同一個字。',
+    '固定片語（idioms）用在 Part 2 的結尾最自然，一題用一個就夠，硬塞反而扣分。'
+  ]},
+  { icon: '🕳️', title: '常見地雷', body: [
+    '背稿：考官聽得出來。背稿的語調平坦、遇到追問就崩。',
+    '只回答 Yes / No 或一個字，等於放棄分數。',
+    '整段只用簡單句（I like it. It is good.），Grammar 分數上不去。',
+    '講到一半自己改口太多次（I went to … no wait, I go to …），會傷 Fluency。',
+    '忽略 Part 3：很多人 Part 2 講很好，Part 3 只回兩句，總分就掉 0.5。'
+  ]}
+];
+
+/* ---------- 5-6. 高分句型與字彙替換 ---------- */
+const IELTS_LINKERS = [
+  { en: 'To be honest,', zh: '老實說，', use: '開場' },
+  { en: 'As far as I am concerned,', zh: '就我而言，', use: '表達立場' },
+  { en: 'It is worth mentioning that', zh: '值得一提的是', use: '補充' },
+  { en: 'Having said that,', zh: '話雖如此，', use: '讓步' },
+  { en: 'Admittedly,', zh: '誠然，', use: '讓步' },
+  { en: 'As a result,', zh: '因此，', use: '結果' },
+  { en: 'This is largely because', zh: '這主要是因為', use: '原因' },
+  { en: 'For instance,', zh: '例如，', use: '舉例' },
+  { en: 'To put it another way,', zh: '換句話說，', use: '改述' },
+  { en: 'From a broader perspective,', zh: '從更宏觀的角度看，', use: '拉高層次' },
+  { en: 'It depends on the context, but', zh: '這取決於情境，但', use: '保留' },
+  { en: 'What matters most is', zh: '最重要的是', use: '收斂' }
+];
+
+const IELTS_UPGRADE = [
+  { basic: 'very good',   better: 'outstanding / remarkable',   note: '比 very good 高一階' },
+  { basic: 'very bad',    better: 'appalling / dreadful',        note: '語氣更強' },
+  { basic: 'a lot of',    better: 'a considerable amount of',    note: '書面感、口說也自然' },
+  { basic: 'I think',     better: 'I would argue that',          note: '更有論述感' },
+  { basic: 'important',   better: 'crucial / pivotal',           note: '替換高頻字' },
+  { basic: 'big problem', better: 'a pressing issue',            note: 'Part 3 好用' },
+  { basic: 'get better',  better: 'improve markedly',            note: '副詞加分' },
+  { basic: 'people',      better: 'individuals / the general public', note: '避免重複' },
+  { basic: 'nowadays',    better: 'in recent years / these days', note: '輪替使用' },
+  { basic: 'help',        better: 'facilitate / be conducive to', note: '動詞升級' }
+];
+
+const IELTS_IDIOMS = [
+  { en: 'a double-edged sword',    zh: '雙面刃',            ex: 'Social media is a double-edged sword.' },
+  { en: 'a blessing in disguise',  zh: '因禍得福',          ex: 'Losing that job was a blessing in disguise.' },
+  { en: 'to be on the same page',  zh: '有共識',            ex: 'We are finally on the same page about the plan.' },
+  { en: 'to think outside the box', zh: '跳脫框架思考',     ex: 'Schools should encourage students to think outside the box.' },
+  { en: 'a grey area',             zh: '灰色地帶',          ex: 'Data privacy is still a grey area.' },
+  { en: 'to bear in mind',         zh: '謹記',              ex: 'Bear in mind that not everyone has internet access.' },
+  { en: 'to come to terms with',   zh: '接受（難以接受的事）', ex: 'It took me years to come to terms with the change.' },
+  { en: 'the tip of the iceberg',  zh: '冰山一角',          ex: 'These figures are just the tip of the iceberg.' },
+  { en: 'to strike a balance',     zh: '取得平衡',          ex: 'We need to strike a balance between work and rest.' },
+  { en: 'a stepping stone',        zh: '踏腳石',            ex: 'That internship was a stepping stone to my career.' }
+];
+
+/* ---------- 5-7. 發音特訓素材 ---------- */
+const PRON_MINIMAL_PAIRS = [
+  { a: 'ship', b: 'sheep', tip: '/ɪ/ 短而鬆 vs /iː/ 長而緊' },
+  { a: 'bit', b: 'beat', tip: '同樣是長短母音的差別' },
+  { a: 'cat', b: 'cut', tip: '/æ/ 嘴巴張大 vs /ʌ/ 放鬆' },
+  { a: 'bad', b: 'bed', tip: '/æ/ vs /e/，台灣學生最常混' },
+  { a: 'thin', b: 'sin', tip: '/θ/ 舌尖要伸出牙齒' },
+  { a: 'three', b: 'free', tip: '/θ/ vs /f/' },
+  { a: 'very', b: 'wary', tip: '/v/ 上牙咬下唇、有震動' },
+  { a: 'rice', b: 'lice', tip: '/r/ 舌尖不碰牙齒' },
+  { a: 'work', b: 'walk', tip: '/ɜː/ vs /ɔː/' },
+  { a: 'full', b: 'fool', tip: '/ʊ/ vs /uː/' },
+  { a: 'live', b: 'leave', tip: '短音 vs 長音，意思完全不同' },
+  { a: 'desert', b: 'dessert', tip: '重音位置不同：DESert / deSSERT' }
+];
+
+const PRON_TWISTERS = [
+  'She sells seashells by the seashore.',
+  'The thirty-three thieves thought that they thrilled the throne throughout Thursday.',
+  'Red lorry, yellow lorry, red lorry, yellow lorry.',
+  'I thought a thought, but the thought I thought was not the thought I thought I thought.',
+  'World wide web, world wide web, world wide web.',
+  'Three thin thinkers thinking thick thoughtful thoughts.',
+  'Fresh fried fish, fish fresh fried.',
+  'A proper copper coffee pot.'
+];
+
+const PRON_WORDS = [
+  { w: 'thorough', zh: '徹底的', tip: '/ˈθʌrə/ — th 要咬舌，最後是弱化母音' },
+  { w: 'entrepreneur', zh: '創業者', tip: '/ˌɒntrəprəˈnɜː/ — 重音在最後' },
+  { w: 'comfortable', zh: '舒適的', tip: '/ˈkʌmftəbl/ — 中間的 or 幾乎不發音' },
+  { w: 'recipe', zh: '食譜', tip: '/ˈresəpi/ — 不是 re-CIPE' },
+  { w: 'receipt', zh: '收據', tip: '/rɪˈsiːt/ — p 不發音' },
+  { w: 'colleague', zh: '同事', tip: '/ˈkɒliːɡ/ — 重音在第一音節' },
+  { w: 'photography', zh: '攝影', tip: '/fəˈtɒɡrəfi/ — 重音在第二音節' },
+  { w: 'vegetable', zh: '蔬菜', tip: '/ˈvedʒtəbl/ — 只發三個音節' },
+  { w: 'clothes', zh: '衣服', tip: '/kləʊðz/ — 不要唸成 clo-thes' },
+  { w: 'island', zh: '島', tip: '/ˈaɪlənd/ — s 不發音' },
+  { w: 'queue', zh: '排隊', tip: '/kjuː/ — 只發一個音' },
+  { w: 'necessary', zh: '必要的', tip: '/ˈnesəsəri/ — 別漏掉中間的音節' },
+  { w: 'development', zh: '發展', tip: '/dɪˈveləpmənt/ — 重音在第二音節' },
+  { w: 'environment', zh: '環境', tip: '/ɪnˈvaɪrənmənt/ — n 要發出來' },
+  { w: 'technology', zh: '科技', tip: '/tekˈnɒlədʒi/ — 重音在第二音節' },
+  { w: 'opportunity', zh: '機會', tip: '/ˌɒpəˈtjuːnəti/ — 五個音節都要清楚' }
+];
+
+const PRON_SHADOW = [
+  { en: 'I have been living in this city for about ten years now.', zh: '我在這座城市住了大約十年。' },
+  { en: 'What I find most striking is how quickly things have changed.', zh: '我覺得最驚人的是變化之快。' },
+  { en: 'It is a double-edged sword, to be honest with you.', zh: '老實說，這是一把雙面刃。' },
+  { en: 'As far as I am concerned, the benefits clearly outweigh the drawbacks.', zh: '就我而言，好處明顯多於壞處。' },
+  { en: 'There is no denying that technology has made our lives more convenient.', zh: '不可否認，科技讓生活更方便了。' },
+  { en: 'I would argue that governments should invest more in public transport.', zh: '我認為政府應該投資更多在公共運輸上。' },
+  { en: 'One thing that really stands out to me is the sense of community.', zh: '最讓我印象深刻的是那種社群感。' },
+  { en: 'If I had more free time, I would probably take up photography.', zh: '如果我有更多空閒，我大概會去學攝影。' },
+  { en: 'That is a tricky question, but I will try to answer it briefly.', zh: '這問題有點難，我試著簡短回答。' },
+  { en: 'Looking back, I think it was a blessing in disguise.', zh: '回頭看，我覺得那是因禍得福。' }
+];
+
+/* ---------- 5-8. 離線可用的「AI 每日單字」候選（AI 關閉時會從這裡挑，並自動避開既有題庫） ---------- */
+const AI_WORD_SEED = [
+  { w: 'ubiquitous', zh: '無所不在的' }, { w: 'meticulous', zh: '一絲不苟的' },
+  { w: 'pragmatic', zh: '務實的' }, { w: 'ambiguous', zh: '模稜兩可的' },
+  { w: 'compelling', zh: '極具說服力的' }, { w: 'detrimental', zh: '有害的' },
+  { w: 'feasible', zh: '可行的' }, { w: 'inherent', zh: '固有的' },
+  { w: 'intricate', zh: '錯綜複雜的' }, { w: 'lucrative', zh: '有利可圖的' },
+  { w: 'mitigate', zh: '減輕、緩和' }, { w: 'nuance', zh: '細微差異' },
+  { w: 'paramount', zh: '至關重要的' }, { w: 'plausible', zh: '似乎合理的' },
+  { w: 'proliferation', zh: '激增、擴散' }, { w: 'resilient', zh: '有韌性的' },
+  { w: 'scrutiny', zh: '嚴格審視' }, { w: 'tangible', zh: '具體可見的' },
+  { w: 'viable', zh: '可行的' }, { w: 'advocate', zh: '提倡、倡導' },
+  { w: 'alleviate', zh: '緩解' }, { w: 'coherent', zh: '連貫的' },
+  { w: 'deteriorate', zh: '惡化' }, { w: 'exacerbate', zh: '使惡化' },
+  { w: 'facilitate', zh: '促進、使便利' }, { w: 'hierarchy', zh: '階層體系' },
+  { w: 'incentive', zh: '誘因、動機' }, { w: 'juxtapose', zh: '並置對比' },
+  { w: 'negligible', zh: '微不足道的' }, { w: 'obsolete', zh: '過時的' },
+  { w: 'perceive', zh: '察覺、認為' }, { w: 'prevail', zh: '盛行、佔上風' },
+  { w: 'redundant', zh: '多餘的' }, { w: 'scrutinise', zh: '仔細檢查' },
+  { w: 'subsequent', zh: '隨後的' }, { w: 'susceptible', zh: '易受影響的' },
+  { w: 'unprecedented', zh: '前所未有的' }, { w: 'versatile', zh: '多才多藝的、多用途的' },
+  { w: 'vulnerable', zh: '脆弱的' }, { w: 'widespread', zh: '普遍的' },
+  { w: 'accommodate', zh: '容納、配合' }, { w: 'accumulate', zh: '累積' },
+  { w: 'adjacent', zh: '鄰近的' }, { w: 'aesthetic', zh: '美感的' },
+  { w: 'allocate', zh: '分配' }, { w: 'analogy', zh: '類比' },
+  { w: 'articulate', zh: '清晰表達' }, { w: 'assumption', zh: '假設' },
+  { w: 'attribute', zh: '歸因於、特質' }, { w: 'coincide', zh: '同時發生' },
+  { w: 'complement', zh: '補充、相輔相成' }, { w: 'conducive', zh: '有助於…的' },
+  { w: 'consecutive', zh: '連續的' }, { w: 'contradict', zh: '反駁、矛盾' },
+  { w: 'converge', zh: '匯聚' }, { w: 'counterpart', zh: '對應的人或物' },
+  { w: 'culminate', zh: '達到高潮、告終' }, { w: 'deficient', zh: '不足的' },
+  { w: 'deviate', zh: '偏離' }, { w: 'discrepancy', zh: '不一致' },
+  { w: 'disparity', zh: '差距' }, { w: 'empirical', zh: '實證的' },
+  { w: 'encompass', zh: '包含' }, { w: 'endeavour', zh: '努力' },
+  { w: 'equilibrium', zh: '平衡' }, { w: 'explicit', zh: '明確的' },
+  { w: 'fluctuate', zh: '波動' }, { w: 'formulate', zh: '制定、構思' },
+  { w: 'implication', zh: '含意、影響' }, { w: 'incremental', zh: '漸進的' },
+  { w: 'indispensable', zh: '不可或缺的' }, { w: 'inevitable', zh: '不可避免的' },
+  { w: 'infrastructure', zh: '基礎建設' }, { w: 'integral', zh: '不可或缺的' },
+  { w: 'intervene', zh: '介入' }, { w: 'leveraging', zh: '善用、槓桿運用' },
+  { w: 'mandatory', zh: '強制的' }, { w: 'notion', zh: '概念、想法' },
+  { w: 'optimise', zh: '最佳化' }, { w: 'outweigh', zh: '超過、勝過' },
+  { w: 'paradigm', zh: '典範' }, { w: 'pervasive', zh: '瀰漫的、普遍的' },
+  { w: 'prevalent', zh: '盛行的' }, { w: 'proficient', zh: '精通的' },
+  { w: 'proponent', zh: '支持者' }, { w: 'rationale', zh: '理由、根據' },
+  { w: 'reciprocal', zh: '互惠的' }, { w: 'reinforce', zh: '強化' },
+  { w: 'stagnant', zh: '停滯的' }, { w: 'subsidise', zh: '補貼' },
+  { w: 'sustainable', zh: '永續的' }, { w: 'tackle', zh: '應對、處理' },
+  { w: 'transparent', zh: '透明的' }, { w: 'underpin', zh: '支撐、構成基礎' },
+  { w: 'utilise', zh: '利用' }, { w: 'verify', zh: '驗證' }
+];
+
+/* =================================================================================
+   5-9. AI 設定與呼叫層（瀏覽器直連；沒有後端，金鑰只留在你自己的 localStorage）
+   ================================================================================= */
+function aiDefaults() {
+  return { provider: 'openai', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
+}
+function aiGetSettings() {
+  const d = aiDefaults();
+  const s = lsGet(LS_AI, null);
+  if (!s || typeof s !== 'object') return d;
+  return {
+    provider: s.provider || d.provider,
+    apiKey: typeof s.apiKey === 'string' ? s.apiKey : '',
+    base: typeof s.base === 'string' ? s.base : '',
+    model: typeof s.model === 'string' ? s.model : '',
+    temperature: (typeof s.temperature === 'number') ? s.temperature : d.temperature,
+    maxTokens: (typeof s.maxTokens === 'number') ? s.maxTokens : d.maxTokens,
+    prompts: (s.prompts && typeof s.prompts === 'object') ? s.prompts : {}
+  };
+}
+function aiSaveSettings(s) { return lsSet(LS_AI, s); }
+function aiProvider(id) { return AI_PROVIDERS.find(function (p) { return p.id === id; }) || AI_PROVIDERS[0]; }
+function aiBase(s) { return String((s.base || aiProvider(s.provider).base || '')).replace(/\/+$/, ''); }
+function aiModel(s) { return s.model || aiProvider(s.provider).model || ''; }
+function aiPrompt(key) {
+  const s = aiGetSettings();
+  const custom = s.prompts ? s.prompts[key] : '';
+  if (typeof custom === 'string' && custom.trim()) return custom;
+  return AI_DEFAULT_PROMPTS[key] || '';
+}
+function aiIsReady() {
+  const s = aiGetSettings();
+  return !!(s.apiKey && aiBase(s) && aiModel(s));
+}
+function aiKeyHint() {
+  const s = aiGetSettings();
+  if (!s.apiKey) return '尚未設定 API 金鑰';
+  return aiModel(s) + '（' + s.apiKey.slice(0, 6) + '…' + s.apiKey.slice(-4) + '）';
+}
+
+function aiHttpError(status, data) {
+  const msg = (data && data.error && (data.error.message || data.error.status)) || (data && data.message) || '';
+  if (status === 401 || status === 403) return new Error('API 金鑰無效或被拒絕（HTTP ' + status + '）。' + msg);
+  if (status === 429) return new Error('超過 API 額度或速率限制（HTTP 429）。稍後再試或換一個供應商。' + msg);
+  if (status === 404) return new Error('找不到模型或端點（HTTP 404）。請檢查模型名稱與 Base URL。' + msg);
+  return new Error('AI 服務回傳錯誤（HTTP ' + status + '）。' + msg);
+}
+
+/** 呼叫 AI，回傳純文字；失敗時丟出中文錯誤 */
+async function aiChat(messages, opts) {
+  const o = opts || {};
+  const s = aiGetSettings();
+  if (!s.apiKey) throw new Error('尚未設定 API 金鑰，請先點「🤖 AI 設定」。');
+  const base = aiBase(s), model = aiModel(s), type = aiProvider(s.provider).type;
+  const temperature = (typeof o.temperature === 'number') ? o.temperature : s.temperature;
+  const maxTokens = o.maxTokens || s.maxTokens || 1200;
+  const sys = o.system || '';
+  const timeoutMs = o.timeoutMs || 90000;
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs);
+  try {
+    let res, data, text = '';
+    if (type === 'gemini') {
+      const contents = messages.map(function (m) {
+        return { role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] };
+      });
+      const body = { contents: contents, generationConfig: { temperature: temperature, maxOutputTokens: maxTokens } };
+      if (sys) body.systemInstruction = { parts: [{ text: sys }] };
+      res = await fetch(base + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(s.apiKey), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+      });
+      data = await res.json().catch(function () { return null; });
+      if (!res.ok) throw aiHttpError(res.status, data);
+      const cand = data && data.candidates && data.candidates[0];
+      const parts = (cand && cand.content && cand.content.parts) || [];
+      text = parts.map(function (p) { return p.text || ''; }).join('');
+      if (!text) throw new Error('AI 沒有回傳內容（可能被安全設定擋下）。');
+      return text;
+    }
+    if (type === 'anthropic') {
+      const body = { model: model, max_tokens: maxTokens, temperature: temperature,
+        messages: messages.map(function (m) {
+          return { role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content };
+        }) };
+      if (sys) body.system = sys;
+      res = await fetch(base + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey,
+          'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+      });
+      data = await res.json().catch(function () { return null; });
+      if (!res.ok) throw aiHttpError(res.status, data);
+      text = ((data && data.content) || []).map(function (b) { return b.text || ''; }).join('');
+      if (!text) throw new Error('AI 沒有回傳內容。');
+      return text;
+    }
+    const msgs = sys ? [{ role: 'system', content: sys }].concat(messages) : messages;
+    res = await fetch(base + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.apiKey },
+      body: JSON.stringify({ model: model, messages: msgs, temperature: temperature, max_tokens: maxTokens }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    data = await res.json().catch(function () { return null; });
+    if (!res.ok) throw aiHttpError(res.status, data);
+    text = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    if (!text) throw new Error('AI 沒有回傳內容。');
+    return text;
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw new Error('AI 回應逾時（' + Math.round(timeoutMs / 1000) + ' 秒），請確認網路或換一個模型。');
+    if (err instanceof TypeError) throw new Error('連線失敗：可能被 CORS 擋下、金鑰錯誤或網路中斷。請確認 Base URL 與供應商相符。');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 從模型回覆挖出 JSON（允許 ```json 包裹或前後夾雜說明） */
+function aiParseJson(text) {
+  if (!text) return null;
+  let t = String(text).trim();
+  t = t.replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+  try { return JSON.parse(t); } catch (e) { /* 再試 */ }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch (e2) { /* 放棄 */ } }
+  return null;
+}
+
+/* =================================================================================
+   5-10. 發音評分引擎（純本機運算，零 API 消耗）
+   ================================================================================= */
+function pronNorm(text) {
+  return String(text || '').toLowerCase()
+    .replace(/[\u2018\u2019\u02bc]/g, "'")
+    .replace(/[^a-z0-9'\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function pronSplit(text) {
+  const n = pronNorm(text);
+  return n ? n.split(' ') : [];
+}
+
+/** 極簡 Soundex：用來判斷「聽起來接近」的字（例如 weather / wether） */
+function pronSoundex(w) {
+  const s = String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!s) return '';
+  const map = { b: '1', f: '1', p: '1', v: '1', c: '2', g: '2', j: '2', k: '2', q: '2', s: '2', x: '2', z: '2',
+                d: '3', t: '3', l: '4', m: '5', n: '5', r: '6' };
+  let out = s.charAt(0).toUpperCase();
+  let last = map[s.charAt(0)] || '';
+  for (let i = 1; i < s.length && out.length < 4; i++) {
+    const code = map[s.charAt(i)] || '';
+    if (code && code !== last) out += code;
+    last = code;
+  }
+  while (out.length < 4) out += '0';
+  return out;
+}
+
+/** 逐字對齊（回傳操作序列，用於標示哪個字唸對／唸錯／漏唸） */
+function pronAlign(target, heard) {
+  const n = target.length, m = heard.length;
+  const dp = [];
+  for (let i = 0; i <= n; i++) {
+    dp.push(new Array(m + 1));
+    dp[i][0] = i;
+  }
+  for (let j = 0; j <= m; j++) dp[0][j] = j;
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const cost = (target[i - 1] === heard[j - 1]) ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  const ops = [];
+  let i = n, j = m, guard = 0;
+  while ((i > 0 || j > 0) && guard++ < 2000) {
+    if (i > 0 && j > 0) {
+      const cost = (target[i - 1] === heard[j - 1]) ? 0 : 1;
+      if (dp[i][j] === dp[i - 1][j - 1] + cost) {
+        ops.push({ type: cost === 0 ? 'ok' : 'sub', t: target[i - 1], h: heard[j - 1] });
+        i--; j--;
+        continue;
+      }
+    }
+    if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) { ops.push({ type: 'miss', t: target[i - 1], h: '' }); i--; continue; }
+    if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) { ops.push({ type: 'extra', t: '', h: heard[j - 1] }); j--; continue; }
+    break;
+  }
+  ops.reverse();
+  return ops;
+}
+
+/**
+ * 比對「應該唸的內容」與「語音辨識聽到的內容」
+ * @returns { score, words:[{word,status,heard}], extras:[字], ok, close, miss }
+ */
+function pronScore(targetText, heardText) {
+  const target = pronSplit(targetText);
+  const heard = pronSplit(heardText);
+  const ops = pronAlign(target, heard);
+  const words = [];
+  const extras = [];
+  let got = 0, ok = 0, close = 0, miss = 0;
+  ops.forEach(function (op) {
+    if (op.type === 'extra') { extras.push(op.h); return; }
+    let status = 'ok';
+    if (op.type === 'ok') { ok++; got += 1; }
+    else if (op.type === 'sub') {
+      const d = levenshtein(op.t, op.h, 5);
+      const near = d <= 1 ||
+        (Math.abs(op.t.length - op.h.length) <= 2 && op.t.slice(0, 3) === op.h.slice(0, 3)) ||
+        pronSoundex(op.t) === pronSoundex(op.h);
+      if (near) { status = 'close'; close++; got += 0.5; } else { status = 'miss'; miss++; }
+    } else { status = 'miss'; miss++; }
+    words.push({ word: op.t, status: status, heard: op.h });
+  });
+  const denom = words.length || 1;
+  return { score: Math.round(100 * got / denom), words: words, extras: extras, ok: ok, close: close, miss: miss };
+}
+
+/** 把逐字結果畫成 HTML（綠=對、黃=接近、紅=錯） */
+function pronWordsHtml(words, extras) {
+  let html = words.map(function (w) {
+    const cls = w.status === 'ok' ? 'pw pw-ok' : (w.status === 'close' ? 'pw pw-close' : 'pw pw-miss');
+    const title = w.status === 'ok' ? '唸對了' : ('聽到的是：' + (w.heard || '（沒聽到）'));
+    return '<span class="' + cls + '" title="' + esc(title) + '">' + esc(w.word) + '</span>';
+  }).join('');
+  if (extras && extras.length) {
+    html += ' <span class="text-xs font-bold text-[#A5A2B8]">（多出來的字：' +
+      extras.map(function (x) { return '<span class="pw pw-extra">' + esc(x) + '</span>'; }).join('') + '）</span>';
+  }
+  return html;
+}
+
+/* =================================================================================
+   5-11. 語音辨識與朗讀（Web Speech API；Chrome / Edge 支援，其他瀏覽器會提示）
+   ================================================================================= */
+function speechRecAvailable() {
+  return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+function speechSynthAvailable() {
+  return typeof window !== 'undefined' && ('speechSynthesis' in window);
+}
+
+/**
+ * 啟動一次語音辨識
+ * @param {object} opts { lang, continuous, onInterim(text), onFinal(text), onError(code), onEnd(text) }
+ * @returns {object|null} { stop() }
+ */
+function startRecognition(opts) {
+  const o = opts || {};
+  const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Ctor) { if (o.onError) o.onError('unsupported'); return null; }
+  let rec;
+  try { rec = new Ctor(); } catch (e) { if (o.onError) o.onError('init-failed'); return null; }
+  rec.lang = o.lang || 'en-US';
+  rec.interimResults = true;
+  rec.continuous = !!o.continuous;
+  rec.maxAlternatives = 1;
+  let finalText = '';
+  let stopped = false;
+  rec.onresult = function (ev) {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      const txt = r[0] ? r[0].transcript : '';
+      if (r.isFinal) finalText += (finalText ? ' ' : '') + String(txt).trim();
+      else interim += txt;
+    }
+    if (o.onInterim) o.onInterim((finalText + ' ' + interim).trim());
+  };
+  rec.onerror = function (ev) {
+    const code = (ev && ev.error) || 'error';
+    if (o.onError) o.onError(code);
+  };
+  rec.onend = function () {
+    stopped = true;
+    if (o.onEnd) o.onEnd(finalText.trim());
+  };
+  try { rec.start(); } catch (e) { if (o.onError) o.onError('start-failed'); return null; }
+  return {
+    stop: function () { try { if (!stopped) rec.stop(); } catch (e) { /* 忽略 */ } },
+    abort: function () { try { rec.abort(); } catch (e) { /* 忽略 */ } }
+  };
+}
+
+function speechErrZh(code) {
+  const map = {
+    'unsupported': '這個瀏覽器不支援語音辨識（請用 Chrome 或 Edge）。你可以改成「手動輸入」你說的內容。',
+    'not-allowed': '麥克風權限被拒絕。請在網址列左邊的鎖頭圖示允許麥克風，或改用手動輸入。',
+    'service-not-allowed': '系統層級不允許語音辨識（Android WebView 常見）。請改用 Chrome 開啟本 App。',
+    'audio-capture': '找不到麥克風。請確認裝置有麥克風，或改用手動輸入。',
+    'no-speech': '沒有聽到聲音，請再試一次。',
+    'network': '語音辨識需要網路連線，請確認網路後再試。',
+    'aborted': '辨識已中止。'
+  };
+  return map[code] || ('語音辨識失敗（' + code + '）。你可以改用手動輸入。');
+}
+
+/** 沒有 AI 也能給的基本回饋：字數、語速、填充詞、連接詞、重複率 */
+function speechStats(text, seconds) {
+  const w = pronSplit(text);
+  const total = w.length;
+  const uniq = {};
+  w.forEach(function (x) { uniq[x] = (uniq[x] || 0) + 1; });
+  const uniqueCount = Object.keys(uniq).length;
+  const fillers = w.filter(function (x) { return ['um', 'uh', 'er', 'erm', 'ah', 'hmm', 'mmm'].indexOf(x) >= 0; }).length;
+  const hedges = (pronNorm(text).match(/\b(you know|i mean|kind of|sort of)\b/g) || []).length;
+  const linkers = [];
+  IELTS_LINKERS.forEach(function (l) {
+    const head = pronNorm(l.en).split(' ').slice(0, 2).join(' ');
+    if (head && pronNorm(text).indexOf(head) >= 0) linkers.push(l.en);
+  });
+  const repeated = Object.keys(uniq).filter(function (k) { return uniq[k] >= 4 && k.length > 3; })
+    .sort(function (a, b) { return uniq[b] - uniq[a]; }).slice(0, 5);
+  return {
+    words: total,
+    wpm: seconds > 0 ? Math.round(total / (seconds / 60)) : 0,
+    unique: uniqueCount,
+    variety: total ? Math.round(100 * uniqueCount / total) : 0,
+    fillers: fillers,
+    hedges: hedges,
+    linkers: linkers,
+    repeated: repeated
+  };
+}
+
+/* =================================================================================
+   5-12. 共用小工具
+   ================================================================================= */
+function spPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function spShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function spFmtTime(sec) {
+  const s = Math.max(0, Math.round(sec));
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+function spScoreColor(pct) {
+  if (pct >= 85) return '#0F7A54';
+  if (pct >= 65) return '#00B4A6';
+  if (pct >= 45) return '#96701A';
+  return '#E03E43';
+}
+function spBandBar(label, value) {
+  const pct = Math.max(0, Math.min(100, Math.round((value - 3) / 6 * 100)));
+  return '<div class="mb-2">' +
+    '<div class="flex justify-between text-xs font-extrabold mb-1"><span>' + esc(label) + '</span><span>' + (value || 0) + '</span></div>' +
+    '<div class="sp-bar"><i style="width:' + pct + '%"></i></div></div>';
+}
+function spGetRecords() {
+  const r = lsGet(LS_SPEAK, []);
+  return Array.isArray(r) ? r : [];
+}
+function spSaveRecord(rec) {
+  const all = spGetRecords();
+  all.push(rec);
+  while (all.length > 200) all.shift();
+  lsSet(LS_SPEAK, all);
+  spBumpXp(rec && rec.xp ? rec.xp : 5);
+}
+function spGetXp() {
+  const s = lsGet('speaking_xp', { xp: 0, days: [] });
+  return (s && typeof s.xp === 'number') ? s : { xp: 0, days: [] };
+}
+function spBumpXp(n) {
+  const s = spGetXp();
+  s.xp = (s.xp || 0) + (n || 0);
+  const today = todayKey();
+  if (!Array.isArray(s.days)) s.days = [];
+  if (s.days.indexOf(today) < 0) s.days.push(today);
+  while (s.days.length > 400) s.days.shift();
+  lsSet('speaking_xp', s);
+}
+function spStreak() {
+  const s = spGetXp();
+  const days = (s.days || []).slice().sort();
+  if (!days.length) return 0;
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 400; i++) {
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (days.indexOf(key) >= 0) { streak++; d.setDate(d.getDate() - 1); }
+    else if (i === 0) { d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+function spLevel(xp) { return Math.floor((xp || 0) / 100) + 1; }
+
+/** 把常唸錯的字累計起來（用於「我的弱點」與一鍵加入錯題本） */
+function spLogPronWords(words) {
+  if (!words || !words.length) return;
+  const db = lsGet(LS_PRONBAD, {});
+  const store = (db && typeof db === 'object' && !Array.isArray(db)) ? db : {};
+  words.forEach(function (w) {
+    const k = String(w).toLowerCase();
+    if (!k) return;
+    store[k] = (store[k] || 0) + 1;
+  });
+  lsSet(LS_PRONBAD, store);
+}
+function spTopPronWords(n) {
+  const db = lsGet(LS_PRONBAD, {});
+  if (!db || typeof db !== 'object' || Array.isArray(db)) return [];
+  return Object.keys(db).map(function (k) { return { word: k, count: db[k] }; })
+    .sort(function (a, b) { return b.count - a.count; }).slice(0, n || 12);
+}
+
+/* =================================================================================
+   5-13. AI 設定彈窗（供應商／金鑰／模型／提示詞）
+   ================================================================================= */
+function openAiSettings() {
+  const s = aiGetSettings();
+  const existing = document.getElementById('ai-settings-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ai-settings-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(40,36,60,.55);z-index:120;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
+
+  const provOptions = AI_PROVIDERS.map(function (p) {
+    return '<option value="' + p.id + '"' + (p.id === s.provider ? ' selected' : '') + '>' + esc(p.label) + '</option>';
+  }).join('');
+
+  const promptKeys = [
+    { k: 'coach', label: '🎯 口說評分教練（最重要）' },
+    { k: 'examiner', label: '📝 出題考官' },
+    { k: 'roleplay', label: '🎭 角色扮演對話' },
+    { k: 'word', label: '📚 每日單字出題' },
+    { k: 'plan', label: '🗓️ 讀書計畫規劃' }
+  ];
+  const promptBoxes = promptKeys.map(function (p) {
+    const val = (s.prompts && s.prompts[p.k]) ? s.prompts[p.k] : AI_DEFAULT_PROMPTS[p.k];
+    const isCustom = !!(s.prompts && s.prompts[p.k]);
+    return '<details class="mt-2 we-card-flat p-3">' +
+      '<summary class="cursor-pointer text-sm font-extrabold text-[#4F32C4] select-none">' + p.label +
+        (isCustom ? ' <span class="sp-tagline">已自訂</span>' : ' <span class="sp-tagline">預設</span>') + '</summary>' +
+      '<textarea data-prompt="' + p.k + '" rows="8" class="we-input sp-code mt-2 w-full" style="resize:vertical">' + esc(val) + '</textarea>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm mt-2" data-prompt-reset="' + p.k + '">↩️ 還原這個提示詞</button>' +
+      '</details>';
+  }).join('');
+
+  const prov = aiProvider(s.provider);
+  overlay.innerHTML = '' +
+    '<div class="we-card p-5" style="max-width:44rem;width:100%;margin:1rem 0 4rem">' +
+      '<div class="flex items-start justify-between gap-3 mb-3">' +
+        '<div>' +
+          '<h3 class="font-extrabold text-xl">🤖 AI 設定</h3>' +
+          '<p class="text-xs font-bold text-[#A5A2B8] mt-1">金鑰只存在你自己的裝置（localStorage），直接從瀏覽器連到 AI 供應商，不會經過我們的伺服器。</p>' +
+        '</div>' +
+        '<button class="text-2xl leading-none opacity-50 hover:opacity-100" data-ai-close>✕</button>' +
+      '</div>' +
+
+      '<div class="p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D] text-xs font-extrabold text-[#96701A] leading-relaxed mb-4">' +
+        '⚠️ 提醒：API 金鑰等於你的錢包。請用「有設定花費上限」的金鑰，不要用主帳號的萬用金鑰。<br>' +
+        '本 App 沒有任何後端，金鑰不會離開這台裝置；但如果你把網頁放在公開網路，請不要在公用電腦上輸入金鑰。' +
+      '</div>' +
+
+      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">供應商</label>' +
+      '<select id="ai-provider" class="we-input w-full mb-3">' + provOptions + '</select>' +
+
+      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">API Base URL</label>' +
+      '<input id="ai-base" class="we-input w-full mb-3 sp-code" value="' + esc(s.base || prov.base) + '" placeholder="https://api.openai.com/v1">' +
+
+      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">模型名稱</label>' +
+      '<input id="ai-model" class="we-input w-full mb-3 sp-code" value="' + esc(s.model || prov.model) + '" placeholder="gpt-4o-mini">' +
+
+      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">API 金鑰</label>' +
+      '<div class="flex gap-2 mb-1">' +
+        '<input id="ai-key" type="password" class="we-input flex-1 sp-code" value="' + esc(s.apiKey) + '" placeholder="貼上你的 API Key" autocomplete="off" spellcheck="false">' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="ai-key-eye">👁️</button>' +
+      '</div>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mb-3">' +
+        (prov.keyUrl ? '申請金鑰：<a class="text-[#6C4BF6] underline" target="_blank" rel="noopener" href="' + prov.keyUrl + '">' + esc(prov.label) + '</a>' : '請填入你的端點與模型名稱。') +
+      '</p>' +
+
+      '<div class="grid grid-cols-2 gap-3 mb-4">' +
+        '<div><label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">溫度（0-1，越低越嚴謹）</label>' +
+          '<input id="ai-temp" type="number" min="0" max="1" step="0.1" class="we-input w-full" value="' + s.temperature + '"></div>' +
+        '<div><label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">最大回覆長度</label>' +
+          '<input id="ai-max" type="number" min="200" max="8000" step="100" class="we-input w-full" value="' + s.maxTokens + '"></div>' +
+      '</div>' +
+
+      '<div class="flex flex-wrap gap-2 mb-4">' +
+        '<button class="we-btn we-btn-sm" id="ai-test">🔌 測試連線</button>' +
+        '<button class="we-btn we-btn-sm" id="ai-save">💾 儲存設定</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="ai-clear-key">🗑️ 清除金鑰</button>' +
+      '</div>' +
+      '<div id="ai-test-out" class="text-sm font-extrabold mb-4"></div>' +
+
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mb-1">提示詞（決定 AI 的角色與輸出格式；想改風格就改這裡）</p>' +
+      promptBoxes +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  const close = function () { overlay.remove(); spRenderStatus(); };
+  overlay.querySelector('[data-ai-close]').addEventListener('click', close);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+  const provSel = overlay.querySelector('#ai-provider');
+  provSel.addEventListener('change', function () {
+    const p = aiProvider(provSel.value);
+    overlay.querySelector('#ai-base').value = p.base;
+    overlay.querySelector('#ai-model').value = p.model;
+  });
+
+  const keyInput = overlay.querySelector('#ai-key');
+  overlay.querySelector('#ai-key-eye').addEventListener('click', function () {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  });
+
+  overlay.querySelectorAll('[data-prompt-reset]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const k = btn.dataset.promptReset;
+      const ta = overlay.querySelector('[data-prompt="' + k + '"]');
+      ta.value = AI_DEFAULT_PROMPTS[k];
+      const cur = aiGetSettings();
+      if (cur.prompts && cur.prompts[k]) { delete cur.prompts[k]; aiSaveSettings(cur); }
+      showToast('↩️ 已還原「' + k + '」的預設提示詞。', 'info', 3000);
+    });
+  });
+
+  function collect() {
+    const cur = aiGetSettings();
+    cur.provider = provSel.value;
+    cur.base = overlay.querySelector('#ai-base').value.trim();
+    cur.model = overlay.querySelector('#ai-model').value.trim();
+    cur.apiKey = keyInput.value.trim();
+    cur.temperature = Math.max(0, Math.min(1, parseFloat(overlay.querySelector('#ai-temp').value) || 0.6));
+    cur.maxTokens = parseInt(overlay.querySelector('#ai-max').value, 10) || 1200;
+    overlay.querySelectorAll('[data-prompt]').forEach(function (ta) {
+      const k = ta.dataset.prompt;
+      const v = ta.value.trim();
+      if (v && v !== AI_DEFAULT_PROMPTS[k]) cur.prompts[k] = v;
+      else if (cur.prompts) delete cur.prompts[k];
+    });
+    return cur;
+  }
+
+  overlay.querySelector('#ai-save').addEventListener('click', function () {
+    aiSaveSettings(collect());
+    showToast('💾 AI 設定已儲存（只留在這台裝置）。', 'info', 4000);
+    close();
+  });
+
+  overlay.querySelector('#ai-clear-key').addEventListener('click', async function () {
+    if (!(await weConfirm('確定要清除這台裝置上的 API 金鑰嗎？', { emoji: '🗑️', danger: true, okText: '清除金鑰' }))) return;
+    const cur = collect();
+    cur.apiKey = '';
+    aiSaveSettings(cur);
+    keyInput.value = '';
+    showToast('🗑️ 已清除 API 金鑰。', 'info', 3000);
+    spRenderStatus();
+  });
+
+  overlay.querySelector('#ai-test').addEventListener('click', async function () {
+    const out = overlay.querySelector('#ai-test-out');
+    aiSaveSettings(collect());
+    out.innerHTML = '<span class="text-[#96701A]">⏳ 測試中…</span>';
+    try {
+      const t = await aiChat([{ role: 'user', content: 'Reply with exactly: OK' }], { temperature: 0, maxTokens: 20, timeoutMs: 30000 });
+      out.innerHTML = '<span style="color:#0F7A54">✅ 連線成功！模型回覆：' + esc(String(t).trim().slice(0, 60)) + '</span>';
+    } catch (err) {
+      out.innerHTML = '<span style="color:#E03E43">❌ ' + esc(err.message) + '</span>';
+    }
+  });
+}
+
+/* =================================================================================
+   5-14. 口說教練：主畫面
+   ================================================================================= */
+function spRenderStatus() {
+  const box = $('#speak-ai-status');
+  if (!box) return;
+  const ready = aiIsReady();
+  const recOk = speechRecAvailable();
+  const ttsOk = speechSynthAvailable();
+  box.innerHTML = '' +
+    '<div class="we-card-flat p-3 sm:p-4 flex flex-wrap items-center gap-2 justify-between">' +
+      '<div class="flex flex-wrap items-center gap-2">' +
+        '<span class="stat-chip" style="' + (ready ? 'background:#CDF7E4;color:#0F7A54' : 'background:#FFF1D6;color:#96701A') + '">' +
+          (ready ? '🤖 AI 已就緒' : '⚠️ 尚未設定 AI') + '</span>' +
+        (ready ? '<span class="stat-chip">' + esc(aiKeyHint()) + '</span>' : '') +
+        '<span class="stat-chip">' + (recOk ? '🎙️ 語音辨識可用' : '🎙️ 語音辨識不可用（可手動輸入）') + '</span>' +
+        '<span class="stat-chip">' + (ttsOk ? '🔊 語音朗讀可用' : '🔊 無語音朗讀') + '</span>' +
+      '</div>' +
+      '<button class="we-btn we-btn-sm" id="sp-open-ai">🤖 AI 設定</button>' +
+    '</div>' +
+    (ready ? '' : '<p class="text-xs font-bold text-[#A5A2B8] mt-2 leading-relaxed">' +
+      '沒有金鑰也能用：<b>發音評分、跟讀、發音特訓、聽寫</b>完全在本機運作。<br>' +
+      '設定金鑰後會多出：<b>AI 評分（四項 band）、想法評價、道地改寫、高分字彙替換、示範答案、角色扮演對話、AI 出題與讀書計畫</b>。</p>');
+  const btn = $('#sp-open-ai');
+  if (btn) btn.addEventListener('click', openAiSettings);
+}
+
+function spRenderHome() {
+  const box = $('#speak-home');
+  if (!box) return;
+  const xp = spGetXp();
+  const streak = spStreak();
+  const modes = [
+    { id: 'mock1', icon: '💬', title: 'Part 1 模擬（生活題）', desc: '隨機主題 4 題，一次回答，AI 給四項分數' },
+    { id: 'mock2', icon: '🧠', title: 'Part 2 模擬（2 分鐘獨白）', desc: '1 分鐘準備 + 2 分鐘計時，最能拉分的一題' },
+    { id: 'mock3', icon: '🤔', title: 'Part 3 模擬（抽象討論）', desc: '考官追問式問題，練論述與讓步句型' },
+    { id: 'full',  icon: '🏁', title: '完整模擬考（P1→P2→P3）', desc: '依真實流程跑完三部分，最後給總評' },
+    { id: 'roleplay', icon: '🎭', title: '角色扮演對話', desc: 'AI 扮演店員／面試官／房東，一來一往練反應' },
+    { id: 'shadow', icon: '🗣️', title: '跟讀練習 Shadowing', desc: '聽一句、模仿唸一次，逐字看哪裡沒到位' },
+    { id: 'drill', icon: '🎯', title: '發音特訓', desc: '最小對比字組、繞口令、最常唸錯的字' },
+    { id: 'aiword', icon: '📚', title: 'AI 每日單字朗讀', desc: '每天一個新字（避開既有題庫），唸一次馬上評分' },
+    { id: 'dictation', icon: '✍️', title: '聽寫挑戰', desc: '聽一句英文打出來，練聽力與拼字（免麥克風）' },
+    { id: 'free', icon: '🎙️', title: '自由口說計時器', desc: '自己出題、按下去就開始講，看語速與填充詞' }
+  ];
+  box.innerHTML = '' +
+    '<div class="we-card p-4 mb-4">' +
+      '<div class="flex flex-wrap items-center gap-3 justify-between">' +
+        '<div class="flex flex-wrap items-center gap-2">' +
+          '<span class="stat-chip">⭐ Level ' + spLevel(xp.xp) + '</span>' +
+          '<span class="stat-chip">✨ ' + (xp.xp || 0) + ' XP</span>' +
+          '<span class="stat-chip">🔥 口說連續 ' + streak + ' 天</span>' +
+        '</div>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-history-btn">📈 我的成績</button>' +
+      '</div>' +
+      '<div class="sp-bar mt-3"><i style="width:' + ((xp.xp || 0) % 100) + '%"></i></div>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">距離 Level ' + (spLevel(xp.xp) + 1) + ' 還差 ' + (100 - ((xp.xp || 0) % 100)) + ' XP（每次練習 +5 XP）</p>' +
+    '</div>' +
+    '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' +
+      modes.map(function (m) {
+        return '<button class="sp-mode" data-sp-mode="' + m.id + '">' +
+          '<span class="text-2xl">' + m.icon + '</span>' +
+          '<b>' + esc(m.title) + '</b>' +
+          '<small>' + esc(m.desc) + '</small>' +
+        '</button>';
+      }).join('') +
+    '</div>';
+
+  box.querySelectorAll('[data-sp-mode]').forEach(function (b) {
+    b.addEventListener('click', function () { spStartMode(b.dataset.spMode); });
+  });
+  const hb = $('#sp-history-btn');
+  if (hb) hb.addEventListener('click', function () {
+    const el = $('#speak-history');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function spStage(html) {
+  const el = $('#speak-stage');
+  if (!el) return;
+  el.innerHTML = html;
+  el.classList.remove('animate-pop');
+  void el.offsetWidth;
+  el.classList.add('animate-pop');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function spStageTop() {
+  const el = $('#speak-stage');
+  if (el) el.innerHTML = '';
+}
+
+function spStartMode(mode) {
+  spClearTimers();
+  if (mode === 'mock1') return spStartMock(1);
+  if (mode === 'mock2') return spStartMock(2);
+  if (mode === 'mock3') return spStartMock(3);
+  if (mode === 'full') return spStartFull();
+  if (mode === 'roleplay') return spStartRoleplay();
+  if (mode === 'shadow') return spStartShadow();
+  if (mode === 'drill') return spStartDrill();
+  if (mode === 'aiword') return spStartAiWord();
+  if (mode === 'dictation') return spStartDictation();
+  if (mode === 'free') return spStartFree();
+}
+
+/* ---------- 共用：朗讀／錄音區塊 ---------- */
+const spTimers = [];
+function spClearTimers() {
+  while (spTimers.length) { try { clearInterval(spTimers.pop()); } catch (e) { /* 忽略 */ } }
+}
+function spAddTimer(id) { spTimers.push(id); return id; }
+
+function spReadBlockHtml(prefix, targetText) {
+  const manual = speechRecAvailable() ? '' :
+    '<p class="text-xs font-bold text-[#E03E43] mt-2">這個瀏覽器不支援語音辨識，請用「⌨️ 手動輸入」把你唸的內容打出來，一樣會逐字比對。</p>';
+  return '' +
+    '<div class="we-card-flat p-4 mt-3">' +
+      '<div class="flex flex-wrap gap-2">' +
+        (speechRecAvailable() ? '<button class="we-btn we-btn-sm" id="' + prefix + '-rec">🎙️ 開始錄音</button>' : '') +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="' + prefix + '-listen">🔊 聽示範</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="' + prefix + '-manual">⌨️ 手動輸入</button>' +
+      '</div>' + manual +
+      '<div id="' + prefix + '-status" class="mt-3 text-sm font-extrabold text-[#A5A2B8]"></div>' +
+      '<div id="' + prefix + '-result" class="mt-3"></div>' +
+    '</div>';
+}
+
+/**
+ * 綁定朗讀區塊
+ * @param {string} prefix DOM id 前綴
+ * @param {function} getTarget 回傳「應該唸的內容」
+ * @param {string} ttsText 聽示範要唸的內容
+ * @param {function} onScored 收到 {score, words, extras, saidText, seconds} 時呼叫
+ */
+function spBindReadBlock(prefix, getTarget, ttsText, onScored) {
+  const recBtn = $('#' + prefix + '-rec');
+  const listenBtn = $('#' + prefix + '-listen');
+  const manualBtn = $('#' + prefix + '-manual');
+  const statusEl = $('#' + prefix + '-status');
+  const resultEl = $('#' + prefix + '-result');
+  let rec = null, startedAt = 0, elapsedTimer = null;
+
+  if (listenBtn) listenBtn.addEventListener('click', function () { speak(ttsText || getTarget(), 'us'); });
+
+  function finish(saidText, seconds) {
+    const target = getTarget();
+    const res = pronScore(target, saidText);
+    const pct = res.score;
+    resultEl.innerHTML = '' +
+      '<div class="flex items-center gap-3 flex-wrap mb-2">' +
+        '<span class="text-3xl font-extrabold" style="color:' + spScoreColor(pct) + '">' + pct + '<span class="text-base">/100</span></span>' +
+        '<span class="text-xs font-extrabold text-[#A5A2B8]">' + res.ok + ' 個唸對 ・ ' + res.close + ' 個接近 ・ ' + res.miss + ' 個沒到位</span>' +
+        (seconds ? '<span class="text-xs font-extrabold text-[#A5A2B8]">用時 ' + seconds.toFixed(1) + ' 秒</span>' : '') +
+      '</div>' +
+      '<div class="text-base leading-loose">' + pronWordsHtml(res.words, res.extras) + '</div>' +
+      (res.miss > 0 ? '<p class="text-xs font-bold text-[#E03E43] mt-2">紅色的字是辨識系統沒聽到／聽到別的字，通常代表母音長短、字尾子音或重音位置要再加強。</p>' : '') +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-2">辨識結果：' + esc(saidText || '（沒有辨識到任何內容）') + '</p>';
+    const bad = res.words.filter(function (w) { return w.status === 'miss'; }).map(function (w) { return w.word; });
+    if (bad.length) spLogPronWords(bad);
+    if (onScored) onScored({ score: pct, words: res.words, extras: res.extras, saidText: saidText, seconds: seconds });
+  }
+
+  if (recBtn) {
+    recBtn.addEventListener('click', function () {
+      if (rec) { rec.stop(); return; }
+      resultEl.innerHTML = '';
+      startedAt = Date.now();
+      statusEl.innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span>錄音中…（再按一次結束）</span>';
+      recBtn.textContent = '⏹️ 結束錄音';
+      elapsedTimer = spAddTimer(setInterval(function () {
+        statusEl.innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span>錄音中 ' +
+          ((Date.now() - startedAt) / 1000).toFixed(1) + ' 秒…（再按一次結束）</span>';
+      }, 200));
+      rec = startRecognition({
+        lang: 'en-US',
+        onInterim: function (t) { statusEl.innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span>錄音中…<span class="text-[#3C3A4A]"> ' + esc(t) + '</span></span>'; },
+        onError: function (code) {
+          if (elapsedTimer) clearInterval(elapsedTimer);
+          statusEl.innerHTML = '<span style="color:#E03E43">' + esc(speechErrZh(code)) + '</span>';
+          recBtn.textContent = '🎙️ 開始錄音';
+          rec = null;
+        },
+        onEnd: function (finalText) {
+          if (elapsedTimer) clearInterval(elapsedTimer);
+          recBtn.textContent = '🎙️ 開始錄音';
+          rec = null;
+          const seconds = (Date.now() - startedAt) / 1000;
+          if (!finalText) { statusEl.innerHTML = '<span style="color:#96701A">沒有辨識到內容，請再試一次（或用手動輸入）。</span>'; return; }
+          statusEl.innerHTML = '<span style="color:#0F7A54">✅ 辨識完成</span>';
+          finish(finalText, seconds);
+        }
+      });
+      if (!rec) { if (elapsedTimer) clearInterval(elapsedTimer); recBtn.textContent = '🎙️ 開始錄音'; }
+    });
+  }
+
+  if (manualBtn) {
+    manualBtn.addEventListener('click', function () {
+      const t = window.prompt('把你剛剛唸的內容打出來（英文）', '');
+      if (t === null) return;
+      if (!t.trim()) return;
+      statusEl.innerHTML = '<span style="color:#96701A">⌨️ 使用手動輸入比對</span>';
+      finish(t.trim(), 0);
+    });
+  }
+}
+
+/* ---------- 口說統計卡（沒有 AI 也有回饋） ---------- */
+function spStatsHtml(stats, seconds) {
+  const speedNote = stats.wpm === 0 ? '' :
+    (stats.wpm < 100 ? '偏慢，試著把句子連起來講' : (stats.wpm > 180 ? '偏快，注意咬字' : '語速很理想（雅思理想值 120–160）'));
+  return '' +
+    '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">' +
+      '<div class="we-card-flat p-3 text-center"><p class="text-xs font-extrabold text-[#A5A2B8]">字數</p><p class="text-xl font-extrabold">' + stats.words + '</p></div>' +
+      '<div class="we-card-flat p-3 text-center"><p class="text-xs font-extrabold text-[#A5A2B8]">語速 wpm</p><p class="text-xl font-extrabold">' + stats.wpm + '</p></div>' +
+      '<div class="we-card-flat p-3 text-center"><p class="text-xs font-extrabold text-[#A5A2B8]">用字多樣性</p><p class="text-xl font-extrabold">' + stats.variety + '%</p></div>' +
+      '<div class="we-card-flat p-3 text-center"><p class="text-xs font-extrabold text-[#A5A2B8]">填充詞</p><p class="text-xl font-extrabold" style="color:' + (stats.fillers > 3 ? '#E03E43' : '#0F7A54') + '">' + stats.fillers + '</p></div>' +
+    '</div>' +
+    (speedNote ? '<p class="text-xs font-bold text-[#A5A2B8] mt-2">🎚️ ' + speedNote + '</p>' : '') +
+    '<p class="text-xs font-bold text-[#A5A2B8] mt-1">🔗 用到的連接詞：' + (stats.linkers.length ? stats.linkers.map(function (l) { return '<span class="sp-tagline">' + esc(l) + '</span>'; }).join(' ') : '（沒有，試著加 However / As a result / That said）') + '</p>' +
+    (stats.repeated.length ? '<p class="text-xs font-bold text-[#96701A] mt-1">🔁 重複太多次的字：' + stats.repeated.map(function (x) { return esc(x); }).join('、') + '</p>' : '') +
+    (stats.hedges > 2 ? '<p class="text-xs font-bold text-[#96701A] mt-1">🫤 猶豫用語（you know / I mean）出現了 ' + stats.hedges + ' 次，可以換成 Well, … / Let me think …</p>' : '');
+}
+
+/* ---------- AI 評分卡 ---------- */
+function spAiFeedbackHtml(fb) {
+  if (!fb) return '<p class="text-sm font-bold text-[#96701A] mt-3">（AI 未回傳可解析的評分結果；上面的本機數據仍然有效。）</p>';
+  const band = fb.band || 0;
+  const sc = fb.scores || {};
+  let html = '' +
+    '<div class="we-card p-4 mt-3" style="border-color:#9B85FF">' +
+      '<div class="flex items-center gap-3 mb-3">' +
+        '<span class="text-4xl">🤖</span>' +
+        '<div>' +
+          '<p class="text-xs font-extrabold text-[#A5A2B8]">AI 預估分數</p>' +
+          '<p class="text-3xl font-extrabold text-[#6C4BF6]">Band ' + band + '</p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">' +
+        spBandBar('流暢與連貫 Fluency', sc.fluency) +
+        spBandBar('字彙 Lexical', sc.lexical) +
+        spBandBar('文法 Grammar', sc.grammar) +
+        spBandBar('發音 Pronunciation', sc.pronunciation) +
+      '</div>' +
+      (fb.summary ? '<p class="text-sm font-bold leading-relaxed mt-3">' + esc(fb.summary) + '</p>' : '') +
+      (fb.idea ? '<div class="mt-3 p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]"><p class="text-xs font-extrabold text-[#4F32C4] mb-1">💡 你的想法評價</p><p class="text-sm font-bold leading-relaxed">' + esc(fb.idea) + '</p></div>' : '') +
+      (fb.good && fb.good.length ? '<div class="mt-3"><p class="text-xs font-extrabold text-[#0F7A54] mb-1">✅ 做得好</p><ul class="list-disc pl-5 space-y-1">' + fb.good.map(function (g) { return '<li class="text-sm font-bold">' + esc(g) + '</li>'; }).join('') + '</ul></div>' : '') +
+      (fb.fix && fb.fix.length ? '<div class="mt-3"><p class="text-xs font-extrabold text-[#E0629B] mb-1">✏️ 更道地的說法</p>' + fb.fix.map(function (f) {
+          return '<div class="mb-2 p-2 rounded-xl bg-[#FCE4F0] border-2 border-[#E0629B]">' +
+            '<p class="text-sm font-bold text-[#C4272C] line-through">' + esc(f.wrong || '') + '</p>' +
+            '<p class="text-sm font-extrabold text-[#0F7A54]">→ ' + esc(f.right || '') + '</p>' +
+            '<p class="text-xs font-bold text-[#A5A2B8]">' + esc(f.why || '') + '</p></div>';
+        }).join('') + '</div>' : '') +
+      (fb.vocab && fb.vocab.length ? '<div class="mt-3"><p class="text-xs font-extrabold text-[#4F32C4] mb-1">📈 字彙升級</p>' + fb.vocab.map(function (v) {
+          return '<div class="mb-2 p-2 rounded-xl bg-[#EFEDF7] border-2 border-[#D9D3F5]">' +
+            '<p class="text-sm font-bold">' + esc(v.basic || '') + ' → <span class="text-[#4F32C4] font-extrabold">' + esc(v.upgrade || '') + '</span></p>' +
+            (v.example ? '<p class="text-xs font-bold text-[#3C3A4A]/80">' + esc(v.example) + '</p>' : '') + '</div>';
+        }).join('') + '</div>' : '') +
+      (fb.pron && fb.pron.length ? '<div class="mt-3"><p class="text-xs font-extrabold text-[#00B4A6] mb-1">🗣️ 發音重點</p>' + fb.pron.map(function (p) {
+          return '<p class="text-sm font-bold">• <b>' + esc(p.word || '') + '</b> <span class="sp-code text-[#A5A2B8]">' + esc(p.ipa || '') + '</span> — ' + esc(p.tip || '') + '</p>';
+        }).join('') + '</div>' : '') +
+      (fb.model ? '<details class="mt-3"><summary class="cursor-pointer text-sm font-extrabold text-[#4F32C4] select-none">📄 看 7.5 分示範答案</summary>' +
+          '<p class="mt-2 text-sm font-bold leading-relaxed whitespace-pre-line p-3 rounded-2xl bg-[#DDFBF8] border-2 border-[#7FE3DA]">' + esc(fb.model) + '</p></details>' : '') +
+      (fb.next ? '<p class="text-xs font-extrabold text-[#6C4BF4] mt-3">下一步：' + esc(fb.next) + '</p>' : '') +
+    '</div>';
+  return html;
+}
+
+async function spAiCoach(payload) {
+  const sys = aiPrompt('coach');
+  const user = '題目類型：' + payload.partLabel + '\n\n題目：\n' + payload.questionText +
+    '\n\n我的回答（語音辨識轉錄，可能有錯字）：\n' + (payload.transcript || '(空白)') +
+    '\n\n本機量測：用時 ' + Math.round(payload.seconds || 0) + ' 秒、' + payload.stats.words + ' 字、語速 ' +
+    payload.stats.wpm + ' wpm、填充詞 ' + payload.stats.fillers + ' 次' +
+    (payload.readScore != null ? '、朗讀比對 ' + payload.readScore + '/100' : '');
+  const txt = await aiChat([{ role: 'user', content: user }], { system: sys, temperature: 0.4, maxTokens: 2000 });
+  return aiParseJson(txt);
+}
+
+/* ---------- 模擬考 ---------- */
+const spMockCtx = { full: false, step: 0, records: [] };
+
+function spStartFull() {
+  spMockCtx.full = true;
+  spMockCtx.step = 0;
+  spMockCtx.records = [];
+  spStartMock(1);
+}
+
+function spMockQuestionSet(part) {
+  if (part === 1) {
+    const t = spPick(IELTS_PART1);
+    return {
+      partLabel: 'IELTS Speaking Part 1（約 4-5 分鐘，每題 2-3 句）',
+      topic: t.topic,
+      questions: t.qs,
+      questionText: t.qs.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n'),
+      speakSeconds: 90
+    };
+  }
+  if (part === 2) {
+    const c = spPick(IELTS_PART2);
+    return {
+      partLabel: 'IELTS Speaking Part 2（1 分鐘準備、最多 2 分鐘獨白）',
+      topic: c.topic,
+      title: c.title,
+      cues: c.cues,
+      questions: [c.title],
+      questionText: c.title + '\n\nYou should say:\n' + c.cues.map(function (x) { return '• ' + x; }).join('\n'),
+      speakSeconds: 120,
+      prepSeconds: 60
+    };
+  }
+  const t = spPick(IELTS_PART3);
+  return {
+    partLabel: 'IELTS Speaking Part 3（抽象討論，每題 3-5 句）',
+    topic: t.topic,
+    questions: t.qs,
+    questionText: t.qs.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n'),
+    speakSeconds: 120
+  };
+}
+
+async function spStartMock(part) {
+  const set = spMockQuestionSet(part);
+  let aiAdvice = '';
+  if (aiIsReady()) {
+    spStage('<div class="we-card p-4"><p class="font-extrabold">⏳ 正在請 AI 依照 Part ' + part + ' 出一份新題目…</p></div>');
+    try {
+      const txt = await aiChat([{ role: 'user', content: '請出 Part ' + part + ' 的題目。' + (part === 1 ? '主題：' + set.topic : '') }],
+        { system: aiPrompt('examiner'), temperature: 0.9, maxTokens: 700, timeoutMs: 45000 });
+      const j = aiParseJson(txt);
+      if (j && j.questions && j.questions.length) {
+        set.questions = j.questions.map(String);
+        set.questionText = (part === 2 && j.cues && j.cues.length)
+          ? set.questions[0] + '\n\nYou should say:\n' + j.cues.map(function (x) { return '• ' + x; }).join('\n')
+          : set.questions.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n');
+        if (j.cues && j.cues.length) set.cues = j.cues.map(String);
+        if (j.topic) set.topic = String(j.topic);
+        if (j.title) set.title = String(j.title);
+        aiAdvice = j.advice || '';
+      }
+    } catch (err) {
+      aiAdvice = '（AI 出題失敗，已改用內建題庫：' + err.message + '）';
+    }
+  }
+  spRenderMock(set, aiAdvice);
+}
+
+function spRenderMock(set, aiAdvice) {
+  const fullNav = spMockCtx.full
+    ? '<span class="sp-tagline">完整模擬考 ' + (spMockCtx.records.length + 1) + '/3</span>'
+    : '';
+  let prepHtml = '';
+  if (set.prepSeconds) {
+    prepHtml = '<div class="we-card-flat p-4 mt-3">' +
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">⏱️ Part 2 的 1 分鐘準備時間（在紙上寫關鍵字，不要寫整句）</p>' +
+      '<div class="flex items-center gap-3">' +
+        '<span class="sp-timer text-3xl" id="sp-prep-time">' + spFmtTime(set.prepSeconds) + '</span>' +
+        '<button class="we-btn we-btn-sm" id="sp-prep-start">▶️ 開始準備計時</button>' +
+      '</div></div>';
+  }
+  spStage('' +
+    '<div class="we-card p-4 sm:p-5">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">' + esc(set.partLabel) + '</span>' +
+        (set.topic ? '<span class="stat-chip">🏷️ ' + esc(set.topic) + '</span>' : '') +
+        fullNav +
+      '</div>' +
+      (aiAdvice ? '<p class="text-xs font-bold text-[#96701A] mb-2">' + esc(aiAdvice) + '</p>' : '') +
+      '<div class="p-4 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] whitespace-pre-line font-extrabold text-base leading-relaxed">' + esc(set.questionText) + '</div>' +
+      prepHtml +
+      '<div class="mt-4">' +
+        '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">🎙️ 按下開始，用英文回答（建議 ' + set.speakSeconds + ' 秒內講完；講不滿比講太短好）</p>' +
+        '<div class="flex flex-wrap items-center gap-3">' +
+          (speechRecAvailable() ? '<button class="we-btn" id="sp-mock-rec">🎙️ 開始回答</button>' : '') +
+          '<span class="sp-timer text-2xl" id="sp-mock-time">00:00</span>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-mock-manual">⌨️ 手動輸入</button>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-mock-quit">✖️ 結束</button>' +
+        '</div>' +
+        '<div id="sp-mock-live" class="mt-3 text-sm font-bold text-[#3C3A4A]/80"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="sp-mock-feedback" class="space-y-4"></div>');
+
+  if (set.prepSeconds) {
+    const prepEl = $('#sp-prep-time');
+    let prepLeft = set.prepSeconds, prepTimer = null;
+    $('#sp-prep-start').addEventListener('click', function () {
+      if (prepTimer) return;
+      prepTimer = spAddTimer(setInterval(function () {
+        prepLeft--;
+        prepEl.textContent = spFmtTime(prepLeft);
+        if (prepLeft <= 10) prepEl.classList.add('warn');
+        if (prepLeft <= 0) { clearInterval(prepTimer); prepEl.textContent = '時間到，開始講！'; }
+      }, 1000));
+    });
+  }
+
+  const recBtn = $('#sp-mock-rec');
+  const timeEl = $('#sp-mock-time');
+  const liveEl = $('#sp-mock-live');
+  let rec = null, seconds = 0, tick = null, transcript = '';
+
+  function stopAll() {
+    if (rec) { try { rec.stop(); } catch (e) { /* 忽略 */ } rec = null; }
+    if (tick) { clearInterval(tick); tick = null; }
+  }
+  $('#sp-mock-quit').addEventListener('click', function () { stopAll(); spStageTop(); spRenderHome(); });
+
+  function judge() {
+    if (!transcript || !transcript.trim()) { showToast('⚠️ 沒有收到任何內容，請再試一次或用手動輸入。', 'warn', 4000); return; }
+    spScoreAnswer(set, transcript, seconds);
+  }
+
+  if (recBtn && speechRecAvailable()) {
+    recBtn.addEventListener('click', function () {
+      if (rec) { stopAll(); return; }
+      transcript = '';
+      seconds = 0;
+      liveEl.textContent = '';
+      timeEl.textContent = spFmtTime(0);
+      recBtn.textContent = '⏹️ 結束回答';
+      tick = spAddTimer(setInterval(function () {
+        seconds++;
+        timeEl.textContent = spFmtTime(seconds);
+        if (seconds >= set.speakSeconds) { timeEl.classList.add('warn'); stopAll(); judge(); }
+      }, 1000));
+      rec = startRecognition({
+        lang: 'en-US', continuous: true,
+        onInterim: function (t) { liveEl.innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span></span> ' + esc(t); },
+        onError: function (code) {
+          stopAll();
+          recBtn.textContent = '🎙️ 開始回答';
+          showToast('⚠️ ' + speechErrZh(code), 'warn', 6000);
+        },
+        onEnd: function (finalText) {
+          recBtn.textContent = '🎙️ 開始回答';
+          transcript = finalText || liveEl.textContent.replace(/[^\x00-\x7F]/g, '').trim();
+          rec = null;
+          if (tick) { clearInterval(tick); tick = null; }
+          judge();
+        }
+      });
+    });
+  }
+  $('#sp-mock-manual').addEventListener('click', function () {
+    const t = window.prompt('把你說的內容打出來（英文）', '');
+    if (t === null || !t.trim()) return;
+    transcript = t.trim();
+    seconds = Math.max(1, Math.round(pronSplit(transcript).length / 2));
+    judge();
+  });
+}
+
+async function spScoreAnswer(set, transcript, seconds) {
+  const fbEl = $('#sp-mock-feedback');
+  const stats = speechStats(transcript, seconds);
+  spStagePrependToFeedback(
+    '<div class="we-card p-4">' +
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">📝 語音辨識轉錄（AI 會以此評估；如有錯字請以你的原意為準）</p>' +
+      '<p class="text-sm font-bold leading-relaxed">' + esc(transcript) + '</p>' +
+      spStatsHtml(stats, seconds) +
+    '</div>');
+
+  const rec = {
+    at: Date.now(), date: todayKey(), mode: 'mock', part: set.partLabel, topic: set.topic || '',
+    question: set.questionText, transcript: transcript, seconds: Math.round(seconds),
+    words: stats.words, wpm: stats.wpm, band: null, scores: null, xp: 10
+  };
+
+  if (!aiIsReady()) {
+    spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#FFC44D">' +
+      '<p class="font-extrabold text-[#96701A]">⚠️ 你還沒設定 AI 金鑰</p>' +
+      '<p class="text-sm font-bold mt-1">上面的字數／語速／填充詞／連接詞都是本機量測。設定金鑰後，AI 會給你：四項 band 分數、想法評價、道地改寫、</p>' +
+      '<button class="we-btn we-btn-sm mt-3" id="sp-open-ai-2">🤖 現在設定</button></div>');
+    const b = $('#sp-open-ai-2');
+    if (b) b.addEventListener('click', openAiSettings);
+    spSaveRecord(rec);
+    spRenderHistory();
+    spFullNext();
+    return;
+  }
+
+  spStagePrependToFeedback('<div class="we-card p-4"><p class="font-extrabold">🤖 AI 正在評分與分析你的想法…（通常 5-20 秒）</p>' +
+    '<div class="mt-2"><div class="skeleton h-4 w-2/3 mb-2"></div><div class="skeleton h-4 w-full mb-2"></div><div class="skeleton h-24 w-full"></div></div></div>');
+  try {
+    const fb = await spAiCoach({ partLabel: set.partLabel, questionText: set.questionText, transcript: transcript, seconds: seconds, stats: stats });
+    const box = $('#sp-mock-feedback');
+    if (box) box.firstElementChild.remove();
+    spStagePrependToFeedback(spAiFeedbackHtml(fb));
+    if (fb) { rec.band = fb.band || null; rec.scores = fb.scores || null; }
+  } catch (err) {
+    const box = $('#sp-mock-feedback');
+    if (box) box.firstElementChild.remove();
+    spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#FF9FB2"><p class="font-extrabold text-[#E03E43]">❌ AI 評分失敗</p><p class="text-sm font-bold mt-1">' + esc(err.message) + '</p></div>');
+  }
+  spSaveRecord(rec);
+  spRenderHistory();
+  spFullNext();
+}
+
+function spStagePrependToFeedback(html) {
+  const box = $('#sp-mock-feedback');
+  if (!box) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  box.insertBefore(wrap.firstElementChild, box.firstChild);
+}
+
+function spFullNext() {
+  if (!spMockCtx.full) return;
+  spMockCtx.records.push(1);
+  if (spMockCtx.records.length >= 3) {
+    spMockCtx.full = false;
+    spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#6C4BF6">' +
+      '<p class="font-extrabold text-[#6C4BF6]">🏁 完整模擬考結束！</p>' +
+      '<p class="text-sm font-bold mt-1">三部分都完成了。建議休息 10 分鐘後，看一次「我的成績」裡的分數趨勢，特別注意最低的那一項。</p>' +
+      '<button class="we-btn we-btn-sm mt-3" id="sp-full-home">🏠 回到口說教練</button></div>');
+    const b = $('#sp-full-home');
+    if (b) b.addEventListener('click', function () { spStageTop(); spRenderHome(); });
+    return;
+  }
+  const next = spMockCtx.records.length + 1;
+  spStagePrependToFeedback('<div class="we-card p-4"><p class="font-extrabold">➡️ 接下來是 Part ' + next + '</p>' +
+    '<button class="we-btn mt-2" id="sp-full-next">繼續 Part ' + next + '</button></div>');
+  const b = $('#sp-full-next');
+  if (b) b.addEventListener('click', function () { spStartMock(next); });
+}
+
+/* ---------- 角色扮演 ---------- */
+const SP_ROLEPLAY = [
+  { id: 'hotel', label: '🏨 飯店櫃檯：房間有問題要客訴', opener: 'Good evening, welcome to the Grand Hotel. How can I help you today?', script: ['I see. Could you tell me what exactly is wrong with the room?', 'I am sorry about that. Would you prefer to move to another room or have someone fix it?', 'If we move you, it will be a room on a higher floor with a city view. Is that acceptable?', 'Thank you for your patience. Is there anything else I can do for you tonight?'] },
+  { id: 'interview', label: '💼 工作面試：自我介紹與動機', opener: 'Thanks for coming in today. Could you start by telling me a bit about yourself?', script: ['What made you apply for this position in particular?', 'Can you describe a time you worked in a team to solve a problem?', 'What would you say is your biggest weakness?', 'Where do you see yourself in five years?'] },
+  { id: 'landlord', label: '🏠 房東：租屋問題與修繕', opener: 'Hello, you wanted to talk about the flat. What is going on?', script: ['When did you first notice the problem?', 'Have you tried turning the water off at the main valve?', 'I can send a plumber on Thursday. Would that work for you?', 'Would you be able to be at home in the afternoon?'] },
+  { id: 'doctor', label: '🩺 診所：描述症狀', opener: 'Come in and take a seat. What seems to be the problem?', script: ['How long have you had these symptoms?', 'Have you taken anything for it so far?', 'Any fever, or trouble sleeping?', 'I will prescribe something. Do you have any allergies?'] },
+  { id: 'classmate', label: '🎓 同學：討論分組報告', opener: 'Hey, do you have a minute to talk about our presentation?', script: ['Which part do you want to take?', 'When do you think we should meet to rehearse?', 'Do you think we need more data to support our argument?', 'How long should each of us speak for?'] }
+];
+
+function spStartRoleplay() {
+  const scenario = spPick(SP_ROLEPLAY);
+  spStage('' +
+    '<div class="we-card p-4">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">🎭 角色扮演</span>' +
+        '<span class="stat-chip">' + esc(scenario.label) + '</span>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-rp-new">🔀 換一個情境</button>' +
+      '</div>' +
+      '<p class="text-xs font-bold text-[#A5A2B8]">用英文回話，每次 2-3 句就好。' + (aiIsReady() ? 'AI 會扮演對方，並在下方小框提示你的英文錯誤。' : '（未設定 AI 時使用內建腳本，仍然可以練反應。）') + '</p>' +
+      '<div id="sp-rp-chat" class="mt-3 flex flex-col gap-2 sp-scroll-y"></div>' +
+      '<div class="flex flex-wrap items-center gap-2 mt-3">' +
+        (speechRecAvailable() ? '<button class="we-btn we-btn-sm" id="sp-rp-rec">🎙️ 用說的</button>' : '') +
+        '<input id="sp-rp-input" class="we-input flex-1" placeholder="或者直接打字回覆…" autocomplete="off">' +
+        '<button class="we-btn we-btn-sm" id="sp-rp-send">送出 ➤</button>' +
+      '</div>' +
+      '<div id="sp-rp-hint" class="mt-2 text-xs font-bold text-[#96701A]"></div>' +
+    '</div>');
+
+  const chat = $('#sp-rp-chat');
+  const history = [{ role: 'assistant', content: scenario.opener }];
+  let scriptIdx = 0;
+  let sending = false;
+
+  function bubble(role, text, note) {
+    const d = document.createElement('div');
+    d.className = 'sp-bubble ' + (role === 'user' ? 'sp-bubble-me' : 'sp-bubble-ai');
+    d.textContent = text;
+    chat.appendChild(d);
+    if (note) {
+      const n = document.createElement('div');
+      n.className = 'sp-bubble sp-bubble-note';
+      n.textContent = '🦊 ' + note;
+      chat.appendChild(n);
+    }
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  bubble('assistant', scenario.opener);
+  $('#sp-rp-new').addEventListener('click', spStartRoleplay);
+
+  async function send(text) {
+    if (!text || sending) return;
+    sending = true;
+    bubble('user', text);
+    history.push({ role: 'user', content: text });
+    if (!aiIsReady()) {
+      const line = scenario.script[Math.min(scriptIdx++, scenario.script.length - 1)];
+      bubble('assistant', line, scriptIdx > scenario.script.length ? '內建腳本用完了，換一個情境或設定 AI 可以無限對話。' : '');
+      history.push({ role: 'assistant', content: line });
+      sending = false;
+      return;
+    }
+    const hint = $('#sp-rp-hint');
+    hint.textContent = '🤖 對方正在回覆…';
+    try {
+      const sys = aiPrompt('roleplay') + '\n\n情境：' + scenario.label + '\n開場白：' + scenario.opener;
+      const txt = await aiChat(history.slice(-12), { system: sys, temperature: 0.8, maxTokens: 600, timeoutMs: 45000 });
+      const j = aiParseJson(txt);
+      const reply = (j && j.reply) ? String(j.reply) : String(txt).trim();
+      const note = (j && j.note) ? String(j.note) : '';
+      bubble('assistant', reply, note);
+      history.push({ role: 'assistant', content: reply });
+      hint.textContent = '';
+      spBumpXp(3);
+    } catch (err) {
+      hint.innerHTML = '<span style="color:#E03E43">❌ ' + esc(err.message) + '</span>';
+    }
+    sending = false;
+  }
+
+  function submit() {
+    const inp = $('#sp-rp-input');
+    const v = inp.value.trim();
+    if (!v) return;
+    inp.value = '';
+    send(v);
+  }
+  $('#sp-rp-send').addEventListener('click', submit);
+  $('#sp-rp-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+
+  const rpRec = $('#sp-rp-rec');
+  if (rpRec) {
+    let r = null;
+    rpRec.addEventListener('click', function () {
+      if (r) { r.stop(); return; }
+      rpRec.textContent = '⏹️ 結束';
+      r = startRecognition({
+        lang: 'en-US',
+        onError: function (code) { rpRec.textContent = '🎙️ 用說的'; r = null; showToast('⚠️ ' + speechErrZh(code), 'warn', 5000); },
+        onEnd: function (t) { rpRec.textContent = '🎙️ 用說的'; r = null; if (t) send(t); }
+      });
+    });
+  }
+}
+
+/* ---------- 跟讀 Shadowing ---------- */
+function spStartShadow() {
+  const item = spPick(PRON_SHADOW);
+  spStage('' +
+    '<div class="we-card p-4">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">🗣️ 跟讀練習</span>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-sh-new">🔀 換一句</button>' +
+      '</div>' +
+      '<p class="text-base font-extrabold leading-relaxed p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' + esc(item.en) + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">' + esc(item.zh) + '</p>' +
+      '<p class="text-xs font-bold text-[#4F32C4] mt-2">訣竅：先聽 2 次，第 3 次跟著一起唸（不要等它唸完），注意重音與停頓的位置。</p>' +
+      spReadBlockHtml('sp-sh', item.en) +
+    '</div>');
+  $('#sp-sh-new').addEventListener('click', spStartShadow);
+  spBindReadBlock('sp-sh', function () { return item.en; }, item.en, function (r) {
+    spSaveRecord({ at: Date.now(), date: todayKey(), mode: 'shadow', part: '跟讀', question: item.en, transcript: r.saidText, seconds: Math.round(r.seconds || 0), words: pronSplit(r.saidText).length, wpm: 0, band: null, scores: null, pronScore: r.score, xp: 8 });
+    spRenderHistory();
+  });
+}
+
+/* ---------- 發音特訓 ---------- */
+function spStartDrill() {
+  const pair = spPick(PRON_MINIMAL_PAIRS);
+  const twister = spPick(PRON_TWISTERS);
+  const words = spShuffle(PRON_WORDS).slice(0, 6);
+  spStage('' +
+    '<div class="we-card p-4">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">🎯 發音特訓</span>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-dr-new">🔀 換一組</button>' +
+      '</div>' +
+
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mb-1">① 最小對比字組（先聽出差別，再唸對）</p>' +
+      '<div class="p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D] mb-2">' +
+        '<p class="font-extrabold text-lg">' + esc(pair.a) + ' <span class="text-[#A5A2B8]">vs</span> ' + esc(pair.b) + '</p>' +
+        '<p class="text-xs font-bold text-[#96701A]">' + esc(pair.tip) + '</p>' +
+      '</div>' +
+      spReadBlockHtml('sp-dr-pair', pair.a + ' ' + pair.b) +
+
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mt-4 mb-1">② 繞口令（練嘴部肌肉與節奏）</p>' +
+      '<p class="font-extrabold p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' + esc(twister) + '</p>' +
+      spReadBlockHtml('sp-dr-tw', twister) +
+
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mt-4 mb-1">③ 華人最常唸錯的 6 個字</p>' +
+      '<div class="space-y-1 mb-1">' +
+        words.map(function (w) {
+          return '<div class="sp-kv"><span>' + esc(w.w) + ' <span class="text-[#A5A2B8]">' + esc(w.zh) + '</span></span><span class="text-xs text-[#A5A2B8] font-bold">' + esc(w.tip) + '</span></div>';
+        }).join('') +
+      '</div>' +
+      spReadBlockHtml('sp-dr-words', words.map(function (w) { return w.w; }).join(', ')) +
+    '</div>');
+
+  $('#sp-dr-new').addEventListener('click', spStartDrill);
+  const saveDrill = function (label, r) {
+    spSaveRecord({ at: Date.now(), date: todayKey(), mode: 'drill', part: label, question: label, transcript: r.saidText, seconds: Math.round(r.seconds || 0), words: pronSplit(r.saidText).length, wpm: 0, band: null, scores: null, pronScore: r.score, xp: 6 });
+    spRenderHistory();
+  };
+  spBindReadBlock('sp-dr-pair', function () { return pair.a + ', ' + pair.b; }, pair.a + ', then ' + pair.b, function (r) { saveDrill('最小對比 ' + pair.a + '/' + pair.b, r); });
+  spBindReadBlock('sp-dr-tw', function () { return twister; }, twister, function (r) { saveDrill('繞口令', r); });
+  spBindReadBlock('sp-dr-words', function () { return words.map(function (w) { return w.w; }).join(', '); }, words.map(function (w) { return w.w; }).join(', '), function (r) { saveDrill('常錯字 6 連發', r); });
+}
+
+/* ---------- AI 每日單字 ---------- */
+function spWordBank() {
+  const b = lsGet('my_word_bank', []);
+  return Array.isArray(b) ? b : [];
+}
+function spAddToBank(entry) {
+  const b = spWordBank();
+  const key = String(entry.word || '').toLowerCase();
+  if (!key) return false;
+  if (b.some(function (x) { return String(x.word).toLowerCase() === key; })) return false;
+  b.push({ word: key, zh: entry.zh || '', ipa: entry.ipa || '', example: entry.example || '', added: Date.now() });
+  lsSet('my_word_bank', b.slice(-500));
+  return true;
+}
+
+async function spGetDailyWord() {
+  const today = todayKey();
+  const hist = lsGet(LS_AIWORDS, []);
+  const list = Array.isArray(hist) ? hist : [];
+  const found = list.find(function (h) { return h.date === today; });
+  if (found) return found;
+
+  const usedSet = {};
+  QUIZ_WORDS.forEach(function (w) { usedSet[w] = 1; });
+  list.forEach(function (h) { if (h && h.word) usedSet[String(h.word).toLowerCase()] = 1; });
+  const poolSet = {};
+  WORD_POOL.concat(IELTS_WORDS).forEach(function (w) { poolSet[String(w).toLowerCase()] = 1; });
+
+  let entry = null;
+  if (aiIsReady()) {
+    try {
+      const excluded = Object.keys(usedSet).slice(0, 250).join(', ');
+      const txt = await aiChat([{ role: 'user', content: '請出今天的單字。以下是已經用過或已在題庫裡的字，不能重複：' + excluded }],
+        { system: aiPrompt('word'), temperature: 1.0, maxTokens: 600, timeoutMs: 45000 });
+      const j = aiParseJson(txt);
+      if (j && j.word) {
+        const w = String(j.word).toLowerCase().replace(/[^a-z]/g, '');
+        if (w && !usedSet[w] && !poolSet[w] && w.length >= 3) {
+          entry = { date: today, word: w, zh: j.zh || '', ipa: j.ipa || '', pos: j.pos || '', example: j.example || '', collocation: j.collocation || '', why: j.why || '', synonyms: j.synonyms || [], from: 'ai' };
+        }
+      }
+    } catch (err) {
+      showToast('⚠️ AI 出題失敗，改用內建雅思字庫：' + err.message, 'warn', 6000);
+    }
+  }
+  if (!entry) {
+    const candidates = AI_WORD_SEED.filter(function (x) { return !usedSet[x.w] && !poolSet[x.w]; });
+    const pick = candidates.length ? spPick(candidates) : spPick(AI_WORD_SEED);
+    entry = { date: today, word: pick.w, zh: pick.zh, ipa: '', pos: '', example: '', collocation: '', why: '雅思口說與寫作的高頻進階字。', synonyms: [], from: 'seed' };
+  }
+  if (entry.from === 'seed') {
+    try {
+      const wiki = await fetchWiktionary(entry.word);
+      if (wiki) {
+        if (wiki.ipa && !entry.ipa) entry.ipa = wiki.ipa;
+        if (wiki.posZh && !entry.pos) entry.pos = wiki.posZh;
+        if (wiki.defs && wiki.defs.length && !entry.example) entry.example = wiki.defs[0];
+        if (!entry.zh) { try { entry.zh = await translateZh(entry.word); } catch (e) { /* 忽略 */ } }
+      }
+    } catch (e) { /* 離線就算了 */ }
+  }
+  list.push(entry);
+  while (list.length > 400) list.shift();
+  lsSet(LS_AIWORDS, list);
+  return entry;
+}
+
+async function spStartAiWord() {
+  spStage('<div class="we-card p-4"><p class="font-extrabold">⏳ 正在準備今天的單字…</p>' +
+    '<p class="text-xs font-bold text-[#A5A2B8] mt-1">' + (aiIsReady() ? 'AI 會挑一個不在你題庫裡的新字。' : '目前用內建雅思字庫（設定 AI 後會每天給你不同的新字）。') + '</p></div>');
+  let entry;
+  try { entry = await spGetDailyWord(); }
+  catch (err) { spStage('<div class="we-card p-4"><p class="font-extrabold text-[#E03E43]">❌ 取得單字失敗：' + esc(err.message) + '</p></div>'); return; }
+
+  const syn = (entry.synonyms && entry.synonyms.length) ? entry.synonyms.join('、') : '';
+  spStage('' +
+    '<div class="we-card p-4" style="border-color:#9B85FF">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">📚 每日 AI 單字（' + esc(entry.date) + '）</span>' +
+        '<span class="stat-chip">' + (entry.from === 'ai' ? '🤖 AI 出題' : '📗 內建雅思字庫') + '</span>' +
+        (entry.ipa ? '<span class="stat-chip sp-code">' + esc(entry.ipa) + '</span>' : '') +
+        (entry.pos ? '<span class="stat-chip">' + esc(entry.pos) + '</span>' : '') +
+      '</div>' +
+      '<div class="flex flex-wrap items-center gap-3">' +
+        '<h3 class="text-3xl sm:text-4xl font-extrabold text-[#6C4BF6]">' + esc(entry.word) + '</h3>' +
+        '<button class="we-btn we-btn-blue we-btn-sm" id="sp-word-listen">🔊 聽發音</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-word-bank">➕ 加入我的單字庫</button>' +
+      '</div>' +
+      (entry.zh ? '<p class="text-lg font-extrabold mt-2">' + esc(entry.zh) + '</p>' : '') +
+      (entry.collocation ? '<p class="text-sm font-bold mt-1">🔗 常見搭配：<span class="text-[#4F32C4]">' + esc(entry.collocation) + '</span></p>' : '') +
+      (entry.example ? '<p class="text-sm font-bold mt-1 p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">✍️ ' + esc(entry.example) + '</p>' : '') +
+      (entry.why ? '<p class="text-xs font-bold text-[#96701A] mt-2">🎓 ' + esc(entry.why) + '</p>' : '') +
+      (syn ? '<p class="text-xs font-bold text-[#A5A2B8] mt-1">同義字：' + esc(syn) + '</p>' : '') +
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mt-3 mb-1">🎙️ 唸一次這個字（也可以唸下面的例句）</p>' +
+      spReadBlockHtml('sp-aw', function () { return entry.example ? (entry.word + ', ' + entry.example) : entry.word; }, entry.word + '. ' + (entry.example || ''), function (r) {
+        spSaveRecord({ at: Date.now(), date: todayKey(), mode: 'aiword', part: '每日單字', question: entry.word, transcript: r.saidText, seconds: Math.round(r.seconds || 0), words: pronSplit(r.saidText).length, wpm: 0, band: null, scores: null, pronScore: r.score, xp: 8 });
+        spRenderHistory();
+      }) +
+      '<div id="sp-aw-ai" class="mt-3"></div>' +
+    '</div>');
+
+  $('#sp-word-listen').addEventListener('click', function () { speak(entry.word, 'us'); });
+  $('#sp-word-bank').addEventListener('click', function () {
+    if (spAddToBank(entry)) { showToast('➕ 已加入「我的單字庫」。', 'info', 3000); spRenderHistory(); }
+    else showToast('ℹ️ 這個字已經在單字庫裡了。', 'info', 3000);
+  });
+
+  if (aiIsReady()) {
+    const box = $('#sp-aw-ai');
+    box.innerHTML = '<button class="we-btn we-btn-sm" id="sp-aw-ai-btn">🤖 用這個字造 3 個雅思考生會用的句子</button>';
+    $('#sp-aw-ai-btn').addEventListener('click', async function () {
+      box.innerHTML = '<p class="text-sm font-extrabold">🤖 生成中…</p>';
+      try {
+        const txt = await aiChat([{ role: 'user', content: '請用 ' + entry.word + ' 造 3 個雅思口說 Part 3 風格的句子，並各附一句繁體中文翻譯。用純文字，一行一句。' }],
+          { temperature: 0.8, maxTokens: 600, timeoutMs: 45000 });
+        box.innerHTML = '<p class="text-sm font-bold leading-relaxed whitespace-pre-line p-3 rounded-2xl bg-[#DDFBF8] border-2 border-[#7FE3DA]">' + esc(String(txt).trim()) + '</p>';
+      } catch (err) {
+        box.innerHTML = '<p class="text-sm font-extrabold text-[#E03E43]">❌ ' + esc(err.message) + '</p>';
+      }
+    });
+  }
+}
+
+/* ---------- 聽寫挑戰 ---------- */
+function spStartDictation() {
+  const item = spPick(PRON_SHADOW.concat(PRON_SHADOW.map(function (x) { return x; })));
+  let played = 0;
+  spStage('' +
+    '<div class="we-card p-4">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-2">' +
+        '<span class="sp-tagline">✍️ 聽寫挑戰</span>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-di-new">🔀 換一句</button>' +
+      '</div>' +
+      '<p class="text-xs font-bold text-[#A5A2B8]">按「播放」聽一次（不顯示字幕），然後把你聽到的英文打出來。這練的是聽力與拼字，不需要麥克風。</p>' +
+      '<div class="flex flex-wrap items-center gap-2 mt-3">' +
+        '<button class="we-btn we-btn-sm" id="sp-di-play">🔊 播放句子</button>' +
+        '<span class="text-xs font-extrabold text-[#A5A2B8]" id="sp-di-count">已播放 0 次</span>' +
+      '</div>' +
+      '<textarea id="sp-di-input" rows="3" class="we-input w-full mt-3" placeholder="在這裡打出你聽到的句子…" spellcheck="false"></textarea>' +
+      '<div class="flex flex-wrap gap-2 mt-2">' +
+        '<button class="we-btn we-btn-sm" id="sp-di-check">✅ 對答案</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-di-reveal">👀 直接看答案</button>' +
+      '</div>' +
+      '<div id="sp-di-out" class="mt-3"></div>' +
+    '</div>');
+  $('#sp-di-new').addEventListener('click', spStartDictation);
+  $('#sp-di-play').addEventListener('click', function () {
+    speak(item.en, 'us');
+    played++;
+    $('#sp-di-count').textContent = '已播放 ' + played + ' 次';
+  });
+  $('#sp-di-reveal').addEventListener('click', function () {
+    $('#sp-di-out').innerHTML = '<p class="font-extrabold p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D]">' + esc(item.en) + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">' + esc(item.zh) + '</p>';
+  });
+  $('#sp-di-check').addEventListener('click', function () {
+    const said = $('#sp-di-input').value;
+    if (!said.trim()) { showToast('⚠️ 先打出你聽到的內容。', 'warn', 3000); return; }
+    const res = pronScore(item.en, said);
+    $('#sp-di-out').innerHTML = '' +
+      '<div class="flex items-center gap-3 mb-2"><span class="text-3xl font-extrabold" style="color:' + spScoreColor(res.score) + '">' + res.score + '<span class="text-base">/100</span></span>' +
+      '<span class="text-xs font-extrabold text-[#A5A2B8]">' + res.ok + ' 對 ・ ' + res.close + ' 接近 ・ ' + res.miss + ' 漏</span></div>' +
+      '<div class="text-base leading-loose">' + pronWordsHtml(res.words, res.extras) + '</div>' +
+      '<p class="text-sm font-bold mt-2">正確句子：' + esc(item.en) + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8]">' + esc(item.zh) + '</p>';
+    spSaveRecord({ at: Date.now(), date: todayKey(), mode: 'dictation', part: '聽寫', question: item.en, transcript: said, seconds: 0, words: pronSplit(said).length, wpm: 0, band: null, scores: null, pronScore: res.score, xp: 8 });
+    spRenderHistory();
+  });
+}
+
+/* ---------- 自由口說計時器 ---------- */
+function spStartFree() {
+  spStage('' +
+    '<div class="we-card p-4">' +
+      '<span class="sp-tagline">🎙️ 自由口說</span>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-2">自己設定題目（或直接用內建隨機題），按下開始就講，系統會幫你算字數、語速與填充詞。</p>' +
+      '<div class="flex flex-wrap gap-2 mt-3">' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-fr-rand">🎲 隨機給我一題</button>' +
+      '</div>' +
+      '<div id="sp-fr-q" class="mt-3 p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] font-extrabold">（還沒選題目）</div>' +
+      '<div class="flex flex-wrap items-center gap-2 mt-3">' +
+        '<input id="sp-fr-time" type="number" min="30" max="600" value="120" class="we-input w-24">' +
+        '<span class="text-xs font-extrabold text-[#A5A2B8]">秒</span>' +
+      '</div>' +
+      '<div class="mt-3">' +
+        (speechRecAvailable() ? '<button class="we-btn" id="sp-fr-rec">🎙️ 開始計時並錄音</button>' : '<p class="text-sm font-extrabold text-[#E03E43]">此瀏覽器不支援語音辨識，請改用 Chrome。</p>') +
+        '<span class="sp-timer text-2xl ml-3" id="sp-fr-clock">00:00</span>' +
+      '</div>' +
+      '<div id="sp-fr-live" class="mt-3 text-sm font-bold text-[#3C3A4A]/80"></div>' +
+      '<div id="sp-fr-out" class="mt-3"></div>' +
+    '</div>');
+
+  let currentQ = '';
+  $('#sp-fr-rand').addEventListener('click', function () {
+    const t = spPick(IELTS_PART3);
+    currentQ = spPick(t.qs);
+    $('#sp-fr-q').textContent = currentQ;
+  });
+
+  const recBtn = $('#sp-fr-rec');
+  if (!recBtn) return;
+  let rec = null, seconds = 0, tick = null, transcript = '';
+  recBtn.addEventListener('click', function () {
+    if (rec) { try { rec.stop(); } catch (e) { /* 忽略 */ } return; }
+    const limit = Math.max(20, Math.min(600, parseInt($('#sp-fr-time').value, 10) || 120));
+    transcript = ''; seconds = 0;
+    recBtn.textContent = '⏹️ 停止';
+    tick = spAddTimer(setInterval(function () {
+      seconds++;
+      $('#sp-fr-clock').textContent = spFmtTime(seconds);
+      if (seconds >= limit) { try { rec.stop(); } catch (e) { /* 忽略 */ } }
+    }, 1000));
+    rec = startRecognition({
+      lang: 'en-US', continuous: true,
+      onInterim: function (t) { $('#sp-fr-live').innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span></span> ' + esc(t); },
+      onError: function (code) {
+        if (tick) clearInterval(tick);
+        recBtn.textContent = '🎙️ 開始計時並錄音';
+        rec = null;
+        showToast('⚠️ ' + speechErrZh(code), 'warn', 6000);
+      },
+      onEnd: function (finalText) {
+        if (tick) clearInterval(tick);
+        recBtn.textContent = '🎙️ 開始計時並錄音';
+        rec = null;
+        transcript = finalText || '';
+        if (!transcript) { $('#sp-fr-out').innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">沒有辨識到內容。</p>'; return; }
+        const stats = speechStats(transcript, seconds);
+        $('#sp-fr-out').innerHTML = '<p class="text-xs font-extrabold text-[#A5A2B8] mb-1">轉錄</p>' +
+          '<p class="text-sm font-bold leading-relaxed">' + esc(transcript) + '</p>' + spStatsHtml(stats, seconds);
+        spSaveRecord({ at: Date.now(), date: todayKey(), mode: 'free', part: currentQ || '自由口說', question: currentQ || '(自訂)', transcript: transcript, seconds: seconds, words: stats.words, wpm: stats.wpm, band: null, scores: null, xp: 8 });
+        spRenderHistory();
+      }
+    });
+  });
+}
+
+/* ---------- 我的成績 ---------- */
+function spRenderHistory() {
+  const box = $('#speak-history');
+  if (!box) return;
+  const recs = spGetRecords();
+  const xp = spGetXp();
+  const top = spTopPronWords(10);
+  const bank = spWordBank();
+  const withBand = recs.filter(function (r) { return typeof r.band === 'number' && r.band > 0; });
+
+  let avgHtml = '<p class="text-xs font-bold text-[#A5A2B8]">還沒有 AI 評分紀錄。完成一次模擬考，AI 就會開始記錄你的分數趨勢。</p>';
+  if (withBand.length) {
+    const last = withBand.slice(-10);
+    const avg = function (k) {
+      const vals = last.map(function (r) { return (r.scores && r.scores[k]) || 0; }).filter(function (v) { return v > 0; });
+      return vals.length ? (vals.reduce(function (a, b) { return a + b; }, 0) / vals.length).toFixed(1) : 0;
+    };
+    avgHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">' +
+      spBandBar('流暢與連貫（近 10 次平均）', parseFloat(avg('fluency')) || 0) +
+      spBandBar('字彙', parseFloat(avg('lexical')) || 0) +
+      spBandBar('文法', parseFloat(avg('grammar')) || 0) +
+      spBandBar('發音', parseFloat(avg('pronunciation')) || 0) +
+      '</div>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-2">最近 ' + last.length + ' 次：' +
+        last.map(function (r) { return '<span class="sp-tagline">' + r.band + '</span>'; }).join(' ') + '</p>';
+  }
+
+  box.innerHTML = '' +
+    '<div class="we-card p-4">' +
+      '<h3 class="font-extrabold text-lg mb-3">📈 我的成績</h3>' +
+      avgHtml +
+    '</div>' +
+    '<div class="we-card p-4 mt-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">🎯 我最常唸錯的字</h3>' +
+      (top.length ? '<div class="flex flex-wrap gap-2 mb-3">' + top.map(function (t) {
+          return '<span class="stat-chip">' + esc(t.word) + ' ×' + t.count + '</span>';
+        }).join('') + '</div>' +
+        '<div class="flex flex-wrap gap-2">' +
+          '<button class="we-btn we-btn-sm" id="sp-bad-listen">🔊 全部聽一次</button>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-bad-srs">➕ 全部加入錯題本</button>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-bad-clear">🗑️ 清空</button>' +
+        '</div>' : '<p class="text-sm font-bold text-[#A5A2B8]">還沒有紀錄。做一次「發音特訓」或「跟讀」，唸錯的字就會被記下來。</p>') +
+    '</div>' +
+    '<div class="we-card p-4 mt-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">📚 我的單字庫（' + bank.length + '）</h3>' +
+      (bank.length ? '<div class="flex flex-wrap gap-2">' + bank.slice(-40).map(function (w) {
+          return '<button class="we-btn we-btn-ghost we-btn-sm" data-bank-word="' + esc(w.word) + '">' + esc(w.word) + (w.zh ? '・' + esc(w.zh) : '') + '</button>';
+        }).join('') + '</div>' : '<p class="text-sm font-bold text-[#A5A2B8]">在「AI 每日單字」按「➕ 加入我的單字庫」，就會收集在這裡。</p>') +
+    '</div>' +
+    '<div class="we-card p-4 mt-4">' +
+      '<div class="flex items-center justify-between mb-2">' +
+        '<h3 class="font-extrabold text-lg">🗂️ 練習紀錄（' + recs.length + '）</h3>' +
+        (recs.length ? '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-rec-clear">🗑️ 清空紀錄</button>' : '') +
+      '</div>' +
+      (recs.length ? '<div class="space-y-2 sp-scroll-y">' + recs.slice(-30).reverse().map(function (r) {
+          const d = new Date(r.at);
+          const stamp = d.getMonth() + 1 + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+          return '<div class="p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+            '<div class="flex flex-wrap items-center gap-2 mb-1">' +
+              '<span class="sp-tagline">' + esc(r.mode) + '</span>' +
+              '<span class="text-xs font-extrabold text-[#A5A2B8]">' + stamp + '</span>' +
+              (typeof r.band === 'number' && r.band ? '<span class="stat-chip">Band ' + r.band + '</span>' : '') +
+              (typeof r.pronScore === 'number' ? '<span class="stat-chip">朗讀 ' + r.pronScore + '</span>' : '') +
+              (r.words ? '<span class="stat-chip">' + r.words + ' 字</span>' : '') +
+            '</div>' +
+            '<p class="text-xs font-bold text-[#3C3A4A]/80">' + esc(String(r.part || '')) + '</p>' +
+          '</div>';
+        }).join('') + '</div>' : '<p class="text-sm font-bold text-[#A5A2B8]">還沒有練習紀錄。</p>') +
+    '</div>';
+
+  const bl = $('#sp-bad-listen');
+  if (bl) bl.addEventListener('click', function () {
+    speak(top.map(function (t) { return t.word; }).join(', '), 'us');
+  });
+  const bs = $('#sp-bad-srs');
+  if (bs) bs.addEventListener('click', function () {
+    top.forEach(function (t) { addWrongWord(t.word, {}); });
+    showToast('➕ 已把 ' + top.length + ' 個常錯字加入錯題本，7 天後會回來找你。', 'info', 5000);
+    updateSrsBadge();
+  });
+  const bc = $('#sp-bad-clear');
+  if (bc) bc.addEventListener('click', async function () {
+    if (!(await weConfirm('確定要清空「常唸錯的字」統計嗎？', { emoji: '🗑️', danger: true, okText: '清空' }))) return;
+    lsSet(LS_PRONBAD, {});
+    spRenderHistory();
+  });
+  const rc = $('#sp-rec-clear');
+  if (rc) rc.addEventListener('click', async function () {
+    if (!(await weConfirm('確定要清空所有口說練習紀錄嗎？（XP 與單字庫不受影響）', { emoji: '🗑️', danger: true, okText: '清空紀錄' }))) return;
+    lsSet(LS_SPEAK, []);
+    spRenderHistory();
+  });
+  box.querySelectorAll('[data-bank-word]').forEach(function (b) {
+    b.addEventListener('click', function () { speak(b.dataset.bankWord, 'us'); });
+  });
+}
+
+function renderSpeakTab() {
+  spRenderStatus();
+  spRenderHome();
+  spRenderHistory();
+}
+
+/* =================================================================================
+   5-15. 雅思攻略分頁
+   ================================================================================= */
+function pbPlainWiki(text) {
+  return String(text || '')
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '')
+    .replace(/\[\d+\]/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+async function pbLoadWebInfo(force) {
+  const now = Date.now();
+  const cache = lsGet(LS_WEBINFO, null);
+  if (!force && cache && cache.at && cache.text && (now - cache.at) < 7 * 86400000) return cache;
+  const url = 'https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&titles=' +
+    encodeURIComponent('IELTS') + '&format=json&origin=*&maxlag=5';
+  const json = await fetchJson(url);
+  const pages = json && json.query && json.query.pages;
+  if (!pages) throw new Error('Wikipedia 沒有回傳資料。');
+  const page = Object.keys(pages).map(function (k) { return pages[k]; })[0];
+  if (!page || !page.extract) throw new Error('找不到 IELTS 條目。');
+  const out = { at: now, title: page.title || 'IELTS', text: pbPlainWiki(page.extract).slice(0, 4000) };
+  lsSet(LS_WEBINFO, out);
+  return out;
+}
+
+function pbStrategyHtml() {
+  return IELTS_STRATEGY.map(function (s) {
+    return '<details class="we-card-flat p-4 mb-2">' +
+      '<summary class="cursor-pointer font-extrabold select-none">' + s.icon + ' ' + esc(s.title) + '</summary>' +
+      '<ul class="list-disc pl-5 mt-2 space-y-1">' +
+        s.body.map(function (b) { return '<li class="text-sm font-bold leading-relaxed">' + esc(b) + '</li>'; }).join('') +
+      '</ul></details>';
+  }).join('');
+}
+
+function pbBankHtml() {
+  return '' +
+    '<div class="we-card p-4 mb-3">' +
+      '<h3 class="font-extrabold text-lg mb-2">🔗 高分連接詞（直接套進答案）</h3>' +
+      '<div class="flex flex-wrap gap-2">' + IELTS_LINKERS.map(function (l) {
+        return '<button class="we-btn we-btn-ghost we-btn-sm" data-pb-say="' + esc(l.en) + '">' + esc(l.en) + ' <span class="text-[#A5A2B8]">' + esc(l.zh) + '</span></button>';
+      }).join('') + '</div>' +
+    '</div>' +
+    '<div class="we-card p-4 mb-3">' +
+      '<h3 class="font-extrabold text-lg mb-2">📈 字彙升級表（把普通字換掉）</h3>' +
+      '<div class="space-y-1">' + IELTS_UPGRADE.map(function (u) {
+        return '<div class="sp-kv"><span class="text-[#A5A2B8] line-through">' + esc(u.basic) + '</span>' +
+          '<span class="text-[#4F32C4] font-extrabold text-right">' + esc(u.better) + '</span></div>' +
+          '<p class="text-xs font-bold text-[#A5A2B8] mb-1">' + esc(u.note) + '</p>';
+      }).join('') + '</div>' +
+    '</div>' +
+    '<div class="we-card p-4 mb-3">' +
+      '<h3 class="font-extrabold text-lg mb-2">🎭 口說好用慣用語（一題用一個就好）</h3>' +
+      '<div class="space-y-2">' + IELTS_IDIOMS.map(function (i) {
+        return '<div class="p-2 rounded-xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+          '<div class="flex flex-wrap items-center gap-2"><b class="text-sm">' + esc(i.en) + '</b>' +
+          '<span class="sp-tagline">' + esc(i.zh) + '</span>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" data-pb-say="' + esc(i.ex) + '">🔊</button></div>' +
+          '<p class="text-xs font-bold text-[#3C3A4A]/80 mt-1">' + esc(i.ex) + '</p></div>';
+      }).join('') + '</div>' +
+    '</div>';
+}
+
+function pbBankQuestionsHtml() {
+  const sec = function (title, items, kind) {
+    return '<details class="we-card-flat p-4 mb-2"><summary class="cursor-pointer font-extrabold select-none">' + title + '</summary>' +
+      '<div class="mt-2 space-y-2">' + items.map(function (it) {
+        const qs = kind === 'p2' ? [it.title] : it.qs;
+        return '<div class="p-2 rounded-xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+          '<p class="text-xs font-extrabold text-[#4F32C4] mb-1">' + esc(it.topic) + '</p>' +
+          qs.map(function (q) {
+            return '<div class="flex items-start gap-2 mb-1">' +
+              '<button class="we-btn we-btn-ghost we-btn-sm shrink-0" data-pb-practice="' + esc(q) + '">🎤 練這題</button>' +
+              '<span class="text-sm font-bold leading-relaxed">' + esc(q) + '</span></div>';
+          }).join('') +
+          (kind === 'p2' && it.cues ? '<p class="text-xs font-bold text-[#A5A2B8] mt-1">提示：' + esc(it.cues.join(' / ')) + '</p>' : '') +
+        '</div>';
+      }).join('') + '</div></details>';
+  };
+  return sec('💬 Part 1 題庫（生活題）', IELTS_PART1, 'p1') +
+    sec('🧠 Part 2 題庫（cue cards）', IELTS_PART2, 'p2') +
+    sec('🤔 Part 3 題庫（抽象討論）', IELTS_PART3, 'p3');
+}
+
+function renderPlaybook() {
+  const box = $('#playbook-body');
+  if (!box) return;
+  box.innerHTML = '' +
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">🗓️ AI 幫我排 7 天口說＋單字衝刺計畫</h3>' +
+      '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">' +
+        '<input id="pb-goal" class="we-input" placeholder="目標分數 7.0">' +
+        '<input id="pb-date" class="we-input" placeholder="考試日期 12/20">' +
+        '<input id="pb-mins" class="we-input" placeholder="每天 40 分鐘">' +
+        '<input id="pb-weak" class="we-input" placeholder="弱項：發音">' +
+      '</div>' +
+      '<button class="we-btn we-btn-sm" id="pb-plan-btn">🤖 生成計畫</button>' +
+      '<div id="pb-plan-out" class="mt-3"></div>' +
+    '</div>' +
+
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">🌐 連網抓取官方 IELTS 資訊</h3>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mb-2">從 Wikipedia 即時取得 IELTS 的考試架構、分數對照與用途（快取 7 天，離線時讀快取）。</p>' +
+      '<button class="we-btn we-btn-sm" id="pb-web-btn">🔄 立即抓取／更新</button>' +
+      '<div id="pb-web-out" class="mt-3"></div>' +
+    '</div>' +
+
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">📊 四項評分標準與各 Part 攻略</h3>' +
+      pbStrategyHtml() +
+    '</div>' +
+
+    pbBankHtml() +
+
+    '<div class="we-card p-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">📚 口說題庫瀏覽（可直接拿去練）</h3>' +
+      pbBankQuestionsHtml() +
+    '</div>';
+
+  box.querySelectorAll('[data-pb-say]').forEach(function (b) {
+    b.addEventListener('click', function () { speak(b.dataset.pbSay, 'us'); });
+  });
+  box.querySelectorAll('[data-pb-practice]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      spStartCustom(b.dataset.pbPractice);
+    });
+  });
+
+  $('#pb-web-btn').addEventListener('click', async function () {
+    const out = $('#pb-web-out');
+    out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⏳ 連線 Wikipedia 中…</p>';
+    try {
+      const info = await pbLoadWebInfo(true);
+      out.innerHTML = pbWebHtml(info);
+    } catch (err) {
+      const cache = lsGet(LS_WEBINFO, null);
+      out.innerHTML = '<p class="text-sm font-extrabold text-[#E03E43]">❌ 抓取失敗：' + esc(err.message) + '</p>' +
+        (cache && cache.text ? pbWebHtml(cache) : '');
+    }
+  });
+
+  $('#pb-plan-btn').addEventListener('click', async function () {
+    const out = $('#pb-plan-out');
+    if (!aiIsReady()) {
+      out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⚠️ 需要先設定 AI 金鑰才能生成個人化計畫。</p>' +
+        '<button class="we-btn we-btn-sm mt-2" id="pb-plan-ai">🤖 AI 設定</button>';
+      const b = $('#pb-plan-ai');
+      if (b) b.addEventListener('click', openAiSettings);
+      return;
+    }
+    const payload = '目標分數：' + ($('#pb-goal').value || '7.0') +
+      '\n考試日期：' + ($('#pb-date').value || '未定') +
+      '\n每天可練習：' + ($('#pb-mins').value || '40 分鐘') +
+      '\n弱項：' + ($('#pb-weak').value || '未填');
+    out.innerHTML = '<p class="text-sm font-extrabold">🤖 生成中…（約 10-30 秒）</p>';
+    try {
+      const txt = await aiChat([{ role: 'user', content: payload }], { system: aiPrompt('plan'), temperature: 0.7, maxTokens: 2600, timeoutMs: 90000 });
+      const j = aiParseJson(txt);
+      if (!j || !j.days) { out.innerHTML = '<p class="text-sm font-bold whitespace-pre-line">' + esc(String(txt).trim()) + '</p>'; return; }
+      out.innerHTML = '' +
+        '<p class="font-extrabold text-[#4F32C4] mb-2">🎯 ' + esc(j.goal || '') + '</p>' +
+        '<div class="space-y-2">' + j.days.map(function (d) {
+          return '<div class="p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+            '<div class="flex flex-wrap items-center gap-2 mb-1">' +
+              '<span class="sp-tagline">Day ' + esc(d.day) + '</span>' +
+              '<b class="text-sm">' + esc(d.focus || '') + '</b>' +
+              (d.minutes ? '<span class="stat-chip">' + esc(d.minutes) + ' 分鐘</span>' : '') +
+            '</div>' +
+            '<ul class="list-disc pl-5 space-y-1">' + (d.tasks || []).map(function (t) { return '<li class="text-sm font-bold">' + esc(t) + '</li>'; }).join('') + '</ul>' +
+            (d.speaking ? '<div class="mt-2 p-2 rounded-xl bg-[#DDFBF8] border-2 border-[#7FE3DA] flex items-start gap-2">' +
+              '<button class="we-btn we-btn-ghost we-btn-sm shrink-0" data-pb-practice="' + esc(d.speaking) + '">🎤 現在練</button>' +
+              '<span class="text-xs font-bold">' + esc(d.speaking) + '</span></div>' : '') +
+          '</div>';
+        }).join('') + '</div>' +
+        (j.tips && j.tips.length ? '<div class="mt-3 p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D]"><p class="text-xs font-extrabold text-[#96701A] mb-1">📌 考前提醒</p>' +
+          '<ul class="list-disc pl-5 space-y-1">' + j.tips.map(function (t) { return '<li class="text-sm font-bold">' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '');
+      out.querySelectorAll('[data-pb-practice]').forEach(function (b) {
+        b.addEventListener('click', function () { spStartCustom(b.dataset.pbPractice); });
+      });
+      spBumpXp(5);
+    } catch (err) {
+      out.innerHTML = '<p class="text-sm font-extrabold text-[#E03E43]">❌ ' + esc(err.message) + '</p>';
+    }
+  });
+
+  const cache = lsGet(LS_WEBINFO, null);
+  if (cache && cache.text) $('#pb-web-out').innerHTML = pbWebHtml(cache);
+}
+
+function pbWebHtml(info) {
+  const d = new Date(info.at || Date.now());
+  const stamp = d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+  return '<div class="p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+    '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">📄 ' + esc(info.title || 'IELTS') +
+      '（擷取自 Wikipedia，更新於 ' + stamp + '）</p>' +
+    '<p class="text-sm font-bold leading-relaxed whitespace-pre-line">' + esc(info.text || '') + '</p>' +
+    '<p class="text-xs font-bold text-[#A5A2B8] mt-2">來源：<a class="underline text-[#6C4BF6]" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/IELTS">en.wikipedia.org/wiki/IELTS</a></p>' +
+  '</div>';
+}
+
+/** 從題庫／計畫直接開一題來練 */
+function spStartCustom(text) {
+  switchTab('speak');
+  const set = { partLabel: '自訂題目（來自題庫瀏覽）', topic: '', questions: [text], questionText: text, speakSeconds: 90 };
+  spRenderMock(set, '');
 }
 
 function init() {

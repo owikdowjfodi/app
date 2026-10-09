@@ -4741,13 +4741,20 @@ const LS_WEBINFO = 'ielts_web_cache';    // 線上抓回來的雅思資訊快取
 
 /* ---------- 5-2. AI 供應商（全部都是「瀏覽器直連」，不需要後端） ---------- */
 const AI_PROVIDERS = [
-  { id: 'openai',     type: 'openai',    label: 'OpenAI',                     base: 'https://api.openai.com/v1',                    model: 'gpt-4o-mini',                 keyUrl: 'https://platform.openai.com/api-keys' },
-  { id: 'gemini',     type: 'gemini',    label: 'Google Gemini（有免費額度）',  base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash',        keyUrl: 'https://aistudio.google.com/app/apikey' },
-  { id: 'groq',       type: 'openai',    label: 'Groq（超快、免費額度大）',      base: 'https://api.groq.com/openai/v1',               model: 'llama-3.3-70b-versatile',      keyUrl: 'https://console.groq.com/keys' },
-  { id: 'deepseek',   type: 'openai',    label: 'DeepSeek',                   base: 'https://api.deepseek.com/v1',                  model: 'deepseek-chat',                keyUrl: 'https://platform.deepseek.com/api_keys' },
-  { id: 'openrouter', type: 'openai',    label: 'OpenRouter（多模型聚合）',    base: 'https://openrouter.ai/api/v1',                 model: 'openai/gpt-4o-mini',           keyUrl: 'https://openrouter.ai/keys' },
-  { id: 'anthropic',  type: 'anthropic', label: 'Anthropic Claude',           base: 'https://api.anthropic.com/v1',                 model: 'claude-3-5-haiku-latest',      keyUrl: 'https://console.anthropic.com/settings/keys' },
-  { id: 'custom',     type: 'openai',    label: '自訂（任何 OpenAI 相容端點）', base: '',                                             model: '',                             keyUrl: '' }
+  /* ---- 香港／澳門／台灣可以直接用（建議先試這幾個）---- */
+  { id: 'github',       type: 'openai', label: '⭐ GitHub Models（免費・用你現有的 GitHub 帳號）', base: 'https://models.github.ai/inference',  model: 'openai/gpt-4o-mini',      keyUrl: 'https://github.com/settings/tokens' },
+  { id: 'glm',          type: 'openai', label: '⭐ 智譜 GLM-4-Flash（永久免費・中港台直連）',      base: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash',             keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys' },
+  { id: 'siliconflow',  type: 'openai', label: '⭐ 硅基流動 SiliconFlow（港澳台・小模型免費）',    base: 'https://api.siliconflow.cn/v1',       model: 'Qwen/Qwen3-8B',           keyUrl: 'https://cloud.siliconflow.cn/account/ak' },
+  { id: 'pollinations', type: 'openai', label: '⭐ Pollinations（免註冊・免金鑰・最快能試）',       base: 'https://text.pollinations.ai/openai', model: 'openai',                  keyUrl: 'https://pollinations.ai/', noKey: true },
+  /* ---- 國際主流（⚠️ 香港目前不支援，選了會被擋）---- */
+  { id: 'openai',       type: 'openai', label: 'OpenAI（⚠️ 香港不支援）',                        base: 'https://api.openai.com/v1',           model: 'gpt-4o-mini',             keyUrl: 'https://platform.openai.com/api-keys' },
+  { id: 'gemini',       type: 'gemini', label: 'Google Gemini（⚠️ 香港不支援）',                  base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash', keyUrl: 'https://aistudio.google.com/app/apikey' },
+  { id: 'groq',         type: 'openai', label: 'Groq（⚠️ 香港被地區封鎖）',                       base: 'https://api.groq.com/openai/v1',      model: 'llama-3.3-70b-versatile', keyUrl: 'https://console.groq.com/keys' },
+  { id: 'anthropic',    type: 'anthropic', label: 'Anthropic Claude（⚠️ 香港不支援）',            base: 'https://api.anthropic.com/v1',        model: 'claude-3-5-haiku-latest', keyUrl: 'https://console.anthropic.com/settings/keys' },
+  /* ---- 其他 ---- */
+  { id: 'deepseek',     type: 'openai', label: 'DeepSeek（中港可用・需小額儲值）',                 base: 'https://api.deepseek.com/v1',         model: 'deepseek-chat',           keyUrl: 'https://platform.deepseek.com/api_keys' },
+  { id: 'openrouter',   type: 'openai', label: 'OpenRouter（多模型聚合・部分模型擋中港）',         base: 'https://openrouter.ai/api/v1',        model: 'openai/gpt-4o-mini',      keyUrl: 'https://openrouter.ai/keys' },
+  { id: 'custom',       type: 'openai', label: '自訂（任何 OpenAI 相容端點）',                     base: '',                                    model: '',                        keyUrl: '' }
 ];
 
 /* ---------- 5-3. 預設提示詞（使用者可以在 AI 設定裡自由修改／還原） ---------- */
@@ -5048,7 +5055,7 @@ const AI_WORD_SEED = [
    5-9. AI 設定與呼叫層（瀏覽器直連；沒有後端，金鑰只留在你自己的 localStorage）
    ================================================================================= */
 function aiDefaults() {
-  return { provider: 'openai', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
+  return { provider: 'github', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
 }
 function aiGetSettings() {
   const d = aiDefaults();
@@ -5076,11 +5083,13 @@ function aiPrompt(key) {
 }
 function aiIsReady() {
   const s = aiGetSettings();
-  return !!(s.apiKey && aiBase(s) && aiModel(s));
+  const p = aiProvider(s.provider);
+  return !!((s.apiKey || p.noKey) && aiBase(s) && aiModel(s));
 }
 function aiKeyHint() {
   const s = aiGetSettings();
-  if (!s.apiKey) return '尚未設定 API 金鑰';
+  const p = aiProvider(s.provider);
+  if (!s.apiKey) return p.noKey ? (aiModel(s) + '（免金鑰）') : '尚未設定 API 金鑰';
   return aiModel(s) + '（' + s.apiKey.slice(0, 6) + '…' + s.apiKey.slice(-4) + '）';
 }
 
@@ -5096,8 +5105,9 @@ function aiHttpError(status, data) {
 async function aiChat(messages, opts) {
   const o = opts || {};
   const s = aiGetSettings();
-  if (!s.apiKey) throw new Error('尚未設定 API 金鑰，請先點「🤖 AI 設定」。');
-  const base = aiBase(s), model = aiModel(s), type = aiProvider(s.provider).type;
+  const prov = aiProvider(s.provider);
+  if (!s.apiKey && !prov.noKey) throw new Error('尚未設定 API 金鑰，請先點「🤖 AI 設定」。');
+  const base = aiBase(s), model = aiModel(s), type = prov.type;
   const temperature = (typeof o.temperature === 'number') ? o.temperature : s.temperature;
   const maxTokens = o.maxTokens || s.maxTokens || 1200;
   const sys = o.system || '';
@@ -5143,9 +5153,11 @@ async function aiChat(messages, opts) {
       return text;
     }
     const msgs = sys ? [{ role: 'system', content: sys }].concat(messages) : messages;
+    const oaHeaders = { 'Content-Type': 'application/json' };
+    if (s.apiKey) oaHeaders['Authorization'] = 'Bearer ' + s.apiKey;
     res = await fetch(base + '/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.apiKey },
+      headers: oaHeaders,
       body: JSON.stringify({ model: model, messages: msgs, temperature: temperature, max_tokens: maxTokens }),
       signal: ctrl ? ctrl.signal : undefined
     });

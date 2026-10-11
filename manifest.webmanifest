@@ -61,6 +61,13 @@
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
+      "name": "字首字根字尾圖鑑",
+      "short_name": "字根圖鑑",
+      "description": "依 A–Z 分類的字首、字根、字尾，附例字與隨機測驗",
+      "url": "./index.html#affix",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
       "name": "AI 雅思口說教練",
       "short_name": "口說教練",
       "description": "隨機出題、即時糾正發音、AI 評價你的想法",

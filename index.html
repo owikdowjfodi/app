@@ -159,42 +159,65 @@
     box-shadow: 0 0 0 4px rgba(28, 176, 246, .16);
   }
 
-  /* ---------- 導覽列 ---------- */
-  .nav-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: .4rem;
-    font-weight: 800;
-    padding: .6rem .9rem;
-    border-radius: 1rem;
-    color: var(--we-gray);
-    border: 2px solid transparent;
-    transition: all .15s ease;
-    cursor: pointer;
-    background: transparent;
+  /* ---------- v1.7：左上角三橫線（漢堡）＋側邊抽屜選單 ---------- */
+  .we-burger {
+    display: flex; align-items: center; justify-content: center;
+    width: 2.75rem; height: 2.75rem; flex: none;
+    border-radius: 1rem; background: #F2F0FA;
+    border: 2px solid var(--we-line); border-bottom-width: 4px;
+    cursor: pointer; transition: all .15s ease;
   }
-  .nav-btn:hover { background: #EFEDF7; color: var(--we-ink); }
-  .nav-btn.active {
-    color: var(--we-accent);
-    background: #DDFBF8;
-    border-color: #7FE3DA;
-    border-bottom-width: 4px;
+  .we-burger:hover { background: #EDE8FF; }
+  .we-burger:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .we-burger .bars { display: flex; flex-direction: column; gap: 4px; }
+  .we-burger .bars i { display: block; width: 19px; height: 3px; border-radius: 2px; background: var(--we-brand); }
+  .we-burger .badge-dot {
+    position: absolute; margin: -1.6rem 0 0 1.5rem;
+    min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+    background: var(--we-red); color: #fff; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
   }
-  .nav-btn-bottom {
-    flex-direction: column;
-    gap: .15rem;
-    padding: .45rem .4rem .35rem;
-    font-size: .7rem;
-    border-radius: .9rem;
-    flex: 1;
+  .we-scrim {
+    position: fixed; inset: 0; z-index: 80; background: rgba(31, 30, 43, .45);
+    opacity: 0; pointer-events: none; transition: opacity .22s ease;
   }
-  .nav-btn-bottom .nav-icon { font-size: 1.5rem; line-height: 1; }
-  /* v1.5：底部導覽多了「口說」「攻略」兩個分頁，窄手機再縮一級避免擠壓 */
-  @media (max-width: 400px) {
-    .nav-btn-bottom { font-size: .62rem; padding: .4rem .2rem .3rem; gap: .1rem; }
-    .nav-btn-bottom .nav-icon { font-size: 1.3rem; }
+  .we-scrim.on { opacity: 1; pointer-events: auto; }
+  .we-drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 81;
+    width: min(86vw, 20rem); background: #fff;
+    border-right: 2px solid var(--we-line);
+    box-shadow: 8px 0 30px rgba(31, 30, 43, .18);
+    transform: translateX(-102%);
+    transition: transform .26s cubic-bezier(.3, .8, .3, 1);
+    display: flex; flex-direction: column;
   }
+  .we-drawer.on { transform: translateX(0); }
+  .we-drawer-head { padding: 1rem 1.1rem .85rem; border-bottom: 2px solid #EDECF5; }
+  .we-drawer-body { flex: 1; overflow-y: auto; padding: .6rem .6rem .8rem; }
+  .we-nav-item {
+    display: flex; align-items: center; gap: .7rem; width: 100%;
+    text-align: left; padding: .65rem .75rem; margin-bottom: .25rem;
+    border-radius: 1rem; border: 2px solid transparent; background: transparent;
+    cursor: pointer; font-weight: 800; color: var(--we-ink);
+  }
+  .we-nav-item:hover { background: #F2F0FA; }
+  .we-nav-item.active { background: #EDE8FF; border-color: #C9BCFB; color: var(--we-brand); }
+  .we-nav-item .we-nav-ico { font-size: 1.35rem; line-height: 1; width: 1.9rem; text-align: center; flex: none; }
+  .we-nav-item .we-nav-txt { display: flex; flex-direction: column; min-width: 0; }
+  .we-nav-item .we-nav-sub { font-size: .7rem; font-weight: 700; color: var(--we-gray); }
+  .we-nav-item.active .we-nav-sub { color: #7C6BD6; }
+  .we-drawer-foot { padding: .8rem 1.1rem 1.1rem; border-top: 2px solid #EDECF5; font-size: .7rem; font-weight: 700; color: var(--we-gray); }
+  body.we-lock { overflow: hidden; }
+
+  /* ---------- v1.7：想法五稜鏡（Idea Prism） ---------- */
+  .id-lens { border: 2px solid; border-bottom-width: 4px; border-radius: 1rem; padding: .8rem .9rem; background: #fff; }
+  .id-lens h4 { font-weight: 800; font-size: .95rem; display: flex; align-items: center; gap: .4rem; margin-bottom: .35rem; }
+  .id-q { font-size: .8rem; font-weight: 700; color: #4B4A5A; margin-top: .15rem; }
+  .id-q::before { content: '▸ '; color: var(--we-gray); }
+  .id-bar { height: .55rem; border-radius: 999px; background: #EDECF5; overflow: hidden; }
+  .id-bar > i { display: block; height: 100%; border-radius: 999px; transition: width .3s ease; }
+  .id-chip { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; font-weight: 800; padding: .15rem .5rem; border-radius: 999px; }
+  textarea.we-input { line-height: 1.65; resize: vertical; }
 
   /* ---------- 結構拆解標籤 ---------- */
   .tag {
@@ -444,26 +467,18 @@
      ============================================================ -->
 <header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b-2 border-[#E4E2EF]">
   <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <!-- v1.7：所有分頁都收進左上角這顆三橫線按鈕 -->
+      <button class="we-burger relative" id="btn-menu" aria-label="開啟選單" aria-expanded="false">
+        <span class="bars"><i></i><i></i><i></i></span>
+        <span class="badge-dot hidden" id="burger-badge">0</span>
+      </button>
       <div class="text-3xl leading-none select-none">🦊</div>
-      <div>
+      <div class="min-w-0">
         <h1 class="font-extrabold text-lg sm:text-xl text-[#6C4BF6] leading-tight">單字探險家</h1>
-        <p class="text-[11px] sm:text-xs text-[#A5A2B8] font-bold">深度拆解 ・ 每日測驗 ・ 間隔複習</p>
+        <p class="text-[11px] sm:text-xs text-[#A5A2B8] font-bold truncate">深度拆解 ・ 每日測驗 ・ 間隔複習</p>
       </div>
     </div>
-
-    <!-- 桌面版導覽 -->
-    <nav class="hidden md:flex items-center gap-2" id="nav-desktop">
-      <button class="nav-btn active" data-tab="lexicon"><span class="text-xl">🔍</span><span>單字拆解</span></button>
-      <button class="nav-btn" data-tab="affix"><span class="text-xl">🔤</span><span>字根字首</span></button>
-      <button class="nav-btn" data-tab="quiz"><span class="text-xl">📝</span><span>每日測驗</span></button>
-      <button class="nav-btn" data-tab="srs" id="nav-btn-srs">
-        <span class="text-xl">🧠</span><span>錯題本</span>
-        <span id="srs-badge-desktop" class="hidden ml-1 min-w-[22px] h-[22px] px-1 rounded-full bg-[#FF5A5F] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
-      </button>
-      <button class="nav-btn" data-tab="speak"><span class="text-xl">🎤</span><span>口說教練</span></button>
-      <button class="nav-btn" data-tab="playbook"><span class="text-xl">📚</span><span>雅思攻略</span></button>
-    </nav>
 
     <div class="flex items-center gap-2">
       <span class="stat-chip hidden sm:inline-flex items-center gap-1">🔥 連續 <span id="stat-streak">0</span> 天</span>
@@ -472,7 +487,7 @@
   </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 pt-6 pb-40">
+<main class="max-w-4xl mx-auto px-4 pt-6 pb-16">
 
   <!-- ==========================================================
        分頁 1：單字深度查詢與結構拆解
@@ -576,32 +591,72 @@
     <div id="playbook-body"></div>
   </section>
 
+  <!-- ==========================================================
+       分頁 7：想法五稜鏡（Idea Prism）v1.7 新增
+       ========================================================== -->
+  <section id="panel-idea" class="hidden">
+    <div class="text-center mb-6">
+      <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">💡 想法五稜鏡</h2>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">同一個題目，從<b class="text-[#6C4BF6]">社會</b>・<b class="text-[#00B4A6]">經濟</b>・<b class="text-[#E0629B]">文化</b>・<b class="text-[#FF8A3D]">環境</b>・<b class="text-[#FFB020]">國際</b> 五個角度切進去</p>
+    </div>
+    <div id="idea-body"></div>
+  </section>
+
 </main>
 
 <!-- ============================================================
-     底部導覽列（行動裝置）
+     v1.7：側邊抽屜選單（左上角三橫線打開，所有分頁都在這裡）
      ============================================================ -->
-<nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-[#E4E2EF] px-2 py-1.5 flex items-center gap-1" id="nav-mobile">
-  <button class="nav-btn nav-btn-bottom active" data-tab="lexicon">
-    <span class="nav-icon">🔍</span><span>拆解</span>
-  </button>
-  <button class="nav-btn nav-btn-bottom" data-tab="affix">
-    <span class="nav-icon">🔤</span><span>字根</span>
-  </button>
-  <button class="nav-btn nav-btn-bottom" data-tab="quiz">
-    <span class="nav-icon">📝</span><span>測驗</span>
-  </button>
-  <button class="nav-btn nav-btn-bottom relative" data-tab="srs">
-    <span class="nav-icon">🧠</span><span>錯題</span>
-    <span id="srs-badge-mobile" class="hidden absolute top-0 right-3 min-w-[20px] h-[20px] px-1 rounded-full bg-[#FF5A5F] text-white text-[10px] font-extrabold flex items-center justify-center">0</span>
-  </button>
-  <button class="nav-btn nav-btn-bottom" data-tab="speak">
-    <span class="nav-icon">🎤</span><span>口說</span>
-  </button>
-  <button class="nav-btn nav-btn-bottom" data-tab="playbook">
-    <span class="nav-icon">📚</span><span>攻略</span>
-  </button>
-</nav>
+<div class="we-scrim" id="nav-scrim"></div>
+<aside class="we-drawer" id="nav-drawer" aria-hidden="true">
+  <div class="we-drawer-head">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl leading-none">🦊</span>
+      <div class="min-w-0">
+        <p class="font-extrabold text-base text-[#6C4BF6] leading-tight">單字探險家</p>
+        <p class="text-[11px] font-bold text-[#A5A2B8]">選一個單元開始</p>
+      </div>
+      <button class="we-btn we-btn-ghost we-btn-sm ml-auto" id="nav-close" aria-label="關閉選單">✕</button>
+    </div>
+  </div>
+
+  <nav class="we-drawer-body" id="nav-list">
+    <button class="we-nav-item active" data-tab="lexicon">
+      <span class="we-nav-ico">🔍</span>
+      <span class="we-nav-txt"><span>單字深度拆解</span><span class="we-nav-sub">查字、拆字首字根、聽發音</span></span>
+    </button>
+    <button class="we-nav-item" data-tab="affix">
+      <span class="we-nav-ico">🔤</span>
+      <span class="we-nav-txt"><span>字首・字根・字尾</span><span class="we-nav-sub">442 個構字零件圖鑑＋測驗</span></span>
+    </button>
+    <button class="we-nav-item" data-tab="quiz">
+      <span class="we-nav-ico">📝</span>
+      <span class="we-nav-txt"><span>每日測驗</span><span class="we-nav-sub">5 題驗收今天的字</span></span>
+    </button>
+    <button class="we-nav-item" data-tab="srs">
+      <span class="we-nav-ico">🧠</span>
+      <span class="we-nav-txt"><span>錯題本</span><span class="we-nav-sub">7 天間隔複習，把錯的變精通</span></span>
+      <span id="srs-badge-menu" class="hidden ml-auto min-w-[22px] h-[22px] px-1 rounded-full bg-[#FF5A5F] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
+    </button>
+    <button class="we-nav-item" data-tab="speak">
+      <span class="we-nav-ico">🎤</span>
+      <span class="we-nav-txt"><span>AI 口說教練</span><span class="we-nav-sub">錄音、逐字糾正、四項評分</span></span>
+    </button>
+    <button class="we-nav-item" data-tab="idea">
+      <span class="we-nav-ico">💡</span>
+      <span class="we-nav-txt"><span>想法五稜鏡</span><span class="we-nav-sub">用 5 個角度長出有深度的 idea</span></span>
+    </button>
+    <button class="we-nav-item" data-tab="playbook">
+      <span class="we-nav-ico">📚</span>
+      <span class="we-nav-txt"><span>雅思攻略</span><span class="we-nav-sub">題庫、高分句型、7 天計畫</span></span>
+    </button>
+  </nav>
+
+  <div class="we-drawer-foot">
+    <p>🦊 單字探險家 <span id="nav-version">v1.7</span></p>
+    <p class="mt-0.5">介面、圖示與配色皆為本專案原創設計</p>
+  </div>
+</aside>
 
 <!-- ============================================================
      全螢幕反饋底欄（儀式感核心）
@@ -1274,9 +1329,35 @@ const state = {
   quizSessionNo: 0    // 今天正在進行的訓練輪次（1 起算）
 };
 
+/* =================================================================================
+   v1.7：左上角三橫線側邊選單
+   ================================================================================= */
+function openNav() {
+  const d = $('#nav-drawer'), s = $('#nav-scrim'), b = $('#btn-menu');
+  if (!d) return;
+  d.classList.add('on');
+  d.setAttribute('aria-hidden', 'false');
+  if (s) s.classList.add('on');
+  if (b) b.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('we-lock');
+  /* 開啟時把抽屜捲到目前分頁，項目多時比較好找 */
+  const cur = $('#nav-list .we-nav-item.active');
+  if (cur && typeof cur.scrollIntoView === 'function') { try { cur.scrollIntoView({ block: 'nearest' }); } catch (e) { /* 忽略 */ } }
+}
+
+function closeNav() {
+  const d = $('#nav-drawer'), s = $('#nav-scrim'), b = $('#btn-menu');
+  if (!d) return;
+  d.classList.remove('on');
+  d.setAttribute('aria-hidden', 'true');
+  if (s) s.classList.remove('on');
+  if (b) b.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('we-lock');
+}
+
 function switchTab(tab) {
   state.activeTab = tab;
-  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'playbook'].forEach(t => {
+  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'idea', 'playbook'].forEach(t => {
     const panel = $('#panel-' + t);
     if (!panel) return;
     panel.classList.toggle('hidden', t !== tab);
@@ -1287,12 +1368,14 @@ function switchTab(tab) {
     }
   });
 
-  $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  $$('#nav-list [data-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  closeNav();
 
   if (tab === 'affix') renderAffix();
   if (tab === 'quiz') renderQuiz();
   if (tab === 'srs')  renderSRS();
   if (tab === 'speak') renderSpeakTab();
+  if (tab === 'idea') renderIdea();
   if (tab === 'playbook') renderPlaybook();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -1312,7 +1395,7 @@ function applyHashRoute() {
   const raw = String(location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
   if (!raw) return false;
   /* 允許 #quiz、#srs、#lexicon 等寫法 */
-  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix') ? raw : null;
+  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix' || raw === 'idea') ? raw : null;
   if (!tab || tab === state.activeTab) return false;
   switchTab(tab);
   return true;
@@ -4245,7 +4328,7 @@ function getSrsBuckets() {
 /** 更新錯題本紅點數字 */
 function updateSrsBadge() {
   const dueCount = getWrongDb().filter(i => i.status === 'due_for_review').length;
-  [['#srs-badge-desktop'], ['#srs-badge-mobile']].forEach(([sel]) => {
+  ['#srs-badge-menu', '#burger-badge'].forEach(sel => {
     const el = $(sel);
     if (!el) return;
     el.textContent = String(dueCount);
@@ -4842,6 +4925,30 @@ const AI_DEFAULT_PROMPTS = {
     '  "days": [ { "day": 1, "focus": "當天主題（繁體中文）", "minutes": 30,',
     '              "tasks": ["具體任務1（繁體中文）", "任務2"], "speaking": "當天的口說練習指令（英文題目或任務）" } ],',
     '  "tips": ["考前提醒1", "提醒2"] }'
+  ].join('\n'),
+
+  /* v1.7 新增：想法五稜鏡（Idea Prism）——社會／經濟／文化／環境／國際五個角度 */
+  idea: [
+    '你是 IELTS 口說 Part 3 與寫作 Task 2 的「想法教練」，專門幫考生用「五稜鏡框架」把零散想法變成有深度、可展開的論點。',
+    '五個角度固定如下（不可增減、不可改名）：',
+    '  social（社會）：對人的影響——誰受益、誰受害、公平、家庭／教育／健康',
+    '  economic（經濟）：錢與成本——誰付錢、誰賺錢、就業、政府成本、長期效益',
+    '  cultural（文化）：價值觀與認同——傳統、語言、身分認同、世代差異',
+    '  env（環境）：自然與永續——能源、污染、廢棄物、碳排放、生物多樣性',
+    '  global（國際）：國家之間的關係——合作或衝突、已開發 vs 開發中國家、國際規範',
+    '要求：',
+    '1. 每個角度給「1 個具體主張 ＋ 1 個理由 ＋ 1 個例子」，不要空泛口號，例子要具體（可含數字、機構、生活場景）。',
+    '2. 英文用 IELTS Band 7+ 的字彙與句型；中文解釋用繁體中文。',
+    '3. 也要指出這個角度「最容易被反駁的地方」，讓考生能寫讓步段。',
+    '只回傳 JSON，不要任何其他文字：',
+    '{ "angles": [',
+    '    { "id": "social", "claim": "一句話主張（英文）", "reason": "為什麼（英文）",',
+    '      "example": "具體例子（英文）", "rebuttal": "最容易被反駁的點（繁體中文）",',
+    '      "cn": "這個角度在說什麼（繁體中文一句）",',
+    '      "vocab": ["高分字1", "高分字2"] } ],',
+    '  "thesis": "把五個角度濃縮成一句強而有力的中心論點（英文）",',
+    '  "band": 7.5,',
+    '  "comment": "整體評語與最該補強的角度（繁體中文 2-3 句）" }'
   ].join('\n')
 };
 
@@ -5088,7 +5195,9 @@ const AI_WORD_SEED = [
    5-9. AI 設定與呼叫層（瀏覽器直連；沒有後端，金鑰只留在你自己的 localStorage）
    ================================================================================= */
 function aiDefaults() {
-  return { provider: 'github', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
+  /* v1.7：預設直接用「免金鑰」的 Pollinations，使用者不用申請任何東西就能用 AI。
+     想用自己的金鑰（品質更好、更穩定）再到 AI 設定裡換。 */
+  return { provider: 'pollinations', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
 }
 function aiGetSettings() {
   const d = aiDefaults();
@@ -5115,22 +5224,41 @@ function aiPrompt(key) {
   return AI_DEFAULT_PROMPTS[key] || '';
 }
 function aiIsReady() {
-  const s = aiGetSettings();
-  const p = aiProvider(s.provider);
-  return !!((s.apiKey || p.noKey) && aiBase(s) && aiModel(s));
+  const e = aiEffective(aiGetSettings());
+  return !!(e.base && e.model);
 }
 function aiKeyHint() {
   const s = aiGetSettings();
+  const e = aiEffective(s);
+  if (e.keyless) return e.model + '（免金鑰模式）';
   const p = aiProvider(s.provider);
   if (!s.apiKey) return p.noKey ? (aiModel(s) + '（免金鑰）') : '尚未設定 API 金鑰';
-  return aiModel(s) + '（' + s.apiKey.slice(0, 6) + '…' + s.apiKey.slice(-4) + '）';
+  return e.model + '（' + s.apiKey.slice(0, 6) + '…' + s.apiKey.slice(-4) + '）';
 }
 
-function aiHttpError(status, data) {
+/* v1.7：免金鑰自動接手。
+   使用者可能「一家金鑰都沒填」或「填了金鑰卻失效」——這裡讓 AI 永遠有東西可用：
+   只要目前選的供應商需要金鑰卻沒有金鑰，就自動改用免註冊免金鑰的 Pollinations。
+   這代表使用者「完全不申請任何 API」也能使用 AI，而開發者不用付任何費用。 */
+const AI_KEYLESS_ID = 'pollinations';
+function aiKeyless() { return aiProvider(AI_KEYLESS_ID); }
+function aiEffective(s) {
+  const p = aiProvider(s.provider);
+  if (s.apiKey || p.noKey) {
+    return { provider: p, keyless: !!p.noKey && !s.apiKey, base: aiBase(s), model: aiModel(s), type: p.type, apiKey: s.apiKey };
+  }
+  const k = aiKeyless();
+  return { provider: k, keyless: true, base: String(k.base || '').replace(/\/+$/, ''), model: k.model, type: k.type, apiKey: '' };
+}
+
+function aiHttpError(status, data, eff) {
   const msg = (data && data.error && (data.error.message || data.error.status)) || (data && data.message) || '';
-  if (status === 401 || status === 403) return new Error('API 金鑰無效或被拒絕（HTTP ' + status + '）。' + msg);
-  if (status === 429) return new Error('超過 API 額度或速率限制（HTTP 429）。稍後再試或換一個供應商。' + msg);
-  if (status === 404) return new Error('找不到模型或端點（HTTP 404）。請檢查模型名稱與 Base URL。' + msg);
+  const name = (eff && eff.provider && eff.provider.label) || '';
+  if (status === 401) return new Error('API 金鑰無效（HTTP 401）。請確認：①金鑰整串複製、沒有多餘空白 ②金鑰沒有被刪除或過期 ③帳號已完成開通。' + (name ? '（供應商：' + name + '）' : '') + (msg ? ' 伺服器說：' + msg : ''));
+  if (status === 403) return new Error('被拒絕（HTTP 403）。常見原因：金鑰沒有這個模型的權限、帳號未實名認證、或所在地區被封鎖。' + (msg ? ' 伺服器說：' + msg : ''));
+  if (status === 402) return new Error('餘額不足（HTTP 402）。這個供應商需要儲值，建議改用免金鑰模式或免費供應商。' + (msg ? ' 伺服器說：' + msg : ''));
+  if (status === 429) return new Error('超過額度或速率限制（HTTP 429）。稍等 30 秒再試，或到 AI 設定換一個供應商。' + (msg ? ' 伺服器說：' + msg : ''));
+  if (status === 404) return new Error('找不到模型或端點（HTTP 404）。請檢查「模型名稱」與「Base URL」是否跟供應商相符。' + (msg ? ' 伺服器說：' + msg : ''));
   return new Error('AI 服務回傳錯誤（HTTP ' + status + '）。' + msg);
 }
 
@@ -5138,9 +5266,11 @@ function aiHttpError(status, data) {
 async function aiChat(messages, opts) {
   const o = opts || {};
   const s = aiGetSettings();
-  const prov = aiProvider(s.provider);
-  if (!s.apiKey && !prov.noKey) throw new Error('尚未設定 API 金鑰，請先點「🤖 AI 設定」。');
-  const base = aiBase(s), model = aiModel(s), type = prov.type;
+  const eff = aiEffective(s);
+  const prov = eff.provider;
+  if (!eff.base || !eff.model) throw new Error('AI 端點沒有設定完整，請到「🤖 AI 設定」檢查。');
+  const base = eff.base, model = eff.model, type = eff.type;
+  const apiKey = eff.apiKey;
   const temperature = (typeof o.temperature === 'number') ? o.temperature : s.temperature;
   const maxTokens = o.maxTokens || s.maxTokens || 1200;
   const sys = o.system || '';
@@ -5155,12 +5285,12 @@ async function aiChat(messages, opts) {
       });
       const body = { contents: contents, generationConfig: { temperature: temperature, maxOutputTokens: maxTokens } };
       if (sys) body.systemInstruction = { parts: [{ text: sys }] };
-      res = await fetch(base + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(s.apiKey), {
+      res = await fetch(base + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
       });
       data = await res.json().catch(function () { return null; });
-      if (!res.ok) throw aiHttpError(res.status, data);
+      if (!res.ok) throw aiHttpError(res.status, data, eff);
       const cand = data && data.candidates && data.candidates[0];
       const parts = (cand && cand.content && cand.content.parts) || [];
       text = parts.map(function (p) { return p.text || ''; }).join('');
@@ -5175,19 +5305,19 @@ async function aiChat(messages, opts) {
       if (sys) body.system = sys;
       res = await fetch(base + '/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey,
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
           'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
       });
       data = await res.json().catch(function () { return null; });
-      if (!res.ok) throw aiHttpError(res.status, data);
+      if (!res.ok) throw aiHttpError(res.status, data, eff);
       text = ((data && data.content) || []).map(function (b) { return b.text || ''; }).join('');
       if (!text) throw new Error('AI 沒有回傳內容。');
       return text;
     }
     const msgs = sys ? [{ role: 'system', content: sys }].concat(messages) : messages;
     const oaHeaders = { 'Content-Type': 'application/json' };
-    if (s.apiKey) oaHeaders['Authorization'] = 'Bearer ' + s.apiKey;
+    if (apiKey) oaHeaders['Authorization'] = 'Bearer ' + apiKey;
     res = await fetch(base + '/chat/completions', {
       method: 'POST',
       headers: oaHeaders,
@@ -5195,13 +5325,16 @@ async function aiChat(messages, opts) {
       signal: ctrl ? ctrl.signal : undefined
     });
     data = await res.json().catch(function () { return null; });
-    if (!res.ok) throw aiHttpError(res.status, data);
+    if (!res.ok) throw aiHttpError(res.status, data, eff);
     text = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
     if (!text) throw new Error('AI 沒有回傳內容。');
     return text;
   } catch (err) {
     if (err && err.name === 'AbortError') throw new Error('AI 回應逾時（' + Math.round(timeoutMs / 1000) + ' 秒），請確認網路或換一個模型。');
-    if (err instanceof TypeError) throw new Error('連線失敗：可能被 CORS 擋下、金鑰錯誤或網路中斷。請確認 Base URL 與供應商相符。');
+    if (err instanceof TypeError) {
+      throw new Error('連線失敗（fetch 直接失敗）。最可能是這家供應商「不允許瀏覽器直接呼叫」（CORS 被擋）或你的網路封鎖了它。' +
+        (eff.keyless ? '' : '建議到「🤖 AI 設定」按「🎁 免金鑰試用」改用免金鑰模式，或換一家供應商。'));
+    }
     throw err;
   } finally {
     clearTimeout(timer);
@@ -5572,6 +5705,7 @@ function openAiSettings() {
 
   const promptKeys = [
     { k: 'coach', label: '🎯 口說評分教練（最重要）' },
+    { k: 'idea', label: '💡 想法五稜鏡評審' },
     { k: 'examiner', label: '📝 出題考官' },
     { k: 'roleplay', label: '🎭 角色扮演對話' },
     { k: 'word', label: '📚 每日單字出題' },
@@ -5599,6 +5733,15 @@ function openAiSettings() {
         '<button class="text-2xl leading-none opacity-50 hover:opacity-100" data-ai-close>✕</button>' +
       '</div>' +
 
+      '<div class="p-3 rounded-2xl" style="background:#D9F7EA;border:2px solid #7EE0BC">' +
+        '<p class="text-sm font-extrabold" style="color:#0F7A54">🎁 完全不想申請金鑰？</p>' +
+        '<p class="text-xs font-bold mt-1 leading-relaxed" style="color:#0F7A54">' +
+          '按下面的 <b>「🎁 免金鑰試用」</b> 就好：AI 立刻可以用，<b>不用註冊、不用信用卡、不用付任何錢</b>（連開發者也不用付）。' +
+          '缺點是免金鑰的公用模型排隊較久、偶爾會忙線；想更快更穩再自己申請金鑰。' +
+        '</p>' +
+        '<button class="we-btn we-btn-sm mt-2" id="ai-keyless" style="background:#0F7A54">🎁 免金鑰試用</button>' +
+      '</div>' +
+
       '<div class="p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D] text-xs font-extrabold text-[#96701A] leading-relaxed mb-4">' +
         '⚠️ 提醒：API 金鑰等於你的錢包。請用「有設定花費上限」的金鑰，不要用主帳號的萬用金鑰。<br>' +
         '本 App 沒有任何後端，金鑰不會離開這台裝置；但如果你把網頁放在公開網路，請不要在公用電腦上輸入金鑰。' +
@@ -5619,7 +5762,10 @@ function openAiSettings() {
         '<button class="we-btn we-btn-ghost we-btn-sm" id="ai-key-eye">👁️</button>' +
       '</div>' +
       '<p class="text-xs font-bold text-[#A5A2B8] mb-3">' +
-        (prov.keyUrl ? '申請金鑰：<a class="text-[#6C4BF6] underline" target="_blank" rel="noopener" href="' + prov.keyUrl + '">' + esc(prov.label) + '</a>' : '請填入你的端點與模型名稱。') +
+        (prov.keyUrl ? '申請金鑰：<a class="text-[#6C4BF6] underline" target="_blank" rel="noopener" href="' + prov.keyUrl + '">' + esc(prov.label) + '</a><br>' : '請填入你的端點與模型名稱。<br>') +
+        (prov.id === 'glm' ? '💡 智譜（GLM）出現 <b>401</b> 最常見的原因：複製到的是「API Key 名稱」而不是金鑰本身（金鑰通常以 <code>xxxxx.yyyyy</code> 兩段式呈現，要整串含中間的點一起複製），或多複製了空格。<br>' : '') +
+        (prov.id === 'github' ? '💡 GitHub Models 需要 <b>fine-grained PAT</b>，權限勾 <b>Models: Read-only</b>。用 classic token 會 401。<br>' : '') +
+        '💡 不知道填什麼就按「🎁 免金鑰試用」，一鍵切換到免註冊的免費模型。' +
       '</p>' +
 
       '<div class="grid grid-cols-2 gap-3 mb-4">' +
@@ -5656,6 +5802,28 @@ function openAiSettings() {
   const keyInput = overlay.querySelector('#ai-key');
   overlay.querySelector('#ai-key-eye').addEventListener('click', function () {
     keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  });
+
+  /* 🎁 免金鑰試用：一鍵切到 Pollinations（免註冊免金鑰），並立刻測連線 */
+  overlay.querySelector('#ai-keyless').addEventListener('click', async function () {
+    const out = overlay.querySelector('#ai-test-out');
+    const k = aiKeyless();
+    provSel.value = k.id;
+    overlay.querySelector('#ai-base').value = k.base;
+    overlay.querySelector('#ai-model').value = k.model;
+    keyInput.value = '';
+    const cur = collect();
+    cur.provider = k.id; cur.base = k.base; cur.model = k.model; cur.apiKey = '';
+    aiSaveSettings(cur);
+    out.innerHTML = '<span class="text-[#96701A]">⏳ 免金鑰模式：正在測試連線…</span>';
+    try {
+      const t = await aiChat([{ role: 'user', content: 'Reply with exactly: OK' }], { temperature: 0, maxTokens: 20, timeoutMs: 45000 });
+      out.innerHTML = '<span style="color:#0F7A54">✅ 免金鑰模式可用！模型回覆：' + esc(String(t).trim().slice(0, 60)) + '</span>';
+      showToast('🎁 已切換到免金鑰模式，不用任何金鑰就能用 AI。', 'info', 4500);
+    } catch (err) {
+      out.innerHTML = '<span style="color:#E03E43">❌ 免金鑰模式暫時連不上：' + esc(err.message) + '（公用服務偶爾忙線，過一分鐘再試一次，或改填自己的金鑰）</span>';
+    }
+    spRenderStatus();
   });
 
   overlay.querySelectorAll('[data-prompt-reset]').forEach(function (btn) {
@@ -5721,23 +5889,26 @@ function openAiSettings() {
 function spRenderStatus() {
   const box = $('#speak-ai-status');
   if (!box) return;
+  const eff = aiEffective(aiGetSettings());
   const ready = aiIsReady();
   const recOk = speechRecAvailable();
   const ttsOk = speechSynthAvailable();
+  const chip = eff.keyless
+    ? '<span class="stat-chip" style="background:#D9F7EA;color:#0F7A54">🎁 免金鑰模式已開啟</span>'
+    : '<span class="stat-chip" style="background:#CDF7E4;color:#0F7A54">🤖 AI 已就緒</span>';
   box.innerHTML = '' +
     '<div class="we-card-flat p-3 sm:p-4 flex flex-wrap items-center gap-2 justify-between">' +
       '<div class="flex flex-wrap items-center gap-2">' +
-        '<span class="stat-chip" style="' + (ready ? 'background:#CDF7E4;color:#0F7A54' : 'background:#FFF1D6;color:#96701A') + '">' +
-          (ready ? '🤖 AI 已就緒' : '⚠️ 尚未設定 AI') + '</span>' +
-        (ready ? '<span class="stat-chip">' + esc(aiKeyHint()) + '</span>' : '') +
+        chip +
+        '<span class="stat-chip">' + esc(aiKeyHint()) + '</span>' +
         '<span class="stat-chip">' + (recOk ? '🎙️ 語音辨識可用' : '🎙️ 語音辨識不可用（可手動輸入）') + '</span>' +
         '<span class="stat-chip">' + (ttsOk ? '🔊 語音朗讀可用' : '🔊 無語音朗讀') + '</span>' +
       '</div>' +
       '<button class="we-btn we-btn-sm" id="sp-open-ai">🤖 AI 設定</button>' +
     '</div>' +
-    (ready ? '' : '<p class="text-xs font-bold text-[#A5A2B8] mt-2 leading-relaxed">' +
-      '沒有金鑰也能用：<b>發音評分、跟讀、發音特訓、聽寫</b>完全在本機運作。<br>' +
-      '設定金鑰後會多出：<b>AI 評分（四項 band）、想法評價、道地改寫、高分字彙替換、示範答案、角色扮演對話、AI 出題與讀書計畫</b>。</p>');
+    (eff.keyless ? '<p class="text-xs font-bold text-[#A5A2B8] mt-2 leading-relaxed">' +
+      '你目前使用 <b>免金鑰的免費模型</b>：不用註冊、不用信用卡、開發者也零花費。' +
+      '公用服務排隊時可能較慢或偶爾忙線，重新按一次通常就好；想要更快更穩定，可在「AI 設定」填自己的金鑰。</p>' : '');
   const btn = $('#sp-open-ai');
   if (btn) btn.addEventListener('click', openAiSettings);
 }
@@ -6188,11 +6359,12 @@ async function spScoreAnswer(set, transcript, seconds) {
 
   if (!aiIsReady()) {
     spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#FFC44D">' +
-      '<p class="font-extrabold text-[#96701A]">⚠️ 你還沒設定 AI 金鑰</p>' +
-      '<p class="text-sm font-bold mt-1">上面的字數／語速／填充詞／連接詞都是本機量測。設定金鑰後，AI 會給你：四項 band 分數、想法評價、道地改寫、</p>' +
+      '<p class="font-extrabold text-[#96701A]">⚠️ AI 目前連不上（連免金鑰模式也沒回應）</p>' +
+      '<p class="text-sm font-bold mt-1">上面的字數／語速／填充詞／連接詞都是本機量測，不受影響。可以到「🤖 AI 設定」按「🎁 免金鑰試用」，或填自己的金鑰。</p>' +
       '<button class="we-btn we-btn-sm mt-3" id="sp-open-ai-2">🤖 現在設定</button></div>');
     const b = $('#sp-open-ai-2');
     if (b) b.addEventListener('click', openAiSettings);
+    spPrismCard(set, transcript);
     spSaveRecord(rec);
     spRenderHistory();
     spFullNext();
@@ -6212,9 +6384,21 @@ async function spScoreAnswer(set, transcript, seconds) {
     if (box) box.firstElementChild.remove();
     spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#FF9FB2"><p class="font-extrabold text-[#E03E43]">❌ AI 評分失敗</p><p class="text-sm font-bold mt-1">' + esc(err.message) + '</p></div>');
   }
+  spPrismCard(set, transcript);
   spSaveRecord(rec);
   spRenderHistory();
   spFullNext();
+}
+
+/** v1.7：講完之後，用「想法五稜鏡」把剛才的想法拆開、改進並評分 */
+function spPrismCard(set, transcript) {
+  spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#6C4BF6">' +
+    '<p class="font-extrabold text-[#6C4BF6]">💡 用「想法五稜鏡」把剛才的回答再升級</p>' +
+    '<p class="text-sm font-bold mt-1 leading-relaxed">考官最在意「你有沒有從不同角度看同一件事」。點下面這顆，我會把你剛才講的內容自動分配到 <b>社會／經濟／文化／環境／國際</b> 五個角度，' +
+      '指出你漏掉的角度，並用這套框架給你一個分數與預估 Band。</p>' +
+    '<button class="we-btn we-btn-sm mt-3" id="sp-prism-go">💡 用五稜鏡改進這個想法</button></div>');
+  const b = $('#sp-prism-go');
+  if (b) b.addEventListener('click', function () { ideaFromAnswer(set.questionText || set.topic || '', transcript); });
 }
 
 function spStagePrependToFeedback(html) {
@@ -6263,7 +6447,7 @@ function spStartRoleplay() {
         '<span class="stat-chip">' + esc(scenario.label) + '</span>' +
         '<button class="we-btn we-btn-ghost we-btn-sm" id="sp-rp-new">🔀 換一個情境</button>' +
       '</div>' +
-      '<p class="text-xs font-bold text-[#A5A2B8]">用英文回話，每次 2-3 句就好。' + (aiIsReady() ? 'AI 會扮演對方，並在下方小框提示你的英文錯誤。' : '（未設定 AI 時使用內建腳本，仍然可以練反應。）') + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8]">用英文回話，每次 2-3 句就好。' + (aiIsReady() ? 'AI 會扮演對方，並在下方小框提示你的英文錯誤。' : '（AI 目前連不上時使用內建腳本，仍然可以練反應。）') + '</p>' +
       '<div id="sp-rp-chat" class="mt-3 flex flex-col gap-2 sp-scroll-y"></div>' +
       '<div class="flex flex-wrap items-center gap-2 mt-3">' +
         (speechRecAvailable() ? '<button class="we-btn we-btn-sm" id="sp-rp-rec">🎙️ 用說的</button>' : '') +
@@ -7710,6 +7894,467 @@ function pbWebHtml(info) {
   '</div>';
 }
 
+/* =================================================================================
+   5-18. 想法五稜鏡（Idea Prism）v1.7 新增
+   用「社會／經濟／文化／環境／國際」五個角度構思、改進並評分 IELTS 論點。
+   完全離線可用（引導問句＋起手句＋關鍵詞庫＋本機評分）；
+   有 AI 時可請 AI 生成五個角度、或直接給五稜鏡分數與 IELTS Band。
+   ================================================================================= */
+const LS_IDEA = 'idea_board';
+
+const IDEA_LENSES = [
+  {
+    id: 'social', icon: '👥', name: '社會', en: 'Social', color: '#6C4BF6',
+    q: '這件事對「人」有什麼影響？誰受益、誰受害？公平嗎？',
+    ask: ['哪些人直接受影響？（學生／家長／長者／上班族）', '生活品質、教育或健康會變好還是變差？', '這公平嗎？弱勢會不會更吃虧？'],
+    starter: 'Socially, this mainly affects ______, because ______. For example, ______.',
+    re: /(people|society|social|famil|child|student|health|educat|community|public|citizen|elder|poor|equality|quality of life)/i,
+    vocab: ['social cohesion 社會凝聚力', 'vulnerable groups 弱勢族群', 'quality of life 生活品質', 'equal access 平等取得']
+  },
+  {
+    id: 'economic', icon: '💰', name: '經濟', en: 'Economic', color: '#00B4A6',
+    q: '錢從哪裡來、往哪裡去？成本與收益誰承擔？',
+    ask: ['政府要花多少錢？錢從稅收還是使用者付費？', '會創造工作還是取代工作？', '對小商家、大企業各有什麼影響？', '長期經濟效益值不值得這個成本？'],
+    starter: 'Economically, the main cost falls on ______, while ______ benefits, because ______.',
+    re: /(money|cost|econom|tax|taxpayer|job|employ|salary|wage|price|budget|invest|business|market|profit|afford|fund)/i,
+    vocab: ['public spending 公共支出', 'cost-effective 符合成本效益', 'create jobs 創造就業', 'disposable income 可支配所得']
+  },
+  {
+    id: 'cultural', icon: '🎭', name: '文化', en: 'Cultural', color: '#E0629B',
+    q: '對價值觀、傳統、身分認同有什麼影響？',
+    ask: ['傳統會被保留下來還是被稀釋？', '語言、宗教或地域認同會改變嗎？', '不同世代的想法有差別嗎？', '媒體與流行文化扮演什麼角色？'],
+    starter: 'Culturally, it may weaken / strengthen ______, as shown by ______.',
+    re: /(culture|cultural|tradition|identity|language|value|heritage|generation|religio|media|art|festival|custom|belief)/i,
+    vocab: ['cultural heritage 文化資產', 'sense of identity 身分認同', 'generational gap 世代差距', 'preserve traditions 保存傳統']
+  },
+  {
+    id: 'env', icon: '🌱', name: '環境', en: 'Environmental', color: '#0F7A54',
+    q: '對自然資源、氣候、生態有什麼影響？',
+    ask: ['會增加還是減少碳排放與能源消耗？', '產生什麼廢棄物或污染？', '對生物多樣性、土地或水源的影響？', '長期可持續嗎？'],
+    starter: 'Environmentally, it increases / reduces ______, which leads to ______.',
+    re: /(environment|climate|carbon|emission|pollut|energ|waste|sustainab|ecolog|species|recycl|resource|green|habitat|water|air quality)/i,
+    vocab: ['carbon footprint 碳足跡', 'renewable energy 再生能源', 'sustainable development 永續發展', 'biodiversity 生物多樣性']
+  },
+  {
+    id: 'global', icon: '🌍', name: '國際', en: 'International', color: '#FFB020',
+    q: '國家之間是合作還是競爭？對外交關係有什麼影響？',
+    ask: ['需要國際合作、條約或組織嗎？', '已開發國家與開發中國家的立場一樣嗎？', '會不會引起貿易或外交摩擦？', '全球化與本土利益如何取捨？'],
+    starter: 'Internationally, it could ______, especially between ______ and ______.',
+    re: /(global|international|countr|nation|foreign|diplomac|cooperat|treaty|developing|developed|abroad|trade|border|united nations|immigra)/i,
+    vocab: ['international cooperation 國際合作', 'diplomatic relations 外交關係', 'developing countries 開發中國家', 'cross-border 跨境']
+  }
+];
+
+/* 常見 IELTS 爭議題（可以直接拿來練） */
+const IDEA_TOPICS = [
+  'Governments should ban private cars from city centres.',
+  'University education should be free for everyone.',
+  'Social media does more harm than good to teenagers.',
+  'Working from home is better than working in an office.',
+  'Governments should spend money on public transport instead of new roads.',
+  'Artificial intelligence will destroy more jobs than it creates.',
+  'Tourism should be limited in historically important cities.',
+  'Plastic packaging should be banned completely.',
+  'People should be required to retire at a fixed age.',
+  'International sporting events are worth the cost of hosting them.'
+];
+
+const ideaState = { draft: null, busy: false };
+
+function ideaBlank(topic) {
+  const lens = {};
+  IDEA_LENSES.forEach(function (L) { lens[L.id] = ''; });
+  return {
+    id: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    topic: topic || '', lens: lens, ai: null,
+    score: null, scoreSource: '', ts: Date.now()
+  };
+}
+function ideaGetAll() { const a = lsGet(LS_IDEA, []); return Array.isArray(a) ? a : []; }
+function ideaSaveAll(a) { lsSet(LS_IDEA, a); }
+function ideaLensById(id) { return IDEA_LENSES.find(function (L) { return L.id === id; }) || IDEA_LENSES[0]; }
+function ideaFilledText(d) {
+  return IDEA_LENSES.map(function (L) {
+    const t = String((d.lens && d.lens[L.id]) || '').trim();
+    return t ? L.en + ': ' + t : '';
+  }).filter(Boolean).join('\n');
+}
+
+/* ---------- 本機評分：完全不連網也能給五稜鏡分數 ---------- */
+function ideaScoreLocal(d) {
+  const lens = {};
+  IDEA_LENSES.forEach(function (L) {
+    const t = String((d.lens && d.lens[L.id]) || '').trim();
+    if (!t) { lens[L.id] = 0; return; }
+    let v = 4;                                            // 有寫就有基本分
+    const words = t.split(/\s+/).filter(Boolean).length;
+    const cn = (t.match(/[\u4e00-\u9fff]/g) || []).length;
+    const len = Math.max(words, cn * 0.6);                // 中文以 0.6 折算成「英文份量」
+    if (len >= 12) v += 1;
+    if (len >= 25) v += 1;
+    if (/[0-9]/.test(t)) v += 1;                          // 有數據／例子更可信
+    if (/(because|since|so that|as a result|which means|therefore|due to)/i.test(t)) v += 1;   // 有因果
+    if (/(for example|for instance|such as|take .* as an example)/i.test(t)) v += 1;           // 有例子
+    if (/(however|although|on the other hand|nevertheless|critics|opponents)/i.test(t)) v += 1; // 有讓步
+    if (L.re.test(t)) v += 1;                             // 真的切進這個角度
+    lens[L.id] = Math.max(0, Math.min(10, v));
+  });
+  const vals = IDEA_LENSES.map(function (L) { return lens[L.id]; });
+  const filled = vals.filter(function (v) { return v > 0; }).length;
+  let total = vals.reduce(function (a, b) { return a + b; }, 0) / IDEA_LENSES.length;
+  /* 廣度：只寫一兩個角度，就算寫得漂亮也不算「五稜鏡想過一遍」 */
+  if (filled <= 1) total = Math.min(total, 4);
+  else if (filled === 2) total = Math.min(total, 5);
+  else if (filled === 3) total = Math.min(total, 6.5);
+  else if (filled === 4) total = Math.min(total, 8);
+  total = Math.round(total * 10) / 10;
+  const weak = IDEA_LENSES.filter(function (L) { return lens[L.id] < 6; }).map(function (L) { return L.name; });
+  return {
+    lens: lens, total: total, band: ideaBand(total), source: 'local',
+    comment: filled < 5
+      ? '你只寫了 ' + filled + '/5 個角度，' + (weak.length ? '最弱的是：' + weak.join('、') + '。' : '') + '五稜鏡的重點就是「每個角度都切一刀」。'
+      : (total >= 8 ? '五個角度都寫到了，而且有因果與例子，這已經是可以直接拿去講的內容。'
+        : '五個角度都碰到了，接下來把每個角度補上「一個具體例子或數字」，分數會明顯上去。'),
+    fix: weak.length ? weak.map(function (n) { return '補強「' + n + '」角度：先寫一句主張，再補 because… 與 for example…。'; }) : ['把最有把握的三個角度練成口說 30 秒版本。']
+  };
+}
+function ideaBand(total) {
+  if (total >= 9) return 8.0;
+  if (total >= 8) return 7.5;
+  if (total >= 7) return 7.0;
+  if (total >= 6) return 6.5;
+  if (total >= 5) return 6.0;
+  if (total >= 3.5) return 5.5;
+  return 5.0;
+}
+
+/* ---------- 介面 ---------- */
+function ideaLensHtml(L, d) {
+  const txt = String((d.lens && d.lens[L.id]) || '');
+  const ai = (d.ai && d.ai.angles) ? d.ai.angles[L.id] : null;
+  const sc = (d.score && d.score.lens) ? d.score.lens[L.id] : null;
+  let h = '<div class="id-lens" style="border-color:' + L.color + '">' +
+    '<h4><span>' + L.icon + '</span><span style="color:' + L.color + '">' + L.name + '</span>' +
+      '<span class="id-chip" style="background:' + L.color + '1A;color:' + L.color + '">' + L.en + '</span>' +
+      (sc === null || sc === undefined ? '' :
+        '<span class="id-chip ml-auto" style="background:' + (sc >= 6 ? '#D9F7EA' : '#FFE3E3') + ';color:' + (sc >= 6 ? '#0F7A54' : '#C0392B') + '">' + sc + '/10</span>') +
+    '</h4>' +
+    '<p class="id-q">' + esc(L.q) + '</p>' +
+    L.ask.map(function (a) { return '<p class="id-q">' + esc(a) + '</p>'; }).join('') +
+    '<p class="text-xs font-extrabold mt-2" style="color:' + L.color + '">✍️ 起手句（照著填空就好）：</p>' +
+    '<p class="text-xs font-bold text-[#4B4A5A] mt-1">' + esc(L.starter) + '</p>' +
+    '<textarea data-id-lens="' + L.id + '" rows="4" class="we-input w-full mt-2" placeholder="用這個角度寫 2-3 句（中英皆可）…">' + esc(txt) + '</textarea>' +
+    '<p class="text-xs font-bold text-[#A5A2B8] mt-2">🔑 關鍵詞：' + esc(L.vocab.join('、')) + '</p>';
+  if (ai) {
+    h += '<div class="mt-2 p-2 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] text-xs font-bold leading-relaxed">' +
+      '<p class="font-extrabold text-[#4F32C4]">🤖 AI 的五稜鏡建議' + (ai.cn ? '：' + esc(ai.cn) : '') + '</p>' +
+      (ai.claim ? '<p class="mt-1">主張：' + esc(ai.claim) + '</p>' : '') +
+      (ai.reason ? '<p>理由：' + esc(ai.reason) + '</p>' : '') +
+      (ai.example ? '<p>例子：' + esc(ai.example) + '</p>' : '') +
+      (ai.rebuttal ? '<p style="color:#96701A">⚠️ 可被反駁：' + esc(ai.rebuttal) + '</p>' : '') +
+      (ai.vocab && ai.vocab.length ? '<p class="mt-1">高分字：' + esc(ai.vocab.join('、')) + '</p>' : '') +
+      '<button class="we-btn we-btn-ghost we-btn-sm mt-2" data-id-use="' + L.id + '">📥 採用這段</button>' +
+    '</div>';
+  }
+  return h + '</div>';
+}
+
+function ideaScoreHtml(d) {
+  const sc = d.score;
+  if (!sc) return '';
+  const rows = IDEA_LENSES.map(function (L) {
+    const v = (sc.lens && sc.lens[L.id]) || 0;
+    return '<div class="mb-2">' +
+      '<div class="flex items-center justify-between text-xs font-extrabold mb-1">' +
+        '<span>' + L.icon + ' ' + L.name + '</span><span style="color:' + L.color + '">' + v + '/10</span></div>' +
+      '<div class="id-bar"><i style="width:' + (v * 10) + '%;background:' + L.color + '"></i></div>' +
+    '</div>';
+  }).join('');
+  const fx = (sc.fix || []).map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('');
+  return '<div class="we-card p-4 mb-4">' +
+    '<h3 class="font-extrabold text-lg mb-1">🎯 五稜鏡評分' +
+      '<span class="id-chip ml-2" style="background:#EDECF5;color:#4B4A5A">' + (sc.source === 'ai' ? 'AI 評分' : '本機評分') + '</span></h3>' +
+    '<p class="text-xs font-bold text-[#A5A2B8] mb-3">這個分數只看「五稜鏡框架用得完不完整」，不是雅思考官分數，但兩者高度相關。</p>' +
+    '<div class="grid sm:grid-cols-2 gap-4">' +
+      '<div>' + rows + '</div>' +
+      '<div>' +
+        '<div class="p-3 rounded-2xl" style="background:#F1EDFF;border:2px solid #6C4BF6">' +
+          '<p class="text-xs font-extrabold text-[#4F32C4]">五稜鏡總分</p>' +
+          '<p class="text-3xl font-extrabold text-[#4F32C4] leading-tight">' + sc.total + '<span class="text-base">/10</span></p>' +
+          '<p class="text-sm font-extrabold mt-1">預估 IELTS Band：<b style="color:#0F7A54">' + sc.band + '</b></p>' +
+        '</div>' +
+        '<p class="text-sm font-bold mt-3 leading-relaxed">' + esc(sc.comment || '') + '</p>' +
+        (sc.thesis ? '<p class="text-sm font-bold mt-2 leading-relaxed">🧭 中心論點：<i>' + esc(sc.thesis) + '</i></p>' : '') +
+        (fx ? '<ul class="list-disc pl-5 mt-2 space-y-1 text-xs font-bold text-[#4B4A5A]">' + fx + '</ul>' : '') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function ideaLibraryHtml() {
+  const all = ideaGetAll().slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+  if (!all.length) return '<p class="text-sm font-bold text-[#A5A2B8]">還沒有存過想法。寫完按「💾 存到我的想法庫」，之後可以回來改。</p>';
+  return '<div class="space-y-2">' + all.slice(0, 20).map(function (e) {
+    const filledN = IDEA_LENSES.filter(function (L) { return String((e.lens && e.lens[L.id]) || '').trim(); }).length;
+    const dt = new Date(e.ts || Date.now());
+    const stamp = (dt.getMonth() + 1) + '/' + dt.getDate();
+    return '<div class="p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] flex items-start gap-2">' +
+      '<div class="flex-1 min-w-0">' +
+        '<p class="text-sm font-extrabold truncate">' + esc(e.topic || '（未命名題目）') + '</p>' +
+        '<p class="text-xs font-bold text-[#A5A2B8] mt-1">' + stamp + '・' + filledN + '/5 個角度' +
+          (e.score && e.score.total ? '・五稜鏡 ' + e.score.total + '/10（Band ' + e.score.band + '）' : '') + '</p>' +
+      '</div>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-id-load="' + esc(e.id) + '">載入</button>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-id-del="' + esc(e.id) + '">🗑️</button>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function renderIdea() {
+  const box = $('#idea-body');
+  if (!box) return;
+  if (!ideaState.draft) ideaState.draft = ideaBlank('');
+  const d = ideaState.draft;
+
+  const chips = IDEA_TOPICS.map(function (t) {
+    return '<button class="we-btn we-btn-ghost we-btn-sm" data-id-topic="' + esc(t) + '">' + esc(t.length > 34 ? t.slice(0, 32) + '…' : t) + '</button>';
+  }).join('');
+
+  box.innerHTML = '' +
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-1">① 先把題目寫成「爭議題」</h3>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mb-2">好的 IELTS 題目一定有人支持、有人反對。例：<i>Governments should ban private cars in city centres.</i></p>' +
+      '<textarea id="id-topic" rows="2" class="we-input w-full" placeholder="貼上或寫下你的題目（英文最好）…">' + esc(d.topic) + '</textarea>' +
+      '<p class="text-xs font-extrabold text-[#A5A2B8] mt-3 mb-1">想不到題目？點一個（隨機 10 個常見爭議題之一）：</p>' +
+      '<div class="flex flex-wrap gap-1.5">' + chips + '</div>' +
+      '<div class="flex flex-wrap gap-2 mt-3">' +
+        '<button class="we-btn we-btn-sm" data-id="random">🎲 隨機一題</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" data-id="clear">🧹 清空這一頁</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" data-id="new">✚ 開新的一頁</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-1">② 用五稜鏡把想法切開</h3>' +
+      '<p class="text-xs font-bold text-[#A5A2B8]">每個角度寫 2-3 句就夠。寫不出來就照著「起手句」填空——這個框架的用途就是讓你不會腦袋空白。</p>' +
+      '<div class="grid sm:grid-cols-2 gap-3 mt-3">' + IDEA_LENSES.map(function (L) { return ideaLensHtml(L, d); }).join('') + '</div>' +
+      '<div class="flex flex-wrap gap-2 mt-3">' +
+        '<button class="we-btn we-btn-sm" data-id="score">🧮 五稜鏡評分</button>' +
+        '<button class="we-btn we-btn-sm" data-id="ai-build">🤖 AI 幫我把五個角度想一遍</button>' +
+        '<button class="we-btn we-btn-sm" data-id="ai-score">🧠 AI 深度評分</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" data-id="save">💾 存到我的想法庫</button>' +
+      '</div>' +
+      '<div id="id-ai-out" class="mt-3"></div>' +
+    '</div>' +
+
+    ideaScoreHtml(d) +
+
+    '<div class="we-card p-4 mb-4">' +
+      '<h3 class="font-extrabold text-lg mb-2">📚 我的想法庫</h3>' +
+      ideaLibraryHtml() +
+    '</div>';
+
+  ideaBind();
+}
+
+/** 把發言內容自動分配到五個角度（離線可用） */
+function ideaAutofillFromText(d, text) {
+  const parts = String(text || '').split(/[.。!！?？;；\n]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 3; });
+  let placed = 0;
+  parts.forEach(function (s) {
+    const hit = IDEA_LENSES.find(function (L) { return L.re.test(s) && !String(d.lens[L.id] || '').trim(); });
+    if (hit) { d.lens[hit.id] = s + (d.lens[hit.id] ? '' : '.'); placed++; }
+  });
+  return placed;
+}
+
+/** 從口說結果跳到五稜鏡：把題目與剛才講的內容帶過來 */
+function ideaFromAnswer(questionText, transcript) {
+  const d = ideaBlank(questionText || '');
+  ideaAutofillFromText(d, transcript || '');
+  ideaState.draft = d;
+  switchTab('idea');
+  const n = IDEA_LENSES.filter(function (L) { return String(d.lens[L.id] || '').trim(); }).length;
+  showToast(n ? ('💡 已把你剛才講的內容分到 ' + n + '/5 個角度，接著按「🧮 五稜鏡評分」看看盲點。')
+             : '💡 已把題目帶進五稜鏡，先按「🧮 五稜鏡評分」或「🤖 AI 幫我把五個角度想一遍」。', 'info', 5000);
+}
+
+/* ---------- 事件 ---------- */
+function ideaBind() {
+  const box = $('#idea-body');
+  if (!box || box._ideaBound) return;
+  box._ideaBound = true;
+
+  box.addEventListener('input', function (ev) {
+    const t = ev.target;
+    if (!t || !ideaState.draft) return;
+    if (t.id === 'id-topic') ideaState.draft.topic = t.value;
+    else if (t.dataset && t.dataset.idLens) ideaState.draft.lens[t.dataset.idLens] = t.value;
+  });
+
+  box.addEventListener('click', function (ev) {
+    const chip = ev.target.closest('[data-id-topic]');
+    if (chip) {
+      const ta = $('#id-topic');
+      ideaState.draft.topic = chip.dataset.idTopic;
+      if (ta) ta.value = chip.dataset.idTopic;
+      return;
+    }
+    const btn = ev.target.closest('[data-id],[data-id-use],[data-id-load],[data-id-del]');
+    if (!btn) return;
+
+    if (btn.dataset.idUse) {
+      const L = ideaLensById(btn.dataset.idUse);
+      const ai = ideaState.draft.ai && ideaState.draft.ai.angles ? ideaState.draft.ai.angles[L.id] : null;
+      if (!ai) return;
+      const add = [ai.claim, ai.reason, ai.example].filter(Boolean).join(' ');
+      const ta = box.querySelector('textarea[data-id-lens="' + L.id + '"]');
+      const cur = ta ? ta.value.trim() : '';
+      const merged = (cur ? cur + ' ' : '') + add;
+      if (ta) ta.value = merged;
+      ideaState.draft.lens[L.id] = merged;
+      showToast('📥 已採用 AI 建議，記得改成自己的話（考官最怕背模板）。', 'info', 4000);
+      return;
+    }
+
+    if (btn.dataset.idLoad) {
+      const e = ideaGetAll().find(function (x) { return x.id === btn.dataset.idLoad; });
+      if (!e) return;
+      ideaState.draft = e;
+      renderIdea();
+      showToast('📂 已載入這份想法。', 'info', 2500);
+      return;
+    }
+
+    if (btn.dataset.idDel) {
+      const id = btn.dataset.idDel;
+      weConfirm('確定要刪除這份想法嗎？', { emoji: '🗑️', danger: true, okText: '刪除' }).then(function (ok) {
+        if (!ok) return;
+        ideaSaveAll(ideaGetAll().filter(function (x) { return x.id !== id; }));
+        renderIdea();
+        showToast('🗑️ 已刪除。', 'info', 2500);
+      });
+      return;
+    }
+
+    const act = btn.dataset.id;
+    if (act === 'random') {
+      const t = IDEA_TOPICS[Math.floor(Math.random() * IDEA_TOPICS.length)];
+      ideaState.draft.topic = t;
+      const ta = $('#id-topic');
+      if (ta) ta.value = t;
+      return;
+    }
+    if (act === 'clear') {
+      const topic = ideaState.draft.topic;
+      ideaState.draft = ideaBlank(topic);
+      renderIdea();
+      return;
+    }
+    if (act === 'new') {
+      ideaState.draft = ideaBlank('');
+      renderIdea();
+      showToast('✚ 開了一頁新的。', 'info', 2000);
+      return;
+    }
+    if (act === 'save') {
+      const d = ideaState.draft;
+      if (!String(d.topic || '').trim() && !ideaFilledText(d)) { showToast('⚠️ 還沒有內容可以存。', 'warn', 3000); return; }
+      const all = ideaGetAll();
+      const i = all.findIndex(function (x) { return x.id === d.id; });
+      d.ts = Date.now();
+      if (i >= 0) all[i] = d; else all.push(d);
+      ideaSaveAll(all);
+      renderIdea();
+      showToast('💾 已存到「我的想法庫」（存在這台裝置）。', 'info', 3500);
+      return;
+    }
+    if (act === 'score') {
+      ideaState.draft.score = ideaScoreLocal(ideaState.draft);
+      ideaState.draft.scoreSource = 'local';
+      renderIdea();
+      return;
+    }
+    if (act === 'ai-build') { ideaAiBuild(); return; }
+    if (act === 'ai-score') { ideaAiScore(); return; }
+  });
+}
+
+async function ideaAiBuild() {
+  const d = ideaState.draft;
+  const out = $('#id-ai-out');
+  if (!String(d.topic || '').trim()) { showToast('⚠️ 請先寫下題目。', 'warn', 3000); if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#C0392B]">⚠️ 請先寫下題目。</p>'; return; }
+  if (ideaState.busy) return;
+  ideaState.busy = true;
+  if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⏳ AI 正在用五個角度思考…（免金鑰的公用模型可能要等 10-40 秒）</p>';
+  try {
+    const mine = ideaFilledText(d);
+    const user = '題目：' + d.topic + '\n\n' +
+      (mine ? '考生已經寫下的想法（請保留他的觀點，在此基礎上補強）：\n' + mine + '\n\n' : '') +
+      '請用五稜鏡框架產出五個角度（social / economic / cultural / env / global），並給 thesis 與 comment。';
+    const txt = await aiChat([
+      { role: 'system', content: aiPrompt('idea') },
+      { role: 'user', content: user }
+    ], { temperature: 0.7, maxTokens: 2200, timeoutMs: 120000 });
+    const j = aiParseJson(txt);
+    const angles = {};
+    (j.angles || []).forEach(function (a) {
+      if (a && a.id) angles[String(a.id).toLowerCase()] = a;
+    });
+    if (!Object.keys(angles).length) throw new Error('AI 回覆的格式看不懂，請再按一次。');
+    d.ai = { angles: angles, thesis: j.thesis || '', band: j.band, comment: j.comment || '' };
+    renderIdea();
+    const out2 = $('#id-ai-out');
+    if (out2) out2.innerHTML = '<p class="text-sm font-extrabold" style="color:#0F7A54">✅ AI 已補上五個角度，滑上去看每一格；想用就按「📥 採用這段」。</p>' +
+      (d.ai.thesis ? '<p class="text-sm font-bold mt-1">🧭 中心論點：<i>' + esc(d.ai.thesis) + '</i></p>' : '');
+  } catch (err) {
+    if (out) out.innerHTML = '<p class="text-sm font-extrabold" style="color:#C0392B">❌ ' + esc(err.message) + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">提示：免金鑰的公用模型偶爾忙線，過一分鐘再按一次通常就好；或到「🤖 AI 設定」填自己的金鑰會更穩。</p>';
+  } finally {
+    ideaState.busy = false;
+  }
+}
+
+async function ideaAiScore() {
+  const d = ideaState.draft;
+  const out = $('#id-ai-out');
+  const mine = ideaFilledText(d);
+  if (!mine) { showToast('⚠️ 五個角度都還是空的，先寫一點再評分。', 'warn', 3500); return; }
+  if (ideaState.busy) return;
+  ideaState.busy = true;
+  if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⏳ AI 正在評分…</p>';
+  try {
+    const sys = aiPrompt('idea') + '\n\n【這次的任務改成評分】不要產出新的角度，只評考生寫的內容。' +
+      '每個角度給 0-10 分（看這個角度切得夠不夠具體、有沒有因果與例子），總分 total 為五個角度的平均，' +
+      'band 為對應的 IELTS 預估分數，comment 用繁體中文 2-3 句，fix 是 2-3 條具體改進建議。' +
+      '只回傳 JSON：{ "lens": { "social": 0, "economic": 0, "cultural": 0, "env": 0, "global": 0 },' +
+      ' "total": 0, "band": 0, "comment": "", "fix": ["",""], "thesis": "一句話幫他濃縮的中心論點（英文）" }';
+    const user = '題目：' + (d.topic || '(未填)') + '\n\n考生用五稜鏡寫的內容：\n' + mine;
+    const txt = await aiChat([{ role: 'system', content: sys }, { role: 'user', content: user }],
+      { temperature: 0.2, maxTokens: 1200, timeoutMs: 120000 });
+    const j = aiParseJson(txt);
+    const lens = {};
+    IDEA_LENSES.forEach(function (L) {
+      const v = j.lens ? Number(j.lens[L.id]) : NaN;
+      lens[L.id] = isFinite(v) ? Math.max(0, Math.min(10, v)) : 0;
+    });
+    const total = isFinite(Number(j.total)) ? Number(j.total) : Math.round((IDEA_LENSES.reduce(function (a, L) { return a + lens[L.id]; }, 0) / 5) * 10) / 10;
+    d.score = {
+      lens: lens, total: Math.round(total * 10) / 10,
+      band: isFinite(Number(j.band)) ? Number(j.band) : ideaBand(total),
+      comment: j.comment || '', fix: j.fix || [], thesis: j.thesis || '', source: 'ai'
+    };
+    renderIdea();
+    const out2 = $('#id-ai-out');
+    if (out2) out2.innerHTML = '<p class="text-sm font-extrabold" style="color:#0F7A54">✅ AI 評分完成，結果在最下面（含總分與預估 Band）。</p>';
+  } catch (err) {
+    if (out) out.innerHTML = '<p class="text-sm font-extrabold" style="color:#C0392B">❌ ' + esc(err.message) + '</p>' +
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">你也可以直接按「🧮 五稜鏡評分」用本機評分（不用連網）。</p>';
+  } finally {
+    ideaState.busy = false;
+  }
+}
+
 /** 從題庫／計畫直接開一題來練 */
 function spStartCustom(text) {
   switchTab('speak');
@@ -7718,8 +8363,17 @@ function spStartCustom(text) {
 }
 
 function init() {
-  // 導覽列事件
-  $$('.nav-btn').forEach(btn => {
+  // 側邊選單（左上角三橫線）：開啟／關閉
+  const menuBtn = $('#btn-menu');
+  if (menuBtn) menuBtn.addEventListener('click', openNav);
+  const closeBtn = $('#nav-close');
+  if (closeBtn) closeBtn.addEventListener('click', closeNav);
+  const scrim = $('#nav-scrim');
+  if (scrim) scrim.addEventListener('click', closeNav);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNav(); });
+
+  // 導覽列事件（抽屜裡的每一項都帶 data-tab）
+  $$('#nav-list [data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 

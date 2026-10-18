@@ -1,17 +1,24 @@
 {
   "name": "單字探險家 ｜ 智慧英文單字學習",
   "short_name": "單字探險家",
-  "description": "即時連網查詢英文單字的釋義、字源與詞綴拆解，自動修正拼錯的字，用每日多輪測驗與 7 天間隔複習把單字真正記住。內建 442 個字首字根字尾圖鑑、AI 雅思口說教練與「想法五稜鏡」五角度構思框架，AI 免申請金鑰即可使用。所有學習紀錄只存在你自己的裝置。",
+  "description": "即時連網查詢英文單字的釋義、字源與詞綴拆解，自動修正拼錯的字，用每日多輪測驗與 7 天間隔複習把單字真正記住。內建 551 個字首字根字尾圖鑑、永不刪除的單詞本、AI 雅思口說教練與「想法五稜鏡」五角度構思框架，AI 免申請金鑰即可使用。所有學習紀錄只存在你自己的裝置。",
   "lang": "zh-Hant",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
   "orientation": "portrait-primary",
   "background_color": "#F5F6FB",
   "theme_color": "#6C4BF6",
-  "categories": ["education", "productivity"],
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
@@ -51,42 +58,91 @@
       "short_name": "每日測驗",
       "description": "直接跳到今天的多輪次單字測驗",
       "url": "./index.html#quiz",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "錯題複習",
       "short_name": "錯題本",
       "description": "查看已到期與孵化中的錯題",
       "url": "./index.html#srs",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "字首字根字尾圖鑑",
       "short_name": "字根圖鑑",
       "description": "依 A–Z 分類的字首、字根、字尾，附例字與隨機測驗",
       "url": "./index.html#affix",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "單詞本",
+      "short_name": "單詞本",
+      "description": "查過的字、答錯的字、答對的字都會自動收集，永遠不會被刪除",
+      "url": "./index.html#wordbook",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "AI 雅思口說教練",
       "short_name": "口說教練",
       "description": "隨機出題、即時糾正發音、AI 評價你的想法",
       "url": "./index.html#speak",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "想法五稜鏡",
       "short_name": "想法五稜鏡",
       "description": "從社會、經濟、文化、環境、國際五個角度構思 idea，做完口說後用同一套框架改進並評分",
       "url": "./index.html#idea",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "雅思攻略",
       "short_name": "攻略",
       "description": "四項評分標準、高分句型與 AI 讀書計畫",
       "url": "./index.html#playbook",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

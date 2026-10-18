@@ -602,6 +602,18 @@
     <div id="idea-body"></div>
   </section>
 
+  <!-- ==========================================================
+       分頁 8：單詞本（Word Book）v1.8 新增
+       查過的字、答錯的字、答對的字都自動收進來，永不刪除
+       ========================================================== -->
+  <section id="panel-wordbook" class="hidden">
+    <div class="text-center mb-6">
+      <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">📒 單詞本</h2>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">查過・答錯・答對的字都自動留下 · 永不刪除 · 想複習幾次就複習幾次</p>
+    </div>
+    <div id="wordbook-body"></div>
+  </section>
+
 </main>
 
 <!-- ============================================================
@@ -627,7 +639,7 @@
     </button>
     <button class="we-nav-item" data-tab="affix">
       <span class="we-nav-ico">🔤</span>
-      <span class="we-nav-txt"><span>字首・字根・字尾</span><span class="we-nav-sub">442 個構字零件圖鑑＋測驗</span></span>
+      <span class="we-nav-txt"><span>字首・字根・字尾</span><span class="we-nav-sub">551 個構字零件圖鑑＋測驗</span></span>
     </button>
     <button class="we-nav-item" data-tab="quiz">
       <span class="we-nav-ico">📝</span>
@@ -637,6 +649,11 @@
       <span class="we-nav-ico">🧠</span>
       <span class="we-nav-txt"><span>錯題本</span><span class="we-nav-sub">7 天間隔複習，把錯的變精通</span></span>
       <span id="srs-badge-menu" class="hidden ml-auto min-w-[22px] h-[22px] px-1 rounded-full bg-[#FF5A5F] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
+    </button>
+    <button class="we-nav-item" data-tab="wordbook">
+      <span class="we-nav-ico">📒</span>
+      <span class="we-nav-txt"><span>單詞本</span><span class="we-nav-sub">查過的字自動留下，永不刪除</span></span>
+      <span id="wb-badge-menu" class="hidden ml-auto min-w-[22px] h-[22px] px-1 rounded-full bg-[#6C4BF6] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
     </button>
     <button class="we-nav-item" data-tab="speak">
       <span class="we-nav-ico">🎤</span>
@@ -653,7 +670,7 @@
   </nav>
 
   <div class="we-drawer-foot">
-    <p>🦊 單字探險家 <span id="nav-version">v1.7</span></p>
+    <p>🦊 單字探險家 <span id="nav-version">v1.8</span></p>
     <p class="mt-0.5">介面、圖示與配色皆為本專案原創設計</p>
   </div>
 </aside>
@@ -1357,7 +1374,7 @@ function closeNav() {
 
 function switchTab(tab) {
   state.activeTab = tab;
-  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'idea', 'playbook'].forEach(t => {
+  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'wordbook', 'idea', 'playbook'].forEach(t => {
     const panel = $('#panel-' + t);
     if (!panel) return;
     panel.classList.toggle('hidden', t !== tab);
@@ -1375,6 +1392,7 @@ function switchTab(tab) {
   if (tab === 'quiz') renderQuiz();
   if (tab === 'srs')  renderSRS();
   if (tab === 'speak') renderSpeakTab();
+  if (tab === 'wordbook') renderWordbook();
   if (tab === 'idea') renderIdea();
   if (tab === 'playbook') renderPlaybook();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1395,7 +1413,7 @@ function applyHashRoute() {
   const raw = String(location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
   if (!raw) return false;
   /* 允許 #quiz、#srs、#lexicon 等寫法 */
-  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix' || raw === 'idea') ? raw : null;
+  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix' || raw === 'idea' || raw === 'wordbook') ? raw : null;
   if (!tab || tab === state.activeTab) return false;
   switchTab(tab);
   return true;
@@ -2136,6 +2154,12 @@ function renderWordResult(entry) {
   const emptyBox = $('#lexicon-empty');
   emptyBox.classList.add('hidden');
 
+  /* ★ 單詞本（v1.8）：查過的字自動收進來。
+     規則：只新增／累加，永不自動刪除；使用者之後可以在「📒 單詞本」分頁無限次重複複習。 */
+  if (!entry.isMock) {
+    try { wbAdd(entry.word, { meaning: entry.meaning, phonetic: entry.phonetic }, 'search'); } catch (err) { console.warn('[wordbook] 自動加入失敗：', err); }
+  }
+
   const segs = [
     { key: 'prefix', label: '前綴 Prefix', cls: 'tag-prefix', data: entry.structure.detail.prefix },
     { key: 'root',   label: '詞根 Root',   cls: 'tag-root',   data: entry.structure.detail.root },
@@ -2216,6 +2240,7 @@ function renderWordResult(entry) {
         '<h3 class="text-3xl sm:text-5xl font-extrabold text-[#6C4BF6] break-all">' + esc(entry.word) + '</h3>' +
         '<button class="we-btn we-btn-blue we-btn-sm" data-speak="' + esc(entry.word) + '" data-accent="us">🔊 美音</button>' +
         '<button class="we-btn we-btn-ghost we-btn-sm" data-speak="' + esc(entry.word) + '" data-accent="uk">🔊 英音</button>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" data-wb-save="' + esc(entry.word) + '">📒 加入單詞本</button>' +
       '</div>' +
       '<p class="mt-2 text-sm font-bold text-[#A5A2B8]">' + esc(entry.phonetic || '') +
         ((entry.ipaUS && entry.ipaUK && entry.ipaUS !== entry.ipaUK)
@@ -2300,6 +2325,19 @@ function renderWordResult(entry) {
   $$('[data-speak]', resultBox).forEach(btn => {
     btn.addEventListener('click', () => speak(btn.dataset.speak, btn.dataset.accent));
   });
+
+  // 事件綁定：把這個字「手動」加入單詞本（查詢時已自動加入，這裡是給使用者一個明確的動作）
+  const wbSaveBtn = $('[data-wb-save]', resultBox);
+  if (wbSaveBtn) {
+    const already = wbHas(wbSaveBtn.dataset.wbSave);
+    if (already) { wbSaveBtn.textContent = '✅ 已在單詞本'; }
+    wbSaveBtn.addEventListener('click', () => {
+      const w = wbSaveBtn.dataset.wbSave;
+      wbAdd(w, { meaning: entry.meaning, phonetic: entry.phonetic }, 'manual');
+      wbSaveBtn.textContent = '✅ 已在單詞本';
+      showToast('📒 已加入單詞本：「' + w + '」會一直留在這裡，想複習幾次都可以。', 'info', 4000);
+    });
+  }
 
   // 事件綁定：略過快取、重新連網查詢
   const refreshBtn = $('[data-refresh]', resultBox);
@@ -4036,6 +4074,12 @@ function checkQuizAnswer() {
     addWrongWord(q.word, { meaning: q.correctMeaning });
   }
 
+  /* ★ 單詞本（v1.8）：答對、答錯都自動收進來（永不刪除，只累加）
+     —— 答錯的字本來就會進錯題本，這裡再留一份「永久戶籍」，讓使用者隨時能重複練。 */
+  try {
+    wbAdd(q.word, { meaning: q.correctMeaning }, isCorrect ? 'quiz_right' : 'quiz_wrong');
+  } catch (err) { console.warn('[wordbook] 加入失敗：', err); }
+
   session.pendingSelection = null;
   saveDailyRecord();
   updateProgressBar(Math.round((session.answers.length / quizSize(session)) * 100));
@@ -4654,6 +4698,12 @@ function submitReviewAnswer() {
 
   updateLearningStats();
   updateSrsBadge();
+
+  /* ★ 單詞本（v1.8）：7 天複習的結果也一併記錄（答對／答錯都只累加，永不刪除） */
+  try {
+    const wbInfo = { meaning: (cacheGet(String(word).toLowerCase()) || {}).meaning || (item && item.meaning) || '' };
+    wbAdd(word, wbInfo, isCorrect ? 'quiz_right' : 'srs_wrong');
+  } catch (err) { console.warn('[wordbook] 加入失敗：', err); }
 }
 
 /** 複習：下一題 */
@@ -7038,9 +7088,11 @@ const AFFIXES = {
   prefixes: [
     { a: "a-", zh: "缺乏、無", ori: "希臘", ex: [["atypical", "非典型的"], ["asymmetry", "不對稱"]] },
     { a: "ab-", zh: "離開", ori: "拉丁", ex: [["abduct", "綁架"], ["absent", "缺席的"]] },
+    { a: "ac-/ad-/ag-/ar-", zh: "向、朝向；加強", en: "to", ex: [["adapt", "適應"], ["aggravate", "加重、惡化"], ["arrest", "逮捕、阻止"]] },
     { a: "ad-", zh: "朝向", ori: "拉丁", ex: [["adhere", "黏附"], ["adjacent", "鄰近的"]] },
     { a: "ambi-", zh: "兩、雙", ori: "拉丁", ex: [["ambiguous", "模糊的"], ["ambition", "野心"]] },
     { a: "amphi-", zh: "兩、雙", ori: "希臘", ex: [["amphibian", "兩棲動物"], ["amphitheatre", "圓形劇場"]] },
+    { a: "an-/a-", zh: "不、無、沒有", en: "not", ex: [["anarchism", "無政府主義"], ["anechoic", "無回聲的"], ["anonymous", "匿名的"]] },
     { a: "ana-", zh: "向上、再", ori: "希臘", ex: [["analysis", "分析"], ["anatomy", "解剖學"]] },
     { a: "ante-", zh: "之前", ori: "拉丁", ex: [["antecedent", "先前的"], ["anteroom", "前廳"]] },
     { a: "anti-", zh: "反對、對抗", ori: "希臘", ex: [["antibiotic", "抗生素"], ["antipathy", "反感"]] },
@@ -7050,29 +7102,47 @@ const AFFIXES = {
     { a: "bene-", zh: "好、善", ori: "拉丁", ex: [["benefit", "益處"], ["benevolent", "仁慈的"]] },
     { a: "bi-", zh: "二、雙", ori: "拉丁", ex: [["bicycle", "自行車"], ["bilingual", "雙語的"]] },
     { a: "bio-", zh: "生命", ori: "希臘", ex: [["biology", "生物學"], ["biography", "傳記"]] },
+    { a: "by-", zh: "旁、側；副的、非正式的", ex: [["byroad", "小路，僻徑"], ["bywork", "業餘工作"], ["byname", "別名，綽號"]] },
     { a: "cata-", zh: "向下", ori: "希臘", ex: [["catalogue", "目錄"], ["catastrophe", "災難"]] },
+    { a: "cent-", zh: "百", en: "hundred", ex: [["centennial", "百年一次的"], ["centigrade", "攝氏的（百分度）"], ["centipede", "蜈蚣"]] },
+    { a: "circu-", zh: "周圍、環繞", en: "around", ex: [["circumplanetary", "環繞行星的"], ["circumpolar", "在兩極周圍的"], ["circumaviate", "環球飛行"]] },
     { a: "circum-", zh: "環繞", ori: "拉丁", ex: [["circumstance", "情況"], ["circumnavigate", "環航"]] },
     { a: "co-", zh: "共同", ori: "拉丁", ex: [["cooperate", "合作"], ["coexist", "共存"]] },
+    { a: "col-", zh: "一起、共同", en: "together", ex: [["collaboration", "協作，勾結"], ["collingual", "用同一種語言的"], ["collocate", "並置，並列"]] },
+    { a: "com-/con-", zh: "一起、共同；加強", en: "together", ex: [["commentary", "評論、註解"], ["compact", "緊密的、壓縮的"], ["concept", "概念"]] },
     { a: "con-", zh: "共同、加強", ori: "拉丁", ex: [["connect", "連接"], ["confirm", "確認"]] },
     { a: "contra-", zh: "相反", ori: "拉丁", ex: [["contradict", "反駁"], ["contraband", "違禁品"]] },
+    { a: "cor-", zh: "一起；加強", en: "together", ex: [["correlation", "相互關係"], ["corradiate", "使光線共聚於一點"], ["correspond", "符合、相應"]] },
     { a: "counter-", zh: "反對、對抗", ori: "拉丁", ex: [["counteract", "抵銷"], ["counterfeit", "偽造"]] },
     { a: "de-", zh: "向下、去除", ori: "拉丁", ex: [["decrease", "減少"], ["deforest", "砍伐森林"]] },
     { a: "dec-", zh: "十個", ori: "希臘", ex: [["decade", "十年"], ["decimal", "十進位的"]] },
+    { a: "deci-", zh: "十分之一", ex: [["decigram", "十分之一克"], ["decimeter", "十分之一米"], ["decilitre", "十分之一升"]] },
+    { a: "demi-", zh: "半", ex: [["demigod", "半神半人"], ["demiwolf", "半似狼之犬"], ["demitasse", "小咖啡杯"]] },
+    { a: "di-", zh: "二、雙", en: "two", ex: [["dilemma", "兩難、困境"], ["divorce", "離婚"], ["diploma", "文憑"]] },
     { a: "dia-", zh: "貫穿、橫越", ori: "希臘", ex: [["diameter", "直徑"], ["dialogue", "對話"]] },
+    { a: "dif-", zh: "分開；不、相反", en: "apart; not", ex: [["diffluence", "分流"], ["diffident", "不自信的"], ["diffuse", "散開，散佈"]] },
     { a: "dis-", zh: "否定、分離", ori: "拉丁", ex: [["disagree", "不同意"], ["disappear", "消失"]] },
     { a: "dys-", zh: "不良、困難", ori: "希臘", ex: [["dysfunction", "功能障礙"], ["dyslexia", "閱讀障礙"]] },
+    { a: "e-", zh: "出、向外；加強", ex: [["estrange", "使疏遠"], ["evanish", "消失"], ["elaborate", "精心製作，詳細描述"]] },
     { a: "eco-", zh: "生態", ori: "希臘", ex: [["ecosystem", "生態系統"], ["ecology", "生態學"]] },
+    { a: "ef-", zh: "出、向外", ex: [["effluence", "流出"], ["effable", "能被說出的"], ["effoliation", "落葉"]] },
     { a: "em-", zh: "使進入", ori: "法語", ex: [["empower", "授權"], ["embrace", "擁抱"]] },
     { a: "en-", zh: "使進入、使", ori: "法語", ex: [["enable", "使能夠"], ["enlarge", "擴大"]] },
+    { a: "endo-", zh: "內、內部", ex: [["endoparasite", "體內寄生蟲"], ["endogen", "內生植物"], ["endogamy", "同族通婚"]] },
     { a: "epi-", zh: "在上、附加", ori: "希臘", ex: [["epidemic", "流行病"], ["epilogue", "尾聲"]] },
     { a: "eu-", zh: "好、善", ori: "希臘", ex: [["euphemism", "委婉語"], ["euphoria", "欣快"]] },
     { a: "ex-", zh: "出、前任", ori: "拉丁", ex: [["export", "出口"], ["exclude", "排除"]] },
+    { a: "exo-", zh: "外、外部", ex: [["exobiology", "外空生物學"], ["exogamy", "異族通婚"], ["exosphere", "外大氣圈"]] },
     { a: "extra-", zh: "超越、額外", ori: "拉丁", ex: [["extraordinary", "非凡的"], ["extraterrestrial", "外星的"]] },
+    { a: "for-", zh: "離開、分開", en: "apart", ex: [["forgo", "放棄"], ["forbear", "忍耐、克制"], ["forfeiture", "喪失、沒收"]] },
     { a: "fore-", zh: "前、預先", ori: "古英語", ex: [["forecast", "預測"], ["foresee", "預見"]] },
     { a: "geo-", zh: "地、地球", ori: "希臘", ex: [["geography", "地理"], ["geology", "地質學"]] },
+    { a: "hecto-", zh: "百", ex: [["hectogram", "百克"], ["hectowatt", "百瓦"], ["hectoampere", "百安培"]] },
     { a: "hemi-", zh: "一半", ori: "希臘", ex: [["hemisphere", "半球"], ["hemiplegia", "半身不遂"]] },
+    { a: "hepta-", zh: "七", ex: [["heptagon", "七角形"], ["heptode", "七極管"], ["heptameter", "七音步詩行"]] },
     { a: "hetero-", zh: "異、不同", ori: "希臘", ex: [["heterogeneous", "異質的"], ["heterodox", "異端的"]] },
     { a: "hexa-", zh: "數字六", ori: "希臘", ex: [["hexagon", "六邊形"], ["hexadecimal", "十六進位的"]] },
+    { a: "holo-", zh: "全、完全", ex: [["holocrystalline", "全結晶的"], ["holohedron", "全面體"], ["holophote", "全射鏡"]] },
     { a: "homo-", zh: "同、相同", ori: "希臘", ex: [["homogeneous", "同質的"], ["homonym", "同音異義詞"]] },
     { a: "hydro-", zh: "水、液體", ori: "希臘", ex: [["hydrogen", "氫氣"], ["hydroelectric", "水力發電的"]] },
     { a: "hyper-", zh: "過度、超越", ori: "希臘", ex: [["hyperactive", "過動的"], ["hypertension", "高血壓"]] },
@@ -7083,6 +7153,7 @@ const AFFIXES = {
     { a: "infra-", zh: "在下、基礎", ori: "拉丁", ex: [["infrastructure", "基礎設施"], ["infrared", "紅外線的"]] },
     { a: "inter-", zh: "之間、相互", ori: "拉丁", ex: [["international", "國際的"], ["interact", "互動"]] },
     { a: "intra-", zh: "內部", ori: "拉丁", ex: [["intranet", "內聯網"], ["intravenous", "靜脈內的"]] },
+    { a: "intro-", zh: "向內、在內", en: "within", ex: [["introflection", "向內彎曲"], ["intromit", "插入"], ["introvert", "內向的人"]] },
     { a: "ir-", zh: "否定", ori: "拉丁", ex: [["irregular", "不規則的"], ["irresponsible", "不負責任的"]] },
     { a: "iso-", zh: "相等、相同", ori: "希臘", ex: [["isothermal", "等溫的"], ["isotope", "同位素"]] },
     { a: "kilo-", zh: "一千", ori: "希臘", ex: [["kilogram", "公斤"], ["kilometre", "公里"]] },
@@ -7091,6 +7162,7 @@ const AFFIXES = {
     { a: "mega-", zh: "巨大", ori: "希臘", ex: [["megaphone", "擴音器"], ["megacity", "特大城市"]] },
     { a: "meta-", zh: "超越、變化", ori: "希臘", ex: [["metaphor", "隱喻"], ["metabolism", "新陳代謝"]] },
     { a: "micro-", zh: "微小", ori: "希臘", ex: [["microscope", "顯微鏡"], ["microphone", "麥克風"]] },
+    { a: "milli-", zh: "千分之一", en: "one thousandth", ex: [["milliohm", "毫歐"], ["millimeter", "毫米"], ["millilitre", "毫升"]] },
     { a: "mis-", zh: "錯誤、壞", ori: "古英語", ex: [["mistake", "錯誤"], ["misunderstand", "誤解"]] },
     { a: "mono-", zh: "單一", ori: "希臘", ex: [["monopoly", "壟斷"], ["monologue", "獨白"]] },
     { a: "multi-", zh: "多、多重", ori: "拉丁", ex: [["multiple", "多重的"], ["multicultural", "多元文化的"]] },
@@ -7098,13 +7170,17 @@ const AFFIXES = {
     { a: "neo-", zh: "新、新的", ori: "希臘", ex: [["neolithic", "新石器時代的"], ["neonatal", "新生兒的"]] },
     { a: "neuro-", zh: "神經", ori: "希臘", ex: [["neuroscience", "神經科學"], ["neurology", "神經學"]] },
     { a: "non-", zh: "非、不", ori: "拉丁", ex: [["nonsense", "胡說"], ["nonfiction", "非虛構"]] },
+    { a: "ob-/op-", zh: "對抗、反對；阻擋", en: "against", ex: [["obese", "肥胖的"], ["obligate", "使負義務"], ["oppress", "壓迫"]] },
     { a: "oct-", zh: "數字八", ori: "拉丁", ex: [["octopus", "章魚"], ["octagon", "八邊形"]] },
+    { a: "octa-", zh: "八", ex: [["octagon", "八角形"], ["octopus", "章魚"], ["octave", "八度音"]] },
     { a: "olig-", zh: "少、寡", ori: "希臘", ex: [["oligarchy", "寡頭政治"], ["oligopoly", "寡頭壟斷"]] },
     { a: "omni-", zh: "全部", ori: "拉丁", ex: [["omnipotent", "全能的"], ["omnivorous", "雜食的"]] },
     { a: "out-", zh: "超出、向外", ori: "古英語", ex: [["outnumber", "數量上超過"], ["outperform", "表現優於"]] },
     { a: "over-", zh: "過度、在上", ori: "古英語", ex: [["overweight", "超重"], ["overestimate", "高估"]] },
     { a: "paleo-", zh: "古、古老", ori: "希臘", ex: [["paleontology", "古生物學"], ["paleolithic", "舊石器時代的"]] },
+    { a: "pan-", zh: "全部、廣泛", en: "all", ex: [["pandemic", "大流行的、流行病"], ["pansophic", "全知的"], ["panoply", "全套裝備"]] },
     { a: "para-", zh: "旁、類似", ori: "希臘", ex: [["parallel", "平行的"], ["paradox", "悖論"]] },
+    { a: "penta-", zh: "五", en: "five", ex: [["pentathlon", "五項全能"], ["pentangular", "五角的"]] },
     { a: "per-", zh: "貫穿、完全", ori: "拉丁", ex: [["perspective", "觀點"], ["permanent", "永久的"]] },
     { a: "peri-", zh: "周圍", ori: "希臘", ex: [["perimeter", "周長"], ["periscope", "潛望鏡"]] },
     { a: "philo-", zh: "愛、喜好", ori: "希臘", ex: [["philosophy", "哲學"], ["philosophical", "哲學的"]] },
@@ -7117,18 +7193,32 @@ const AFFIXES = {
     { a: "pseudo-", zh: "假、偽", ori: "希臘", ex: [["pseudonym", "筆名"], ["pseudoscience", "偽科學"]] },
     { a: "psycho-", zh: "心理、精神", ori: "希臘", ex: [["psychology", "心理學"], ["psychotherapy", "心理治療"]] },
     { a: "quad-", zh: "四、四倍", ori: "拉丁", ex: [["quadruple", "四倍的"], ["quadrant", "象限"]] },
+    { a: "quadri-", zh: "四", en: "four(", ex: [["quadruple", "四倍的"], ["quadrangle", "四邊形"], ["quadruplet", "四胞胎之一"]] },
+    { a: "quasi-", zh: "類似、看似、不完全", en: "partly;seemingly;not real", ex: [["quasihistorical", "帶有歷史性的"], ["quasi-official", "半官方的"], ["quasi-public", "私營公用事業的"]] },
+    { a: "quinque-", zh: "五", ex: [["quinquangular", "五角的"], ["quinquennial", "每五年的"], ["quinquesyllable", "五音節字"]] },
     { a: "re-", zh: "再、回", ori: "拉丁", ex: [["rebuild", "重建"], ["return", "返回"]] },
     { a: "retro-", zh: "向後、回溯", ori: "拉丁", ex: [["retrospect", "回顧"], ["retroactive", "有追溯力的"]] },
+    { a: "se-", zh: "離開、分開", ex: [["segregate", "分離"], ["secede", "脫離"], ["secern", "區別"]] },
     { a: "semi-", zh: "一半", ori: "拉丁", ex: [["semicircle", "半圓"], ["semiconductor", "半導體"]] },
+    { a: "sept-", zh: "七", ex: [["septangle", "七角形"], ["septennial", "七年一次的"]] },
+    { a: "sex-", zh: "六", ex: [["sexangle", "六角形"], ["sexcentenary", "六百年紀念的"]] },
+    { a: "Sino-", zh: "中國、漢", ex: [["Sinophile", "親華人士"], ["Sinophobe", "恐華者"], ["Sino-Tibetan", "漢藏語系"]] },
+    { a: "step-", zh: "繼、後（因再婚而形成的親屬關係）", ex: [["stepfather", "繼父"], ["stepchild", "繼子女"], ["stepbrother", "同父異母或同母異父的兄弟"]] },
+    { a: "stereo-", zh: "立體", ex: [["stereosonic", "立體聲的"], ["stereograph", "立體照片"], ["stereoproject", "立體投影"]] },
     { a: "sub-", zh: "在下、次", ori: "拉丁", ex: [["submarine", "潛艇"], ["subconscious", "潛意識的"]] },
     { a: "super-", zh: "超越、在上", ori: "拉丁", ex: [["supervise", "監督"], ["supernatural", "超自然的"]] },
+    { a: "supra-", zh: "上、超", ex: [["suprarenal", "腎上腺的"], ["supramundane", "超越世俗的"], ["supranational", "超國家的"]] },
+    { a: "sur-", zh: "上、外、超", ex: [["surprint", "加印於…之上"], ["surround", "包圍"], ["surplus", "剩餘、盈餘"]] },
+    { a: "sym-", zh: "共同、相同", ex: [["sympathy", "同情"], ["symphony", "交響曲"], ["symmetry", "對稱"]] },
     { a: "syn-", zh: "共同、一起", ori: "希臘", ex: [["synchronize", "同步"], ["synthesis", "綜合"]] },
     { a: "techno-", zh: "技術", ori: "希臘", ex: [["technology", "科技"], ["technocrat", "技術官僚"]] },
     { a: "tele-", zh: "遠、遠距", ori: "希臘", ex: [["telephone", "電話"], ["television", "電視"]] },
+    { a: "tetra-", zh: "四", ex: [["tetracycline", "四環素"], ["tetrode", "四極管"]] },
     { a: "theo-", zh: "神、神明", ori: "希臘", ex: [["theology", "神學"], ["theocracy", "神權政治"]] },
     { a: "thermo-", zh: "熱、熱能", ori: "希臘", ex: [["thermometer", "溫度計"], ["thermodynamics", "熱力學"]] },
     { a: "trans-", zh: "橫越、轉變", ori: "拉丁", ex: [["transport", "運輸"], ["transform", "轉變"]] },
     { a: "tri-", zh: "數字三", ori: "拉丁", ex: [["triangle", "三角形"], ["tricycle", "三輪車"]] },
+    { a: "twi-", zh: "二、雙", ex: [["twiformed", "有二形的"], ["twifold", "兩倍"], ["twiforked", "有兩叉的"]] },
     { a: "ultra-", zh: "極、超", ori: "拉丁", ex: [["ultraviolet", "紫外線的"], ["ultrasound", "超聲波"]] },
     { a: "un-", zh: "否定、相反", ori: "古英語", ex: [["unhappy", "不快樂的"], ["unusual", "不尋常的"]] },
     { a: "under-", zh: "在下、不足", ori: "古英語", ex: [["underground", "地下"], ["underestimate", "低估"]] },
@@ -7142,38 +7232,70 @@ const AFFIXES = {
     { a: "zoo-", zh: "動物", ori: "希臘", ex: [["zoology", "動物學"], ["zoological", "動物學的"]] }
   ],
   roots: [
+    { a: "act", zh: "做、驅使", en: "to do", ex: [["counteract", "抵銷"], ["overact", "誇張地演出"], ["radioactive", "放射性的"]] },
+    { a: "acu", zh: "尖銳、敏銳", en: "sharp", ex: [["acute", "敏銳的、尖銳的"], ["acumen", "敏銳、聰明"], ["acupuncture", "針灸"]] },
+    { a: "aero(aer/aeri)", zh: "空氣、航空", en: "air", ex: [["aeroview", "空中俯瞰圖"], ["aerosphere", "大氣層"], ["aerology", "大氣學"]] },
+    { a: "agri(agro/agr)", zh: "田地、農業", en: "field", ex: [["agriculture", "農業"], ["agrarian", "土地的、農業的"], ["agronomist", "農學家"]] },
+    { a: "alti", zh: "高", en: "high", ex: [["altitude", "高度"], ["altimeter", "高度計"], ["exalt", "提高；提升"]] },
+    { a: "ambula", zh: "行走", en: "walk", ex: [["ambulance", "救護車"], ["ambulant", "流動的"], ["ambulate", "行走、移動"]] },
+    { a: "ann/enn", zh: "年", en: "year", ex: [["biennial", "兩年一次的"], ["centennial", "百年一次的"], ["millennium", "一千年"]] },
+    { a: "anthro", zh: "人、人類", en: "man", ex: [["anthropoid", "似人類的；類人猿"], ["anthropology", "人類學"], ["anthroposociology", "人類社會學"]] },
+    { a: "aqu(a)", zh: "水", en: "water", ex: [["aquamarine", "海藍寶石"], ["aquatic", "水生的"], ["aquaculture", "水產養殖"]] },
+    { a: "aster", zh: "星", en: "star", ex: [["astrology", "占星術"], ["astronomy", "天文學"], ["asterisk", "星號，星標"]] },
     { a: "aud", zh: "聽、聽覺", ori: "拉丁", ex: [["audience", "觀眾"], ["audio", "音頻"]] },
+    { a: "audi", zh: "聽", en: "hearing", ex: [["audience", "聽衆"], ["audible", "聽得見的"], ["audiphone", "助聽器"]] },
+    { a: "bar", zh: "條、棒；障礙；禁止", ex: [["embargo", "禁運"], ["barrage", "彈幕、堰壩"], ["embarrass", "使窘迫"]] },
     { a: "bell", zh: "戰爭", ori: "拉丁", ex: [["belligerent", "好戰的"], ["rebellion", "叛亂"]] },
     { a: "bio", zh: "生命", ori: "希臘", ex: [["biology", "生物學"], ["antibiotic", "抗生素"]] },
     { a: "brev", zh: "短、簡短", ori: "拉丁", ex: [["abbreviate", "縮寫"], ["brevity", "簡潔"]] },
+    { a: "brevi", zh: "短", en: "short", ex: [["brief", "簡短的"], ["brevity", "簡潔"], ["abbreviate", "縮寫"]] },
+    { a: "cand", zh: "白、發光", en: "white", ex: [["candor", "坦率、率直"], ["candidate", "候選人"], ["incandescent", "白熱的、發亮的"]] },
+    { a: "cap(t)", zh: "拿、取、抓住", en: "to take", ex: [["capacious", "容量大的、寬敞的"], ["captain", "隊長、船長"], ["incapable", "無能力的"]] },
+    { a: "capit", zh: "頭", en: "head", ex: [["capital", "首都"], ["decapitate", "斬首"], ["capitation", "人頭稅；按人收費"]] },
     { a: "ced", zh: "讓步、行", ori: "拉丁", ex: [["precede", "先於"], ["concede", "承認"]] },
     { a: "ceed", zh: "進行", ori: "拉丁", ex: [["proceed", "繼續進行"], ["succeed", "成功"]] },
     { a: "cess", zh: "讓步、行", ori: "拉丁", ex: [["process", "過程"], ["excess", "過量"]] },
     { a: "chron", zh: "時間", ori: "希臘", ex: [["chronic", "慢性的"], ["synchronize", "同步"]] },
     { a: "cid", zh: "切、殺", ori: "拉丁", ex: [["decide", "決定"], ["suicide", "自殺"]] },
+    { a: "cide", zh: "殺、切", en: "kill;cut", ex: [["suicide", "自殺"], ["insecticide", "殺蟲劑"], ["bactericide", "殺菌劑"]] },
     { a: "cis", zh: "切、切開", ori: "拉丁", ex: [["precise", "精確的"], ["scissors", "剪刀"]] },
-    { a: "clam", zh: "喊叫", ori: "拉丁", ex: [["exclamation", "感嘆"], ["proclamation", "公告"]] },
     { a: "claim", zh: "喊叫", ori: "拉丁", ex: [["claim", "聲稱"], ["reclaim", "收回"]] },
+    { a: "clam", zh: "喊叫", ori: "拉丁", ex: [["exclamation", "感嘆"], ["proclamation", "公告"]] },
+    { a: "clin", zh: "彎曲、傾斜", en: "to bend", ex: [["disinclined", "不願意的"], ["decline", "下降、拒絕"], ["recline", "斜靠、躺下"]] },
     { a: "clud", zh: "關閉", ori: "拉丁", ex: [["include", "包括"], ["exclude", "排除"]] },
     { a: "clus", zh: "關閉", ori: "拉丁", ex: [["conclusion", "結論"], ["exclusive", "獨家的"]] },
+    { a: "confid", zh: "信任", en: "trust", ex: [["confidential", "機密的"], ["confide", "吐露秘密"]] },
+    { a: "cord", zh: "心", en: "heart", ex: [["accordance", "一致，調和"], ["concord", "協調，同意"], ["discord", "不和，不一致"]] },
     { a: "corp", zh: "身體", ori: "拉丁", ex: [["corporation", "公司"], ["corpse", "屍體"]] },
     { a: "cour", zh: "跑、奔跑", ori: "拉丁", ex: [["course", "課程"], ["courier", "快遞員"]] },
+    { a: "cours(cur/curs)", zh: "跑、流轉", en: "to turn", ex: [["concur", "同意、同時發生"], ["precursor", "先驅、前兆"], ["recourse", "求助、憑藉"]] },
+    { a: "crease(cre)", zh: "增長、產生", en: "grow", ex: [["decrease", "減少"], ["increase", "增加"], ["create", "創造"]] },
     { a: "cred", zh: "相信", ori: "拉丁", ex: [["credit", "信用"], ["incredible", "難以置信的"]] },
     { a: "cur", zh: "跑、關心", ori: "拉丁", ex: [["current", "當前的"], ["occur", "發生"]] },
     { a: "curs", zh: "跑、奔跑", ori: "拉丁", ex: [["cursor", "游標"], ["excursion", "遠足"]] },
+    { a: "cycl", zh: "圓、輪", en: "circle;wheel", ex: [["bicycle", "自行車"], ["tricycle", "三輪車"], ["hemicycle", "半圓形"]] },
+    { a: "dem(o)", zh: "人民、人口", en: "people", ex: [["demography", "人口統計學"], ["democracy", "民主"], ["epidemic", "流行病"]] },
     { a: "dic", zh: "說、言語", ori: "拉丁", ex: [["predict", "預測"], ["dedicate", "奉獻"]] },
     { a: "dict", zh: "說、言語", ori: "拉丁", ex: [["dictionary", "字典"], ["contradict", "反駁"]] },
     { a: "doc", zh: "教、教導", ori: "拉丁", ex: [["doctor", "醫生"], ["document", "文件"]] },
+    { a: "domin", zh: "統治、控制", en: "rule;control", ex: [["dominate", "主宰"], ["indomitable", "不屈不撓的"]] },
     { a: "don", zh: "給、給予", ori: "拉丁", ex: [["donate", "捐贈"], ["donor", "捐贈者"]] },
-    { a: "dot", zh: "給、給予", ori: "拉丁", ex: [["antidote", "解毒劑"], ["anecdote", "軼事"]] },
     { a: "dorm", zh: "睡、睡眠", ori: "拉丁", ex: [["dormitory", "宿舍"], ["dormant", "休眠的"]] },
+    { a: "dot", zh: "給、給予", ori: "拉丁", ex: [["antidote", "解毒劑"], ["anecdote", "軼事"]] },
     { a: "duc", zh: "引導", ori: "拉丁", ex: [["conduct", "進行"], ["reduce", "減少"]] },
+    { a: "duce", zh: "引導、帶領", en: "lead;take", ex: [["introduce", "介紹"], ["induce", "引誘"], ["conduct", "指導"]] },
     { a: "duct", zh: "引導", ori: "拉丁", ex: [["product", "產品"], ["conductor", "指揮"]] },
+    { a: "dur", zh: "持續", en: "to last", ex: [["obdurate", "固執的"], ["endure", "忍受、持續"], ["enduring", "持久的"]] },
+    { a: "equ(iqu)", zh: "相等、相同", en: "same;equal", ex: [["adequate", "足夠的"], ["equivocate", "含糊其辭"], ["equalize", "使相等"]] },
     { a: "fac", zh: "做、造", ori: "拉丁", ex: [["factory", "工廠"], ["faculty", "全體教員"]] },
+    { a: "faci", zh: "容易", en: "easy", ex: [["facile", "易得到的，不花力氣的"], ["facilitate", "使容易"]] },
+    { a: "fact", zh: "做、製造", en: "make;do", ex: [["manufacture", "製造"], ["factory", "工廠"], ["benefactor", "恩人，施恩者"]] },
     { a: "fect", zh: "做、造", ori: "拉丁", ex: [["perfect", "完美的"], ["effective", "有效的"]] },
     { a: "fer", zh: "帶、拿", ori: "拉丁", ex: [["transfer", "轉移"], ["offer", "提供"]] },
     { a: "fic", zh: "做、造", ori: "拉丁", ex: [["efficient", "高效的"], ["difficult", "困難的"]] },
     { a: "fid", zh: "信任", ori: "拉丁", ex: [["confidence", "信心"], ["fidelity", "忠誠"]] },
+    { a: "fin", zh: "末端、限制", en: "end;limit", ex: [["affinity", "密切關係、吸引"], ["definitive", "決定性的"], ["infinite", "無限的"]] },
+    { a: "flect/flex", zh: "彎曲、傾斜", en: "bend", ex: [["inflexible", "不屈的、僵硬的"], ["inflect", "使詞形變化、彎曲"], ["deflect", "使偏轉"]] },
     { a: "flu", zh: "流、流動", ori: "拉丁", ex: [["fluent", "流利的"], ["influence", "影響"]] },
     { a: "flux", zh: "流、流動", ori: "拉丁", ex: [["flux", "通量"], ["influx", "湧入"]] },
     { a: "form", zh: "形狀", ori: "拉丁", ex: [["format", "格式"], ["uniform", "制服"]] },
@@ -7186,33 +7308,46 @@ const AFFIXES = {
     { a: "gram", zh: "寫、圖", ori: "希臘", ex: [["grammar", "語法"], ["diagram", "圖表"]] },
     { a: "graph", zh: "寫、記錄", ori: "希臘", ex: [["paragraph", "段落"], ["autograph", "親筆簽名"]] },
     { a: "grat", zh: "感謝、喜", ori: "拉丁", ex: [["grateful", "感激的"], ["congratulate", "祝賀"]] },
+    { a: "grate", zh: "感謝", en: "thanks", ex: [["grateful", "衷心感謝的"], ["gratitude", "感謝"]] },
+    { a: "grav", zh: "重", en: "heavy;serious", ex: [["gravity", "重力；嚴重性"], ["grave", "嚴重的"], ["gravimeter", "比重計，測重器"]] },
     { a: "gress", zh: "步、行", ori: "拉丁", ex: [["progress", "進步"], ["aggressive", "好鬥的"]] },
+    { a: "herb", zh: "草", en: "grass", ex: [["herbal", "草本植物的；草藥書"], ["herby", "長滿草的，似草的"]] },
     { a: "hosp", zh: "客人", ori: "拉丁", ex: [["hospital", "醫院"], ["hospitality", "好客"]] },
     { a: "hum", zh: "土、人", ori: "拉丁", ex: [["human", "人類"], ["humble", "謙遜的"]] },
+    { a: "humid", zh: "濕", en: "wet", ex: [["humidity", "濕度，濕氣"], ["humidify", "使濕潤"]] },
     { a: "hydr", zh: "水、液體", ori: "希臘", ex: [["hydrogen", "氫氣"], ["dehydrate", "脫水"]] },
     { a: "iden", zh: "相同", ori: "拉丁", ex: [["identity", "身分"], ["identical", "完全相同的"]] },
     { a: "insul", zh: "島、島嶼", ori: "拉丁", ex: [["insulate", "絕緣"], ["peninsula", "半島"]] },
     { a: "it", zh: "走、行", ori: "拉丁", ex: [["exit", "出口"], ["initial", "最初的"]] },
     { a: "ject", zh: "投、扔", ori: "拉丁", ex: [["project", "項目"], ["reject", "拒絕"]] },
+    { a: "join(junct/jug)", zh: "加入、結合、連結", en: "to join", ex: [["conjuncture", "事態、緊要關頭"], ["enjoin", "命令、囑咐"], ["adjoin", "毗連、鄰接"]] },
     { a: "jud", zh: "判斷", ori: "拉丁", ex: [["judge", "法官"], ["judicial", "司法的"]] },
+    { a: "jun/juven", zh: "年輕的", en: "young", ex: [["juvenile", "青少年"], ["juvenilia", "少年文藝讀物"], ["juvenescence", "年輕、返老還童"]] },
     { a: "junct", zh: "連接", ori: "拉丁", ex: [["junction", "交叉路口"], ["conjunction", "連接詞"]] },
     { a: "jur", zh: "法律、宣誓", ori: "拉丁", ex: [["jury", "陪審團"], ["jurisdiction", "司法權"]] },
     { a: "just", zh: "公正", ori: "拉丁", ex: [["justice", "正義"], ["justify", "證明正當"]] },
+    { a: "juven", zh: "年輕的", en: "young", ex: [["juvenile", "青少年"], ["juvenilia", "少年文藝讀物"]] },
     { a: "kine", zh: "運動", ori: "希臘", ex: [["kinetic", "動力的"], ["kinesis", "運動"]] },
     { a: "klept", zh: "偷竊", ori: "希臘", ex: [["kleptomania", "盜竊癖"], ["kleptocracy", "盜賊統治"]] },
     { a: "labor", zh: "工作", ori: "拉丁", ex: [["laboratory", "實驗室"], ["collaborate", "合作"]] },
+    { a: "later", zh: "邊、側", en: "side;party", ex: [["bilateral", "雙邊的"], ["unilateral", "單方的"], ["equilateral", "等邊的"]] },
     { a: "lect", zh: "選、讀", ori: "拉丁", ex: [["collect", "收集"], ["lecture", "講座"]] },
     { a: "leg", zh: "讀、法", ori: "拉丁", ex: [["legend", "傳說"], ["legible", "易讀的"]] },
+    { a: "lev", zh: "舉起、使變輕", en: "to raise", ex: [["lever", "槓桿"], ["alleviate", "減輕"], ["relevant", "相關的"]] },
     { a: "liber", zh: "自由", ori: "拉丁", ex: [["liberty", "自由"], ["liberal", "開明的"]] },
     { a: "liter", zh: "文字", ori: "拉丁", ex: [["literature", "文學"], ["literate", "識字的"]] },
+    { a: "literat", zh: "文字", en: "letter", ex: [["literature", "文學"], ["illiterate", "文盲"], ["semiliterate", "半文盲的"]] },
     { a: "loc", zh: "地方", ori: "拉丁", ex: [["local", "當地的"], ["locate", "定位"]] },
     { a: "log", zh: "言語、學", ori: "希臘", ex: [["logic", "邏輯"], ["dialogue", "對話"]] },
     { a: "loqu", zh: "說話", ori: "拉丁", ex: [["eloquent", "雄辯的"], ["colloquial", "口語的"]] },
     { a: "luc", zh: "光、光線", ori: "拉丁", ex: [["translucent", "半透明的"], ["lucid", "清晰的"]] },
     { a: "lud", zh: "玩、演", ori: "拉丁", ex: [["prelude", "前奏"], ["interlude", "間奏"]] },
     { a: "lum", zh: "光、光線", ori: "拉丁", ex: [["illuminate", "照亮"], ["luminous", "發光的"]] },
+    { a: "lumi", zh: "光、明亮", en: "light;bright", ex: [["illuminate", "照明"], ["illuminance", "照明度"], ["luminary", "發光體，傑出人物"]] },
     { a: "lus", zh: "玩、演", ori: "拉丁", ex: [["illusion", "錯覺"], ["elusive", "難以捉摸的"]] },
     { a: "magn", zh: "大、巨大", ori: "拉丁", ex: [["magnificent", "壯麗的"], ["magnitude", "重要性"]] },
+    { a: "magni", zh: "大", en: "big;great", ex: [["magnificent", "宏大的"], ["magnify", "放大"], ["magnitude", "巨大，廣大"]] },
+    { a: "main/man", zh: "流動、保持", en: "to flow", ex: [["permanence", "永久、恆久"], ["maintain", "維持"], ["remain", "留下、仍然是"]] },
     { a: "man", zh: "手、手工", ori: "拉丁", ex: [["manual", "手冊"], ["manufacture", "製造"]] },
     { a: "mand", zh: "命令", ori: "拉丁", ex: [["command", "命令"], ["demand", "要求"]] },
     { a: "mar", zh: "海、海洋", ori: "拉丁", ex: [["marine", "海洋的"], ["submarine", "潛艇"]] },
@@ -7224,6 +7359,8 @@ const AFFIXES = {
     { a: "metr", zh: "測量", ori: "希臘", ex: [["metric", "公制的"], ["symmetry", "對稱"]] },
     { a: "migr", zh: "遷移", ori: "拉丁", ex: [["migrate", "遷移"], ["immigrant", "移民"]] },
     { a: "min", zh: "小、少", ori: "拉丁", ex: [["minimum", "最低限度"], ["minor", "次要的"]] },
+    { a: "mini", zh: "小的、幼小的", en: "small", ex: [["minimal", "最小的"], ["minimize", "減到最少"], ["minority", "少數"]] },
+    { a: "mir", zh: "驚奇、懷疑", en: "to wonder", ex: [["miracle", "奇蹟"], ["mirage", "海市蜃樓"], ["mirth", "歡笑"]] },
     { a: "miss", zh: "送、派", ori: "拉丁", ex: [["mission", "任務"], ["dismiss", "解僱"]] },
     { a: "mit", zh: "送、派", ori: "拉丁", ex: [["submit", "提交"], ["permit", "允許"]] },
     { a: "mob", zh: "移動", ori: "拉丁", ex: [["mobile", "移動的"], ["mobilize", "動員"]] },
@@ -7235,7 +7372,9 @@ const AFFIXES = {
     { a: "mut", zh: "改變", ori: "拉丁", ex: [["mutual", "相互的"], ["mutation", "突變"]] },
     { a: "nat", zh: "出生", ori: "拉丁", ex: [["nature", "自然"], ["native", "本地的"]] },
     { a: "nav", zh: "船、航行", ori: "拉丁", ex: [["navy", "海軍"], ["navigate", "導航"]] },
+    { a: "noct/nox", zh: "夜晚", en: "night", ex: [["equinoctial", "晝夜平分的"], ["nocturnal", "夜間的"], ["noctilucent", "夜間發光的"]] },
     { a: "nom", zh: "名字", ori: "希臘", ex: [["nominate", "提名"], ["nominal", "名義上的"]] },
+    { a: "nomin", zh: "名字", en: "name", ex: [["nominate", "提名"], ["nominee", "被提名人"], ["nominative", "主格的"]] },
     { a: "nounce", zh: "宣布", ori: "拉丁", ex: [["announce", "宣布"], ["pronounce", "發音"]] },
     { a: "nov", zh: "新、新的", ori: "拉丁", ex: [["novel", "新穎的"], ["innovate", "創新"]] },
     { a: "nym", zh: "名字", ori: "希臘", ex: [["synonym", "同義詞"], ["anonymous", "匿名的"]] },
@@ -7243,12 +7382,14 @@ const AFFIXES = {
     { a: "oper", zh: "工作", ori: "拉丁", ex: [["operate", "操作"], ["cooperate", "合作"]] },
     { a: "opt", zh: "選擇、視", ori: "希臘", ex: [["option", "選擇"], ["optical", "光學的"]] },
     { a: "ora", zh: "說、嘴", ori: "拉丁", ex: [["oral", "口頭的"], ["oration", "演說"]] },
+    { a: "ortho", zh: "直、正確", en: "straight;correct", ex: [["orthodox", "正統的"], ["orthopaedy", "矯正術"]] },
     { a: "pac", zh: "和平", ori: "拉丁", ex: [["pacific", "和平的"], ["pacify", "安撫"]] },
     { a: "par", zh: "準備、顯現", ori: "拉丁", ex: [["prepare", "準備"], ["apparent", "明顯的"]] },
     { a: "pass", zh: "通過", ori: "拉丁", ex: [["passage", "通道"], ["passenger", "乘客"]] },
     { a: "pat", zh: "感受、忍", ori: "拉丁", ex: [["patient", "病人"], ["compatible", "兼容的"]] },
-    { a: "path", zh: "感受、病", ori: "希臘", ex: [["sympathy", "同情"], ["pathology", "病理學"]] },
     { a: "pater", zh: "父親", ori: "拉丁", ex: [["paternal", "父親的"], ["paternity", "父系"]] },
+    { a: "path", zh: "感受、病", ori: "希臘", ex: [["sympathy", "同情"], ["pathology", "病理學"]] },
+    { a: "pathy", zh: "感覺、情感", en: "feeling", ex: [["sympathy", "同情"], ["antipathy", "反感"], ["empathy", "移情"]] },
     { a: "patr", zh: "父親、祖國", ori: "拉丁", ex: [["patriot", "愛國者"], ["patron", "贊助人"]] },
     { a: "ped", zh: "腳、足部", ori: "拉丁", ex: [["pedal", "踏板"], ["pedestrian", "行人"]] },
     { a: "pel", zh: "推、驅", ori: "拉丁", ex: [["expel", "驅逐"], ["propel", "推進"]] },
@@ -7269,6 +7410,7 @@ const AFFIXES = {
     { a: "popul", zh: "人民", ori: "拉丁", ex: [["popular", "受歡迎的"], ["population", "人口"]] },
     { a: "port", zh: "攜帶、運", ori: "拉丁", ex: [["transport", "運輸"], ["important", "重要的"]] },
     { a: "pos", zh: "放置", ori: "拉丁", ex: [["position", "位置"], ["compose", "作曲"]] },
+    { a: "pose", zh: "放置", en: "put;place", ex: [["propose", "建議"], ["dispose", "處理"], ["expose", "使暴露，揭發"]] },
     { a: "pot", zh: "力量", ori: "拉丁", ex: [["potential", "潛力"], ["potent", "有力的"]] },
     { a: "press", zh: "壓、壓力", ori: "拉丁", ex: [["express", "表達"], ["pressure", "壓力"]] },
     { a: "prim", zh: "第一", ori: "拉丁", ex: [["primary", "主要的"], ["primitive", "原始的"]] },
@@ -7281,8 +7423,8 @@ const AFFIXES = {
     { a: "pun", zh: "罰、懲罰", ori: "拉丁", ex: [["punish", "懲罰"], ["punitive", "懲罰性的"]] },
     { a: "punct", zh: "點、刺", ori: "拉丁", ex: [["punctual", "準時的"], ["punctuation", "標點"]] },
     { a: "pung", zh: "刺、刺痛", ori: "拉丁", ex: [["pungent", "刺鼻的"], ["expunge", "刪除"]] },
-    { a: "quir", zh: "問、尋", ori: "拉丁", ex: [["require", "需要"], ["inquire", "詢問"]] },
     { a: "quest", zh: "問、尋", ori: "拉丁", ex: [["question", "問題"], ["request", "請求"]] },
+    { a: "quir", zh: "問、尋", ori: "拉丁", ex: [["require", "需要"], ["inquire", "詢問"]] },
     { a: "quot", zh: "多少", ori: "拉丁", ex: [["quota", "配額"], ["quotient", "商數"]] },
     { a: "rad", zh: "根、根部", ori: "拉丁", ex: [["radical", "激進的"], ["eradicate", "根除"]] },
     { a: "ras", zh: "刮、擦去", ori: "拉丁", ex: [["erase", "擦除"], ["abrasive", "磨蝕的"]] },
@@ -7296,7 +7438,9 @@ const AFFIXES = {
     { a: "sanct", zh: "神聖", ori: "拉丁", ex: [["sanctuary", "避難所"], ["sanction", "制裁"]] },
     { a: "sci", zh: "知道", ori: "拉丁", ex: [["science", "科學"], ["conscious", "有意識的"]] },
     { a: "scop", zh: "看、觀察", ori: "希臘", ex: [["microscope", "顯微鏡"], ["telescope", "望遠鏡"]] },
+    { a: "scope", zh: "觀察的器具", en: "instrument for observing", ex: [["microscope", "顯微鏡"], ["telescope", "望遠鏡"]] },
     { a: "scrib", zh: "寫、書寫", ori: "拉丁", ex: [["describe", "描述"], ["subscribe", "訂閱"]] },
+    { a: "scribe", zh: "寫", en: "write;writing;look", ex: [["describe", "描述"], ["prescription", "處方"]] },
     { a: "script", zh: "寫、書寫", ori: "拉丁", ex: [["manuscript", "手稿"], ["prescription", "處方"]] },
     { a: "sect", zh: "切、切開", ori: "拉丁", ex: [["section", "部分"], ["insect", "昆蟲"]] },
     { a: "secu", zh: "跟隨", ori: "拉丁", ex: [["consecutive", "連續的"], ["persecute", "迫害"]] },
@@ -7324,22 +7468,25 @@ const AFFIXES = {
     { a: "sta", zh: "站、立", ori: "拉丁", ex: [["stable", "穩定的"], ["station", "車站"]] },
     { a: "stat", zh: "站、立", ori: "拉丁", ex: [["status", "地位"], ["statue", "雕像"]] },
     { a: "stit", zh: "站、立", ori: "拉丁", ex: [["institute", "機構"], ["constitute", "構成"]] },
+    { a: "str(ct)", zh: "建造、建立", en: "to build", ex: [["superstructure", "上層建築"], ["instruct", "指示"], ["obstruct", "阻礙"]] },
     { a: "strain", zh: "拉緊", ori: "拉丁", ex: [["restrain", "抑制"], ["constrain", "約束"]] },
     { a: "strict", zh: "拉緊", ori: "拉丁", ex: [["strict", "嚴格的"], ["restrict", "限制"]] },
     { a: "string", zh: "拉緊", ori: "拉丁", ex: [["string", "繩子"], ["stringent", "嚴格的"]] },
     { a: "stru", zh: "建造", ori: "拉丁", ex: [["structure", "結構"], ["construct", "建造"]] },
     { a: "struct", zh: "建造", ori: "拉丁", ex: [["instruct", "指示"], ["destruction", "破壞"]] },
+    { a: "stup", zh: "靜止、麻木", en: "be motionless", ex: [["stupid", "愚蠢"], ["stupefy", "使麻木；使呆若木雞"], ["stupor", "昏迷，麻木"]] },
     { a: "sum", zh: "拿、取", ori: "拉丁", ex: [["assume", "假設"], ["consume", "消耗"]] },
     { a: "sumpt", zh: "拿、取", ori: "拉丁", ex: [["consumption", "消費"], ["presumption", "推定"]] },
     { a: "tact", zh: "觸摸", ori: "拉丁", ex: [["contact", "聯繫"], ["tactile", "觸覺的"]] },
     { a: "tag", zh: "觸摸", ori: "拉丁", ex: [["contagious", "傳染性的"], ["contagion", "傳染"]] },
     { a: "tain", zh: "持有", ori: "拉丁", ex: [["contain", "包含"], ["maintain", "維持"]] },
     { a: "tang", zh: "觸摸", ori: "拉丁", ex: [["tangible", "有形的"], ["tangent", "切線"]] },
+    { a: "tect/teg", zh: "覆蓋、藏", en: "to hide", ex: [["protect", "保護"], ["detection", "察覺、偵測"], ["protectorate", "保護國"]] },
+    { a: "tempor", zh: "時間", ori: "拉丁", ex: [["temporary", "暫時的"], ["contemporary", "當代的"]] },
     { a: "ten", zh: "持有", ori: "拉丁", ex: [["tenant", "房客"], ["tenacious", "頑強的"]] },
     { a: "tend", zh: "伸展", ori: "拉丁", ex: [["extend", "延伸"], ["tendency", "傾向"]] },
     { a: "tens", zh: "伸展", ori: "拉丁", ex: [["tension", "緊張"], ["extensive", "廣泛的"]] },
     { a: "tent", zh: "持有", ori: "拉丁", ex: [["content", "內容"], ["intention", "意圖"]] },
-    { a: "tempor", zh: "時間", ori: "拉丁", ex: [["temporary", "暫時的"], ["contemporary", "當代的"]] },
     { a: "termin", zh: "界限、終", ori: "拉丁", ex: [["terminal", "終點站"], ["determine", "決定"]] },
     { a: "terr", zh: "土地", ori: "拉丁", ex: [["territory", "領土"], ["terrain", "地形"]] },
     { a: "test", zh: "證明", ori: "拉丁", ex: [["testify", "作證"], ["protest", "抗議"]] },
@@ -7380,6 +7527,7 @@ const AFFIXES = {
     { a: "voc", zh: "叫、聲音", ori: "拉丁", ex: [["vocal", "聲音的"], ["vocabulary", "詞彙"]] },
     { a: "vok", zh: "叫、聲音", ori: "拉丁", ex: [["provoke", "挑起"], ["revoke", "撤銷"]] },
     { a: "vol", zh: "意願", ori: "拉丁", ex: [["volunteer", "志願者"], ["voluntary", "自願的"]] },
+    { a: "volu/volv", zh: "捲、轉動", en: "to roll", ex: [["evolve", "進化、演化"], ["involve", "涉及"], ["revolve", "旋轉"]] },
     { a: "volut", zh: "滾、轉", ori: "拉丁", ex: [["evolution", "進化"], ["revolution", "革命"]] },
     { a: "volv", zh: "滾、轉", ori: "拉丁", ex: [["involve", "涉及"], ["revolve", "旋轉"]] },
     { a: "vor", zh: "吃、吞食", ori: "拉丁", ex: [["carnivore", "食肉動物"], ["voracious", "貪吃的"]] },
@@ -7390,14 +7538,15 @@ const AFFIXES = {
     { a: "zym", zh: "酵、發酵", ori: "希臘", ex: [["enzyme", "酵素"], ["zymology", "發酵學"]] }
   ],
   suffixes: [
-    { a: "-able", zh: "能…的", ori: "拉丁", ex: [["comfortable", "舒適的"], ["suitable", "合適的"]] },
     { a: "-ability", zh: "能力、可能性", ori: "拉丁", ex: [["reliability", "可靠性"], ["availability", "可用性"]] },
-    { a: "-ible", zh: "能…的", ori: "拉丁", ex: [["possible", "可能的"], ["sensible", "明智的"]] },
+    { a: "-able", zh: "能…的", ori: "拉丁", ex: [["comfortable", "舒適的"], ["suitable", "合適的"]] },
+    { a: "-ace", zh: "行為、狀態（名詞字尾）", ex: [["populace", "平民、大眾"], ["terrace", "台地、陽台"], ["solace", "安慰"]] },
     { a: "-acious", zh: "多…的", ori: "拉丁", ex: [["spacious", "寬敞的"], ["tenacious", "頑強的"]] },
     { a: "-acy", zh: "狀態、性質", ori: "拉丁", ex: [["accuracy", "準確性"], ["intimacy", "親密"]] },
+    { a: "-ade", zh: "行動、結果；集體", en: "act", ex: [["parade", "遊行"], ["barricade", "路障"], ["promenade", "散步道"]] },
     { a: "-age", zh: "行為、狀態", ori: "法語", ex: [["marriage", "婚姻"], ["package", "包裹"]] },
+    { a: "-aire", zh: "…的人或物", en: "person who", ex: [["millionaire", "百萬富翁"], ["doctrinaire", "空談理論的"], ["solitaire", "單人紙牌、獨居者"]] },
     { a: "-al", zh: "…的", ori: "拉丁", ex: [["natural", "自然的"], ["personal", "個人的"]] },
-    { a: "-ial", zh: "…的", ori: "拉丁", ex: [["social", "社會的"], ["financial", "財務的"]] },
     { a: "-ally", zh: "…地", ori: "拉丁", ex: [["basically", "基本上"], ["typically", "典型地"]] },
     { a: "-ance", zh: "狀態、行為", ori: "法語", ex: [["importance", "重要性"], ["performance", "表現"]] },
     { a: "-ancy", zh: "狀態、性質", ori: "拉丁", ex: [["vacancy", "空缺"], ["expectancy", "期待"]] },
@@ -7406,6 +7555,7 @@ const AFFIXES = {
     { a: "-ary", zh: "…的、場所", ori: "拉丁", ex: [["necessary", "必要的"], ["library", "圖書館"]] },
     { a: "-ate", zh: "使…、…的", ori: "拉丁", ex: [["activate", "激活"], ["educate", "教育"]] },
     { a: "-ation", zh: "行為、過程", ori: "拉丁", ex: [["information", "資訊"], ["communication", "溝通"]] },
+    { a: "-cian", zh: "…的人（職業）", en: "person who", ex: [["logician", "邏輯學家"], ["magician", "魔術師"], ["musician", "音樂家"]] },
     { a: "-cracy", zh: "統治", ori: "希臘", ex: [["democracy", "民主"], ["bureaucracy", "官僚制度"]] },
     { a: "-crat", zh: "統治者", ori: "希臘", ex: [["democrat", "民主主義者"], ["bureaucrat", "官僚"]] },
     { a: "-cy", zh: "狀態、性質", ori: "拉丁", ex: [["agency", "代理機構"], ["privacy", "隱私"]] },
@@ -7418,6 +7568,7 @@ const AFFIXES = {
     { a: "-ent", zh: "人、…的", ori: "拉丁", ex: [["student", "學生"], ["different", "不同的"]] },
     { a: "-er", zh: "人、物", ori: "古英語", ex: [["teacher", "老師"], ["computer", "電腦"]] },
     { a: "-ery", zh: "行為、場所", ori: "法語", ex: [["bakery", "麵包店"], ["bravery", "勇氣"]] },
+    { a: "-esce", zh: "開始、變成", en: "becoming", ex: [["effervesce", "冒泡、沸騰"], ["rejuvenesce", "返老還童"], ["acquiesce", "默認、勉強同意"]] },
     { a: "-ese", zh: "…的、…語", ori: "法語", ex: [["Chinese", "中國的"], ["Japanese", "日本的"]] },
     { a: "-esque", zh: "…風格的", ori: "法語", ex: [["picturesque", "如畫的"], ["statuesque", "雕像般的"]] },
     { a: "-ess", zh: "女性", ori: "法語", ex: [["actress", "女演員"], ["waitress", "女服務員"]] },
@@ -7429,15 +7580,21 @@ const AFFIXES = {
     { a: "-graph", zh: "寫、記錄", ori: "希臘", ex: [["paragraph", "段落"], ["photograph", "照片"]] },
     { a: "-graphy", zh: "學科、記錄", ori: "希臘", ex: [["geography", "地理學"], ["photography", "攝影"]] },
     { a: "-hood", zh: "狀態、身分", ori: "古英語", ex: [["childhood", "童年"], ["neighbourhood", "社區"]] },
+    { a: "-ial", zh: "…的", ori: "拉丁", ex: [["social", "社會的"], ["financial", "財務的"]] },
     { a: "-ian", zh: "…的人", ori: "拉丁", ex: [["musician", "音樂家"], ["historian", "歷史學家"]] },
+    { a: "-ible", zh: "能…的", ori: "拉丁", ex: [["possible", "可能的"], ["sensible", "明智的"]] },
     { a: "-ic", zh: "…的", ori: "希臘", ex: [["basic", "基本的"], ["scientific", "科學的"]] },
     { a: "-ical", zh: "…的", ori: "希臘", ex: [["historical", "歷史的"], ["practical", "實際的"]] },
+    { a: "-ice/-ise", zh: "行為、狀態", en: "act", ex: [["malice", "惡意"], ["armistice", "停戰"], ["mortise", "榫眼"]] },
     { a: "-ics", zh: "學科", ori: "希臘", ex: [["physics", "物理學"], ["economics", "經濟學"]] },
+    { a: "-ier", zh: "…的人；與…相關的人", en: "person who", ex: [["pacifier", "安撫者"], ["cashier", "出納員"], ["cavalier", "騎士"]] },
     { a: "-ify", zh: "使…", ori: "拉丁", ex: [["identify", "識別"], ["beautify", "美化"]] },
     { a: "-ile", zh: "…的", ori: "拉丁", ex: [["fragile", "易碎的"], ["mobile", "移動的"]] },
+    { a: "-ility", zh: "性質、能力", en: "quality of", ex: [["feasibility", "可行的"], ["servility", "奴性，卑屈"], ["mobility", "易動的"]] },
     { a: "-ine", zh: "…的", ori: "拉丁", ex: [["marine", "海洋的"], ["divine", "神聖的"]] },
     { a: "-ing", zh: "進行、動作", ori: "古英語", ex: [["running", "跑步"], ["building", "建築物"]] },
     { a: "-ion", zh: "行為、結果", ori: "拉丁", ex: [["action", "行動"], ["discussion", "討論"]] },
+    { a: "-ious", zh: "…的", ori: "拉丁", ex: [["previous", "先前的"], ["curious", "好奇的"]] },
     { a: "-ise", zh: "使…", ori: "希臘", ex: [["realise", "意識到"], ["organise", "組織"]] },
     { a: "-ish", zh: "稍…的、…人", ori: "古英語", ex: [["childish", "幼稚的"], ["foolish", "愚蠢的"]] },
     { a: "-ism", zh: "主義、行為", ori: "希臘", ex: [["capitalism", "資本主義"], ["realism", "現實主義"]] },
@@ -7455,23 +7612,25 @@ const AFFIXES = {
     { a: "-logy", zh: "學科", ori: "希臘", ex: [["biology", "生物學"], ["psychology", "心理學"]] },
     { a: "-ly", zh: "…地", ori: "古英語", ex: [["quickly", "迅速地"], ["friendly", "友好的"]] },
     { a: "-ment", zh: "行為、結果", ori: "拉丁", ex: [["development", "發展"], ["agreement", "協議"]] },
+    { a: "-mony", zh: "狀態、性質", en: "state", ex: [["matrimony", "婚姻"], ["patrimony", "祖傳財產"], ["testimony", "證詞"]] },
     { a: "-most", zh: "最…的", ori: "古英語", ex: [["utmost", "極度的"], ["foremost", "最重要的"]] },
     { a: "-ness", zh: "性質、狀態", ori: "古英語", ex: [["happiness", "幸福"], ["darkness", "黑暗"]] },
+    { a: "-o(u)r", zh: "…的人或物", en: "one who", ex: [["vendor", "賣主、小販"], ["inventor", "發明者"], ["candour", "坦率"]] },
     { a: "-oid", zh: "像…的", ori: "希臘", ex: [["humanoid", "類人的"], ["android", "機器人"]] },
     { a: "-ology", zh: "學科", ori: "希臘", ex: [["technology", "科技"], ["sociology", "社會學"]] },
     { a: "-or", zh: "人、物", ori: "拉丁", ex: [["doctor", "醫生"], ["actor", "演員"]] },
     { a: "-ory", zh: "…的、場所", ori: "拉丁", ex: [["history", "歷史"], ["factory", "工廠"]] },
     { a: "-ous", zh: "充滿…的", ori: "拉丁", ex: [["famous", "著名的"], ["dangerous", "危險的"]] },
-    { a: "-ious", zh: "…的", ori: "拉丁", ex: [["previous", "先前的"], ["curious", "好奇的"]] },
     { a: "-ry", zh: "行為、集合", ori: "法語", ex: [["machinery", "機械"], ["poetry", "詩歌"]] },
     { a: "-ship", zh: "狀態、關係", ori: "古英語", ex: [["friendship", "友誼"], ["leadership", "領導"]] },
     { a: "-sion", zh: "行為、結果", ori: "拉丁", ex: [["decision", "決定"], ["conclusion", "結論"]] },
     { a: "-some", zh: "有…傾向的", ori: "古英語", ex: [["handsome", "英俊的"], ["troublesome", "麻煩的"]] },
     { a: "-sphere", zh: "球、層", ori: "希臘", ex: [["atmosphere", "大氣"], ["biosphere", "生物圈"]] },
-    { a: "-tion", zh: "行為、結果", ori: "拉丁", ex: [["education", "教育"], ["production", "生產"]] },
-    { a: "-ty", zh: "性質、狀態", ori: "拉丁", ex: [["safety", "安全"], ["loyalty", "忠誠"]] },
+    { a: "-t/-th", zh: "行為、狀態、性質", en: "action", ex: [["strength", "力量"], ["depth", "深度"], ["length", "長度"]] },
     { a: "-teen", zh: "十幾", ori: "古英語", ex: [["sixteen", "十六"], ["thirteen", "十三"]] },
     { a: "-th", zh: "序數、狀態", ori: "古英語", ex: [["fourth", "第四"], ["growth", "增長"]] },
+    { a: "-tion", zh: "行為、結果", ori: "拉丁", ex: [["education", "教育"], ["production", "生產"]] },
+    { a: "-ty", zh: "性質、狀態", ori: "拉丁", ex: [["safety", "安全"], ["loyalty", "忠誠"]] },
     { a: "-ular", zh: "…的", ori: "拉丁", ex: [["popular", "受歡迎的"], ["circular", "圓形的"]] },
     { a: "-uous", zh: "…的", ori: "拉丁", ex: [["continuous", "連續的"], ["ambiguous", "模糊的"]] },
     { a: "-ure", zh: "行為、結果", ori: "拉丁", ex: [["pressure", "壓力"], ["failure", "失敗"]] },
@@ -7506,7 +7665,7 @@ function affixAll() {
     const arr = (typeof AFFIXES === 'object' && AFFIXES && AFFIXES[p[0]]) ? AFFIXES[p[0]] : [];
     arr.forEach(function (e) {
       out.push({
-        a: String(e.a || ''), zh: String(e.zh || ''), ori: String(e.ori || ''),
+        a: String(e.a || ''), zh: String(e.zh || ''), en: String(e.en || ''), ori: String(e.ori || ''),
         ex: (e.ex || []).filter(function (p2) { return p2 && p2[0]; }), type: p[1]
       });
     });
@@ -7554,6 +7713,7 @@ function affixFiltered() {
     if (!q) return true;
     if (e.a.toLowerCase().indexOf(q) >= 0) return true;
     if (e.zh.indexOf(q) >= 0) return true;
+    if (e.en && e.en.toLowerCase().indexOf(q) >= 0) return true;
     for (let i = 0; i < e.ex.length; i++) {
       if (String(e.ex[i][0]).toLowerCase().indexOf(q) >= 0) return true;
       if (String(e.ex[i][1] || '').indexOf(q) >= 0) return true;
@@ -7611,6 +7771,7 @@ function affixCardHtml(e) {
           '<span class="af-tag" style="background:' + ti.color + '">' + ti.label + '</span>' +
           '<span class="font-extrabold text-xl sm:text-2xl text-[#1F1E2B] break-all">' + esc(e.a) + '</span>' +
           '<span class="text-sm font-extrabold text-[#6B6880]">' + esc(e.zh) + '</span>' +
+          (e.en ? '<span class="text-[11px] font-bold text-[#A5A2B8] italic">' + esc(e.en) + '</span>' : '') +
           (e.ori ? '<span class="text-[11px] font-bold text-[#A5A2B8]">' + esc(e.ori) + '</span>' : '') +
         '</div>' +
         '<div class="flex items-center gap-1.5 shrink-0">' +
@@ -8355,7 +8516,505 @@ async function ideaAiScore() {
   }
 }
 
-/** 從題庫／計畫直接開一題來練 */
+/* =================================================================================
+   【模組七：單詞本（Word Book）v1.8 新增】
+
+   為什麼要有單詞本？
+     查過的字、答錯的字、答對的字，其實都是「你正在學的字」。但錯題本只留答錯的
+     而且 7 天後答對就會畢業移出；查詢紀錄也只存在歷史裡。單詞本把這三種來源
+     全部集中到一個地方，而且：
+
+       ★ 永不自動刪除。任何流程（查詢／測驗答對／測驗答錯／7 天複習）都只會
+         新增或累加紀錄，不會移除任何字。想複習幾次就複習幾次，字永遠在。
+       ★ 唯一會消失的情況：使用者自己按「🗑️ 移出單詞本」（有二次確認）。
+
+   資料模型（localStorage key = word_book，型別 Array）：
+     {
+       word: 'apple',                            // 原樣保留，供顯示與發音
+       meaning: '蘋果',                          // 繁體中文釋義
+       phonetic: '/ˈæp.əl/',                     // 音標（可空）
+       sources: { search: 3, quiz_wrong: 1 },    // 這個字是從哪裡被收進來的（次數）
+       addedAt: 1697000000000,                   // 第一次加入時間
+       lastAt:  1697000000000,                   // 最近一次互動時間
+       seen: 4,                                  // 被看到的次數（30 秒內不重複計）
+       review: { times: 5, right: 4, wrong: 1, lastAt: 0 }  // 單詞本複習紀錄
+     }
+   ================================================================================= */
+const LS_WORDBOOK = 'word_book';
+
+/** 單詞本來源：顯示用標籤與配色（順序即篩選器的順序） */
+const WB_SOURCE_META = [
+  { id: 'search',     label: '🔍 查詢過',   cls: 'bg-[#EDE9FE] text-[#6C4BF6]' },
+  { id: 'quiz_wrong', label: '❌ 答錯過',   cls: 'bg-[#FFE3E5] text-[#E0242A]' },
+  { id: 'quiz_right', label: '✅ 答對過',   cls: 'bg-[#CDF7E4] text-[#0E8F63]' },
+  { id: 'srs_wrong',  label: '🧠 複習卡住', cls: 'bg-[#FFF1D6] text-[#96701A]' },
+  { id: 'manual',     label: '✍️ 手動加入', cls: 'bg-[#F5F6FB] text-[#6B6880]' }
+];
+
+/** 單詞本畫面狀態（只存在記憶體，重整就回到預設） */
+const wbState = {
+  filter: 'all',        // all | search | quiz_wrong | quiz_right | srs_wrong | manual
+  q: '',                // 搜尋字串（比對英文與中文）
+  sort: 'recent',       // recent（最近互動）| word（字母）| review（複習次數多）
+  reviewing: false,     // 是否在複習模式
+  queue: [],            // 這一輪要複習的字（entry 陣列）
+  idx: 0,
+  revealed: false,
+  session: { right: 0, wrong: 0 }
+};
+
+/* ---------- 讀寫 ---------- */
+
+/** 讀取單詞本（永遠回傳陣列） */
+function wbGetAll() {
+  const raw = lsGet(LS_WORDBOOK, []);
+  return Array.isArray(raw) ? raw.filter(e => e && e.word) : [];
+}
+
+/** 寫入單詞本 */
+function wbSaveAll(list) {
+  lsSet(LS_WORDBOOK, Array.isArray(list) ? list : []);
+  wbUpdateBadge();
+}
+
+/** 這個字是否已經在單詞本裡 */
+function wbHas(word) {
+  const key = String(word || '').trim().toLowerCase();
+  if (!key) return false;
+  return wbGetAll().some(e => String(e.word).toLowerCase() === key);
+}
+
+/**
+ * 把一個字加入單詞本（核心函式：所有來源都走這裡）。
+ * 永遠不會刪除任何東西，只會：
+ *   1. 沒有這個字 → 新增一筆
+ *   2. 已經有 → 更新釋義／音標、累加來源次數與互動時間
+ * @param {string} word   英文單字（片語也可以）
+ * @param {object} info   { meaning, phonetic } 可為 null
+ * @param {string} source search | quiz_wrong | quiz_right | srs_wrong | manual
+ * @returns {object|null} 更新後的紀錄
+ */
+function wbAdd(word, info, source) {
+  const w = String(word || '').trim();
+  if (!w || !/[A-Za-z]/.test(w)) return null;
+  const key = w.toLowerCase();
+  const now = Date.now();
+  const list = wbGetAll();
+  let e = list.find(x => String(x.word).toLowerCase() === key);
+
+  if (!e) {
+    e = {
+      word: w,
+      meaning: '',
+      phonetic: '',
+      sources: {},
+      addedAt: now,
+      lastAt: now,
+      seen: 1,
+      review: { times: 0, right: 0, wrong: 0, lastAt: 0 }
+    };
+    list.push(e);
+  } else {
+    e.lastAt = now;
+    /* 30 秒內的重複渲染不重複計算「看到」次數，避免同一次查詢被算很多次 */
+    if (now - (e.lastAt_prev || 0) > 30000) e.seen = (e.seen || 0) + 1;
+  }
+
+  if (info && info.meaning) e.meaning = String(info.meaning);
+  if (info && info.phonetic) e.phonetic = String(info.phonetic);
+  if (source) {
+    if (!e.sources || typeof e.sources !== 'object') e.sources = {};
+    e.sources[source] = (e.sources[source] || 0) + 1;
+  }
+  if (!e.review || typeof e.review !== 'object') e.review = { times: 0, right: 0, wrong: 0, lastAt: 0 };
+
+  wbSaveAll(list);
+  return e;
+}
+
+/** 從單詞本移出（唯一會真正刪除的地方，呼叫端必須先做二次確認） */
+function wbRemove(word) {
+  const key = String(word || '').trim().toLowerCase();
+  const list = wbGetAll().filter(e => String(e.word).toLowerCase() !== key);
+  wbSaveAll(list);
+  return list;
+}
+
+/** 更新抽屜裡的單詞本數量徽章 */
+function wbUpdateBadge() {
+  const badge = $('#wb-badge-menu');
+  if (!badge) return;
+  const n = wbGetAll().length;
+  badge.textContent = String(n);
+  badge.classList.toggle('hidden', n <= 0);
+}
+
+/* ---------- 統計與篩選 ---------- */
+
+/** 單詞本統計：總數、今天新增、累計複習次數、還沒記牢的字數 */
+function wbStats() {
+  const list = wbGetAll();
+  const today = todayKey();
+  let addedToday = 0, reviewTimes = 0, weak = 0;
+  list.forEach(e => {
+    const d = e.addedAt ? new Date(e.addedAt) : null;
+    if (d) {
+      const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (k === today) addedToday += 1;
+    }
+    const r = e.review || {};
+    reviewTimes += r.times || 0;
+    if ((r.right || 0) < (r.wrong || 0) + 1) weak += 1;
+  });
+  return { total: list.length, addedToday: addedToday, reviewTimes: reviewTimes, weak: weak };
+}
+
+/** 依「來源／搜尋字串／排序」篩出目前要顯示的清單 */
+function wbFiltered() {
+  const q = String(wbState.q || '').trim().toLowerCase();
+  let list = wbGetAll();
+  if (wbState.filter !== 'all') {
+    list = list.filter(e => e.sources && e.sources[wbState.filter]);
+  }
+  if (q) {
+    list = list.filter(e =>
+      String(e.word).toLowerCase().indexOf(q) >= 0 ||
+      String(e.meaning || '').toLowerCase().indexOf(q) >= 0);
+  }
+  if (wbState.sort === 'word') {
+    list.sort((a, b) => String(a.word).localeCompare(String(b.word)));
+  } else if (wbState.sort === 'review') {
+    list.sort((a, b) => ((b.review || {}).times || 0) - ((a.review || {}).times || 0));
+  } else {
+    list.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+  }
+  return list;
+}
+
+/* ---------- 畫面：清單 ---------- */
+
+/** 單筆單詞的來源徽章（可多個） */
+function wbSourceChips(e) {
+  const src = e.sources || {};
+  return WB_SOURCE_META
+    .filter(m => src[m.id])
+    .map(m => '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ' + m.cls + '">' + m.label + (src[m.id] > 1 ? ' ×' + src[m.id] : '') + '</span>')
+    .join('');
+}
+
+/** 單詞本清單畫面 */
+function renderWordbook() {
+  const box = $('#wordbook-body');
+  if (!box) return;
+
+  /* 複習模式：整個分頁換成複習卡 */
+  if (wbState.reviewing) {
+    box.innerHTML = wbReviewHtml();
+    wbBind();
+    return;
+  }
+
+  const st = wbStats();
+  const list = wbFiltered();
+  const all = wbGetAll();
+
+  const statChips = '' +
+    '<div class="flex flex-wrap items-center justify-center gap-2 mb-4">' +
+      '<span class="stat-chip">📒 共 <b class="text-[#6C4BF6]">' + st.total + '</b> 個字</span>' +
+      '<span class="stat-chip">🌱 今天新增 <b class="text-[#00B4A6]">' + st.addedToday + '</b></span>' +
+      '<span class="stat-chip">🔁 累計複習 <b class="text-[#96701A]">' + st.reviewTimes + '</b> 次</span>' +
+      (st.weak ? '<span class="stat-chip">🎯 還沒記牢 <b class="text-[#E0242A]">' + st.weak + '</b></span>' : '') +
+    '</div>';
+
+  const hero = '' +
+    '<div class="we-card p-5 sm:p-6 mb-5 animate-pop">' +
+      '<div class="flex items-start gap-3">' +
+        '<div class="text-3xl leading-none">📒</div>' +
+        '<div class="min-w-0 flex-1">' +
+          '<h3 class="font-extrabold text-lg">你的單詞本</h3>' +
+          '<p class="text-sm font-bold text-[#3A3750]/75 mt-1 leading-relaxed">' +
+            '查過的字、測驗答錯的字、答對的字，全部自動收進來。<b class="text-[#6C4BF6]">永不自動刪除</b>，' +
+            '想複習幾次就複習幾次，字一直在這裡等你。' +
+          '</p>' +
+          '<div class="mt-3 flex flex-wrap gap-2">' +
+            '<button class="we-btn we-btn-blue we-btn-sm" id="wb-start"' + (all.length ? '' : ' disabled') + '>🎯 開始複習' + (all.length ? '（' + all.length + ' 個字）' : '') + '</button>' +
+            (st.weak ? '<button class="we-btn we-btn-ghost we-btn-sm" id="wb-start-weak">🔥 只練還沒記牢的 ' + st.weak + ' 個</button>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  const filters = ['all'].concat(WB_SOURCE_META.map(m => m.id));
+  const chipHtml = filters.map(id => {
+    const meta = id === 'all' ? { label: '📚 全部 (' + st.total + ')' } : (function () {
+      const m = WB_SOURCE_META.filter(x => x.id === id)[0];
+      const n = all.filter(e => e.sources && e.sources[id]).length;
+      return { label: m.label.replace(/\s+/g, '') + ' (' + n + ')' };
+    })();
+    const on = wbState.filter === id;
+    return '<button class="text-xs font-extrabold px-3 py-1.5 rounded-full border-2 ' +
+      (on ? 'bg-[#6C4BF6] text-white border-[#6C4BF6]' : 'bg-white text-[#3A3750] border-[#E4E2EF]') +
+      '" data-wb-filter="' + id + '">' + meta.label + '</button>';
+  }).join('');
+
+  const toolbar = '' +
+    '<div class="we-card p-4 mb-4">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-3">' + chipHtml + '</div>' +
+      '<div class="flex flex-col sm:flex-row gap-2">' +
+        '<input id="wb-q" class="we-input flex-1" placeholder="🔍 找英文或中文…" value="' + esc(wbState.q) + '" autocomplete="off">' +
+        '<select id="wb-sort" class="we-input sm:w-44">' +
+          '<option value="recent"' + (wbState.sort === 'recent' ? ' selected' : '') + '>最近互動</option>' +
+          '<option value="word"' + (wbState.sort === 'word' ? ' selected' : '') + '>字母順序</option>' +
+          '<option value="review"' + (wbState.sort === 'review' ? ' selected' : '') + '>複習次數多</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>';
+
+  let listHtml;
+  if (!all.length) {
+    listHtml = '<div class="we-card p-8 text-center">' +
+        '<div class="text-5xl mb-3">📒</div>' +
+        '<h3 class="font-extrabold text-lg mb-2">單詞本還是空的</h3>' +
+        '<p class="text-sm font-bold text-[#3A3750]/75 leading-relaxed mb-4">' +
+          '到「🔍 單字深度拆解」查一個字，或到「📝 每日測驗」做一輪——查過與答過的字都會自動出現在這裡。' +
+        '</p>' +
+        '<button class="we-btn" data-wb-gotab="lexicon">🔍 去查一個字</button>' +
+      '</div>';
+  } else if (!list.length) {
+    listHtml = '<div class="we-card p-6 text-center"><p class="font-extrabold text-[#3A3750]/75">這個篩選條件下沒有字，換一個試試 👆</p></div>';
+  } else {
+    const rows = list.map(e => {
+      const r = e.review || {};
+      const times = r.times || 0;
+      const right = r.right || 0;
+      const wrong = r.wrong || 0;
+      return '' +
+        '<div class="we-card p-4 mb-3" data-wb-row="' + esc(e.word) + '">' +
+          '<div class="flex items-start gap-2 flex-wrap">' +
+            '<div class="min-w-0 flex-1">' +
+              '<div class="flex items-center gap-2 flex-wrap">' +
+                '<span class="font-extrabold text-lg text-[#6C4BF6] break-all">' + esc(e.word) + '</span>' +
+                (e.phonetic ? '<span class="text-xs font-bold text-[#A5A2B8]">' + esc(e.phonetic) + '</span>' : '') +
+              '</div>' +
+              '<p class="text-sm font-extrabold text-[#3A3750] mt-1 leading-relaxed">' + (e.meaning ? esc(e.meaning) : '<span class="text-[#A5A2B8]">（還沒有釋義，查一次就會補上）</span>') + '</p>' +
+              '<div class="mt-2 flex flex-wrap items-center gap-1.5">' + wbSourceChips(e) +
+                (times ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#F5F6FB] text-[#6B6880]">🔁 複習 ' + times + ' 次（對 ' + right + '／錯 ' + wrong + '）</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="flex items-center gap-1 shrink-0">' +
+              '<button class="we-btn we-btn-ghost we-btn-sm" data-wb-speak="' + esc(e.word) + '" title="聽發音">🔊</button>' +
+              '<button class="we-btn we-btn-ghost we-btn-sm" data-wb-del="' + esc(e.word) + '" title="移出單詞本">🗑️</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+    listHtml = '<div class="mb-2 flex items-center justify-between">' +
+        '<p class="text-xs font-extrabold text-[#A5A2B8]">顯示 ' + list.length + ' / ' + all.length + ' 個字</p>' +
+        '<p class="text-xs font-extrabold text-[#A5A2B8]">🗑️ 只有你自己按下去才會真的移出</p>' +
+      '</div>' + rows;
+  }
+
+  box.innerHTML = statChips + hero + toolbar + listHtml;
+  wbBind();
+}
+
+/* ---------- 畫面：複習模式 ---------- */
+
+/** 複習模式的畫面（答題卡或結果卡） */
+function wbReviewHtml() {
+  const q = wbState.queue || [];
+
+  /* 結果卡 */
+  if (wbState.idx >= q.length) {
+    const s = wbState.session;
+    return '' +
+      '<div class="we-card p-6 text-center animate-pop">' +
+        '<div class="text-5xl mb-2">🏁</div>' +
+        '<h3 class="font-extrabold text-xl mb-2">這一輪複習完畢！</h3>' +
+        '<p class="font-extrabold text-[#A5A2B8] mb-1">😎 記住了 ' + s.right + ' 個 ・ 🤔 還沒記住 ' + s.wrong + ' 個</p>' +
+        '<p class="text-sm font-bold text-[#3A3750]/80 leading-relaxed mt-3 mb-5">' +
+          '不管答對還是答錯，這些字都<b class="text-[#6C4BF6]">一個都沒少</b>，全部還在你的單詞本裡。' +
+          '想再練一次隨時按下面的按鈕——次數不限，永遠練到會為止。' +
+        '</p>' +
+        '<div class="flex flex-col sm:flex-row gap-2 justify-center">' +
+          '<button class="we-btn we-btn-blue" id="wb-again">🔁 再來一輪</button>' +
+          '<button class="we-btn we-btn-ghost" id="wb-exit">回到單詞本</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  const cur = q[wbState.idx] || {};
+  const total = q.length;
+  const pct = Math.round((wbState.idx / total) * 100);
+
+  const answerBlock = wbState.revealed
+    ? '<div class="mt-4 p-4 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] animate-pop">' +
+        '<p class="text-sm font-extrabold text-[#A5A2B8] mb-1">中文意思</p>' +
+        '<p class="font-extrabold text-xl text-[#3A3750] leading-relaxed">' + (cur.meaning ? esc(cur.meaning) : '（還沒有釋義）') + '</p>' +
+        '<div class="mt-3 flex flex-wrap gap-1.5">' + wbSourceChips(cur) + '</div>' +
+        '<div class="mt-4 flex flex-col sm:flex-row gap-2">' +
+          '<button class="we-btn we-btn-blue flex-1" data-wb-ans="right">😎 記住了</button>' +
+          '<button class="we-btn we-btn-ghost flex-1" data-wb-ans="wrong">🤔 還沒記住</button>' +
+        '</div>' +
+        '<p class="mt-3 text-[11px] font-bold text-[#A5A2B8] text-center">按哪一個都不會被刪除，只是記錄你現在的熟悉度。</p>' +
+      '</div>'
+    : '<button class="we-btn we-btn-blue w-full mt-5" id="wb-reveal">👀 顯示答案</button>';
+
+  return '' +
+    '<div class="we-card p-5 sm:p-6 animate-pop">' +
+      '<div class="flex items-center justify-between gap-2 mb-3 flex-wrap">' +
+        '<span class="text-sm font-extrabold text-[#A5A2B8]">單詞本複習 ' + (wbState.idx + 1) + ' / ' + total + '</span>' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" id="wb-exit">結束</button>' +
+      '</div>' +
+      '<div class="h-2 rounded-full bg-[#EDE9FE] overflow-hidden mb-5">' +
+        '<div class="h-full rounded-full bg-[#6C4BF6]" style="width:' + pct + '%"></div>' +
+      '</div>' +
+      '<div class="text-center py-2">' +
+        '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">這個字的中文意思是？</p>' +
+        '<div class="flex items-center justify-center gap-2 flex-wrap">' +
+          '<span class="font-extrabold text-3xl sm:text-4xl text-[#6C4BF6] break-all">' + esc(cur.word) + '</span>' +
+          '<button class="we-btn we-btn-ghost we-btn-sm" data-wb-speak="' + esc(cur.word) + '">🔊</button>' +
+        '</div>' +
+        (cur.phonetic ? '<p class="text-sm font-bold text-[#A5A2B8] mt-1">' + esc(cur.phonetic) + '</p>' : '') +
+      '</div>' +
+      answerBlock +
+    '</div>';
+}
+
+/* ---------- 複習流程 ---------- */
+
+/**
+ * 開始一輪複習
+ * @param {boolean} weakOnly 是否只練「還沒記牢」的字（答對次數不多於答錯次數）
+ */
+function wbStartReview(weakOnly) {
+  let pool = wbGetAll();
+  if (weakOnly) {
+    pool = pool.filter(e => {
+      const r = e.review || {};
+      return (r.right || 0) < (r.wrong || 0) + 1;
+    });
+  }
+  if (!pool.length) {
+    showToast('📒 單詞本裡還沒有可以複習的字，先去查一個字吧！', 'warn', 4000);
+    return;
+  }
+  wbState.reviewing = true;
+  wbState.queue = shuffle(pool.slice());
+  wbState.idx = 0;
+  wbState.revealed = false;
+  wbState.session = { right: 0, wrong: 0 };
+  renderWordbook();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** 在複習模式作答：只累加紀錄，永不刪除任何字 */
+function wbAnswer(ok) {
+  const cur = (wbState.queue || [])[wbState.idx];
+  if (!cur) return;
+  const all = wbGetAll();
+  const key = String(cur.word).toLowerCase();
+  const e = all.find(x => String(x.word).toLowerCase() === key);
+  if (e) {
+    if (!e.review || typeof e.review !== 'object') e.review = { times: 0, right: 0, wrong: 0, lastAt: 0 };
+    e.review.times = (e.review.times || 0) + 1;
+    if (ok) e.review.right = (e.review.right || 0) + 1;
+    else e.review.wrong = (e.review.wrong || 0) + 1;
+    e.review.lastAt = Date.now();
+    e.lastAt = Date.now();
+    wbSaveAll(all);
+  }
+  wbState.session[ok ? 'right' : 'wrong'] += 1;
+  wbState.idx += 1;
+  wbState.revealed = false;
+  if (ok) playBounce(); else playShake();
+  renderWordbook();
+}
+
+/* ---------- 事件綁定 ---------- */
+
+/** 綁定單詞本的所有互動（用委派，且只綁一次） */
+function wbBind() {
+  const box = $('#wordbook-body');
+  if (!box || box._wbBound) return;
+  box._wbBound = true;
+
+  box.addEventListener('click', function (ev) {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+
+    const filterBtn = t.closest('[data-wb-filter]');
+    if (filterBtn) { wbState.filter = filterBtn.dataset.wbFilter; renderWordbook(); return; }
+
+    if (t.closest('[data-wb-gotab]')) { switchTab(t.closest('[data-wb-gotab]').dataset.wbGotab); return; }
+
+    if (t.closest('#wb-start')) { wbStartReview(false); return; }
+    if (t.closest('#wb-start-weak')) { wbStartReview(true); return; }
+    if (t.closest('#wb-reveal')) { wbState.revealed = true; renderWordbook(); return; }
+    if (t.closest('#wb-again')) { wbStartReview(false); return; }
+    if (t.closest('#wb-exit')) {
+      wbState.reviewing = false;
+      wbState.queue = [];
+      wbState.idx = 0;
+      wbState.revealed = false;
+      renderWordbook();
+      return;
+    }
+
+    const ansBtn = t.closest('[data-wb-ans]');
+    if (ansBtn) { wbAnswer(ansBtn.dataset.wbAns === 'right'); return; }
+
+    const spk = t.closest('[data-wb-speak]');
+    if (spk) { ev.stopPropagation(); speak(spk.dataset.wbSpeak, 'us'); return; }
+
+    const del = t.closest('[data-wb-del]');
+    if (del) {
+      const w = del.dataset.wbDel;
+      weConfirm('要把「' + w + '」移出單詞本嗎？\n\n單詞本的字平常永遠不會被刪除，只有你在這裡按確認才會真的移除。', {
+        emoji: '🗑️', danger: true, okText: '確定移出'
+      }).then(function (ok) {
+        if (!ok) return;
+        wbRemove(w);
+        showToast('🗑️ 已把「' + w + '」移出單詞本。', 'info', 3000);
+        renderWordbook();
+      });
+      return;
+    }
+  });
+
+  box.addEventListener('input', function (ev) {
+    if (ev.target && ev.target.id === 'wb-q') {
+      wbState.q = ev.target.value;
+      wbRefreshListKeepFocus();
+    }
+  });
+
+  box.addEventListener('change', function (ev) {
+    if (ev.target && ev.target.id === 'wb-sort') {
+      wbState.sort = ev.target.value;
+      renderWordbook();
+    }
+  });
+}
+
+/**
+ * 只重畫「清單區塊」並保留搜尋框焦點與游標位置。
+ * （整個 renderWordbook 會把 <input> 重建成新的，正在打字時會斷字，所以另外處理。）
+ */
+function wbRefreshListKeepFocus() {
+  const input = $('#wb-q');
+  const pos = input ? input.selectionStart : null;
+  renderWordbook();
+  const again = $('#wb-q');
+  if (again) {
+    again.focus();
+    if (pos !== null && typeof again.setSelectionRange === 'function') {
+      try { again.setSelectionRange(pos, pos); } catch (e) { /* 忽略 */ }
+    }
+  }
+}
+
+
 function spStartCustom(text) {
   switchTab('speak');
   const set = { partLabel: '自訂題目（來自題庫瀏覽）', topic: '', questions: [text], questionText: text, speakSeconds: 90 };
@@ -8426,6 +9085,7 @@ function init() {
   // 更新統計與紅點
   updateLearningStats();
   updateSrsBadge();
+  wbUpdateBadge();
 
   // 每日測驗：今天若已有紀錄就直接載入；沒有則先顯示「連網生成中」畫面（不阻塞首頁）
   state.daily = getStoredDailyRecord();

@@ -1176,6 +1176,7 @@ function lsGet(key, fallback) {
 function lsSet(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    try { gsyncOnWrite(key); } catch (e) { /* 雲端同步失敗絕不影響本機儲存 */ }
     return true;
   } catch (err) {
     console.warn('[localStorage] 寫入失敗（可能是隱私模式或空間不足）：', key, err);
@@ -8615,9 +8616,10 @@ function wbAdd(word, info, source) {
     };
     list.push(e);
   } else {
+    const prevAt = gsNum(e.lastAt);
     e.lastAt = now;
     /* 30 秒內的重複渲染不重複計算「看到」次數，避免同一次查詢被算很多次 */
-    if (now - (e.lastAt_prev || 0) > 30000) e.seen = (e.seen || 0) + 1;
+    if (now - prevAt > 30000) e.seen = (e.seen || 0) + 1;
   }
 
   if (info && info.meaning) e.meaning = String(info.meaning);
@@ -8814,7 +8816,7 @@ function renderWordbook() {
       '</div>' + rows;
   }
 
-  box.innerHTML = statChips + hero + toolbar + listHtml;
+  box.innerHTML = statChips + hero + gsyncCardHtml() + toolbar + listHtml;
   wbBind();
 }
 
@@ -8943,6 +8945,9 @@ function wbBind() {
     const t = ev.target;
     if (!t || !t.closest) return;
 
+    const gsBtn = t.closest('[data-gs]');
+    if (gsBtn) { gsyncAction(gsBtn.dataset.gs); return; }
+
     const filterBtn = t.closest('[data-wb-filter]');
     if (filterBtn) { wbState.filter = filterBtn.dataset.wbFilter; renderWordbook(); return; }
 
@@ -8990,6 +8995,18 @@ function wbBind() {
   });
 
   box.addEventListener('change', function (ev) {
+    if (ev.target && ev.target.id === 'gs-auto') {
+      const on = !!ev.target.checked;
+      gsSet({ auto: on });
+      showToast(on ? '☁️ 已開啟自動同步（每次改動 6 秒後自動備份）' : '已關閉自動同步，雲端那份資料仍保留。', 'info', 3500);
+      return;
+    }
+    if (ev.target && ev.target.id === 'gs-file') {
+      const f = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (f) gsyncImportFile(f);
+      return;
+    }
     if (ev.target && ev.target.id === 'wb-sort') {
       wbState.sort = ev.target.value;
       renderWordbook();
@@ -9019,6 +9036,860 @@ function spStartCustom(text) {
   switchTab('speak');
   const set = { partLabel: '自訂題目（來自題庫瀏覽）', topic: '', questions: [text], questionText: text, speakSeconds: 90 };
   spRenderMock(set, '');
+}
+
+/* =================================================================================
+   ☁️ 雲端備份與同步（用 Google 帳號登入，資料存進使用者自己的 Google 雲端硬碟）
+   ---------------------------------------------------------------------------------
+   為什麼需要這個：
+     本 App 是純前端，單詞本／錯題本／查詢紀錄全部放在瀏覽器的 localStorage。
+     只要使用者「清除瀏覽資料」、換手機、用無痕模式，或手機空間不足被系統回收，
+     這些資料就會整批不見。開啟雲端備份後，資料會同時存在「使用者自己的」Google
+     雲端硬碟（隱藏的 appDataFolder，只有本 App 看得到），換裝置登入同一個帳號就
+     會自動合併回來。開發者看不到、也拿不到任何人的資料。
+
+   ★ 合併規則：只增不減（union + max）
+     兩台裝置合併時，同一個字取「較大的次數／較新的時間」，任一邊特有的字都保留。
+     所以同步永遠不會洗掉另一台裝置的紀錄，也不會讓「永不刪除」的承諾破功。
+
+   ★ 隱私：AI 供應商金鑰（ai_settings）不會上傳，只留在原本那台裝置。
+
+   ★ 沒有 Google 帳號也能用：下面的「下載備份檔／用備份檔還原」完全離線可用。
+   ================================================================================= */
+
+/** 部署時可把 Google OAuth 用戶端 ID 寫在這裡（全站共用）；留空則由使用者在 App 內貼上 */
+const GOOGLE_OAUTH_CLIENT_ID = '';
+
+const LS_GSYNC = 'gsync_settings';   // { clientId, email, name, picture, auto, lastSyncAt }
+const LS_GDEV  = 'gsync_device';     // 這台裝置的隨機 ID（只當成來源標記）
+const LS_GSNAP = 'local_snapshot';   // 本機每日快照（雲端之外的最後一道保險）
+
+const GSYNC_FILE   = 'word-explorer-backup.json';
+const GSYNC_SCOPE  = 'https://www.googleapis.com/auth/drive.appdata openid email profile';
+const GSYNC_API    = 'https://www.googleapis.com/drive/v3';
+const GSYNC_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
+
+/** 會同步的使用者資料（快取類 dict_cache / zh_meaning_cache / ielts_web_cache 不上傳，可重新產生） */
+const GSYNC_KEYS = [
+  LS_WORDBOOK, LS_KEYS.WRONG, LS_KEYS.HISTORY, LS_KEYS.STATS,
+  LS_AFFIX, LS_IDEA, LS_SPEAK, LS_AIWORDS, LS_PRONBAD
+];
+const GSYNC_KEYSET = {};
+GSYNC_KEYS.forEach(function (k) { GSYNC_KEYSET[k] = true; });
+
+/** 本機快照只留最關鍵的六種資料（口說紀錄可能很大，不放） */
+const GSNAP_KEYS = [LS_WORDBOOK, LS_KEYS.WRONG, LS_KEYS.HISTORY, LS_AFFIX, LS_KEYS.STATS, LS_IDEA];
+
+/* ---------- 記憶體狀態 ---------- */
+let gsScriptPromise = null;
+let gsTokenClient = null;
+let gsTokenClientId = '';
+let gsToken = '';
+let gsTokenAt = 0;
+let gsTokenTtl = 0;
+let gsPending = null;
+let gsSyncing = false;
+let gsApplying = false;
+let gsDirtyTimer = null;
+
+/* =================================================================================
+   一、小工具
+   ================================================================================= */
+function gsGet() { const s = lsGet(LS_GSYNC, null); return (s && typeof s === 'object') ? s : {}; }
+function gsSet(patch) {
+  const s = gsGet();
+  Object.keys(patch || {}).forEach(function (k) { s[k] = patch[k]; });
+  lsSet(LS_GSYNC, s);
+  return s;
+}
+function gsClone(obj) {
+  try { return JSON.parse(JSON.stringify(obj)); } catch (e) { return obj; }
+}
+function gsNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+function gsArr(v) { return Array.isArray(v) ? v : []; }
+function gsPad2(n) { return String(n).padStart(2, '0'); }
+function gsFmtTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + gsPad2(d.getHours()) + ':' + gsPad2(d.getMinutes());
+}
+function gsMsg(err) {
+  const m = (err && (err.message || err)) || '未知錯誤';
+  return String(m).slice(0, 160);
+}
+
+function gsClientId() {
+  const s = gsGet();
+  return String(s.clientId || GOOGLE_OAUTH_CLIENT_ID || '').trim();
+}
+function gsSignedIn() { return !!gsGet().email; }
+
+function gsDeviceId() {
+  let id = lsGet(LS_GDEV, '');
+  if (!id || typeof id !== 'string') {
+    id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    lsSet(LS_GDEV, id);
+  }
+  return id;
+}
+function gsDeviceName() {
+  const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+  if (/Android/i.test(ua)) return 'Android 手機';
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iPhone / iPad';
+  if (/Mac OS X/i.test(ua)) return 'Mac 電腦';
+  if (/Windows/i.test(ua)) return 'Windows 電腦';
+  if (/Linux/i.test(ua)) return 'Linux 電腦';
+  return '這台裝置';
+}
+
+/* =================================================================================
+   二、合併（只增不減）
+   ================================================================================= */
+function gsMergeMapMax(a, b) {
+  const out = {};
+  [a, b].forEach(function (src) {
+    if (!src || typeof src !== 'object' || Array.isArray(src)) return;
+    Object.keys(src).forEach(function (k) {
+      const cur = gsNum(out[k]), nxt = gsNum(src[k]);
+      out[k] = Math.max(cur, nxt, src[k] === true ? 1 : 0);
+    });
+  });
+  return out;
+}
+
+/** 單詞本：同一個字以「較新的釋義」為主，次數／來源次數取兩邊最大值 */
+function gsMergeWordbook(a, b) {
+  const map = {};
+  function put(e) {
+    if (!e || !e.word) return;
+    const k = String(e.word).toLowerCase();
+    const cur = map[k];
+    if (!cur) { map[k] = gsClone(e); return; }
+    const newer = gsNum(e.lastAt) > gsNum(cur.lastAt) ? e : cur;
+    const older = (newer === e) ? cur : e;
+    const out = gsClone(newer);
+    if (!out.meaning && older.meaning) out.meaning = older.meaning;
+    if (!out.phonetic && older.phonetic) out.phonetic = older.phonetic;
+    out.sources = gsMergeMapMax(cur.sources, e.sources);
+    const at = [gsNum(cur.addedAt), gsNum(e.addedAt)].filter(function (x) { return x > 0; });
+    out.addedAt = at.length ? Math.min.apply(null, at) : Date.now();
+    out.lastAt = Math.max(gsNum(cur.lastAt), gsNum(e.lastAt));
+    out.seen = Math.max(gsNum(cur.seen), gsNum(e.seen));
+    const ra = cur.review || {}, rb = e.review || {};
+    out.review = {
+      times: Math.max(gsNum(ra.times), gsNum(rb.times)),
+      right: Math.max(gsNum(ra.right), gsNum(rb.right)),
+      wrong: Math.max(gsNum(ra.wrong), gsNum(rb.wrong)),
+      lastAt: Math.max(gsNum(ra.lastAt), gsNum(rb.lastAt))
+    };
+    map[k] = out;
+  }
+  gsArr(a).forEach(put);
+  gsArr(b).forEach(put);
+  return Object.keys(map).map(function (k) { return map[k]; });
+}
+
+/** 錯題本：以「較新的那筆」為底，錯次數／連續答對取最大值，第一次答錯時間取最早 */
+function gsMergeWrong(a, b) {
+  const map = {};
+  function put(e) {
+    if (!e || !e.word) return;
+    const k = String(e.word).toLowerCase();
+    const cur = map[k];
+    if (!cur) { map[k] = gsClone(e); return; }
+    const base = gsNum(e.timestamp) >= gsNum(cur.timestamp) ? e : cur;
+    const other = (base === e) ? cur : e;
+    const out = gsClone(base);
+    if (!out.meaning && other.meaning) out.meaning = other.meaning;
+    if (!out.phonetic && other.phonetic) out.phonetic = other.phonetic;
+    if (!out.structure && other.structure) out.structure = other.structure;
+    out.wrong_count = Math.max(gsNum(cur.wrong_count) || 1, gsNum(e.wrong_count) || 1);
+    out.correct_streak = Math.max(gsNum(cur.correct_streak), gsNum(e.correct_streak));
+    out.timestamp = Math.max(gsNum(cur.timestamp), gsNum(e.timestamp));
+    const fw = [gsNum(cur.first_wrong_at), gsNum(e.first_wrong_at)].filter(function (x) { return x > 0; });
+    if (fw.length) out.first_wrong_at = Math.min.apply(null, fw);
+    const lw = [gsNum(cur.last_wrong_at), gsNum(e.last_wrong_at)].filter(function (x) { return x > 0; });
+    if (lw.length) out.last_wrong_at = Math.max.apply(null, lw);
+    map[k] = out;
+  }
+  gsArr(a).forEach(put);
+  gsArr(b).forEach(put);
+  return Object.keys(map).map(function (k) { return map[k]; });
+}
+
+/** 最近查詢：同一個字只留最新一筆，最後依時間新到舊排序 */
+function gsMergeHistory(a, b) {
+  const map = {};
+  function put(e) {
+    if (!e || !e.key) return;
+    const k = String(e.type || '') + '|' + String(e.key).toLowerCase();
+    const cur = map[k];
+    if (!cur || gsNum(e.at) > gsNum(cur.at)) map[k] = gsClone(e);
+  }
+  gsArr(a).forEach(put);
+  gsArr(b).forEach(put);
+  const list = Object.keys(map).map(function (k) { return map[k]; });
+  list.sort(function (x, y) { return gsNum(y.at) - gsNum(x.at); });
+  return list.slice(0, HISTORY_MAX_ITEMS);
+}
+
+/** 學習統計：次數／連續天數取大，最後測驗日期取較新的 */
+function gsMergeStats(a, b) {
+  const x = (a && typeof a === 'object') ? a : {};
+  const y = (b && typeof b === 'object') ? b : {};
+  const out = gsClone(x);
+  out.quizzes = Math.max(gsNum(x.quizzes), gsNum(y.quizzes));
+  out.streak = Math.max(gsNum(x.streak), gsNum(y.streak));
+  const d1 = String(x.lastQuizDate || ''), d2 = String(y.lastQuizDate || '');
+  out.lastQuizDate = d1 > d2 ? d1 : d2;
+  return out;
+}
+
+/** 想法五稜鏡：同一個 id 取較新的版本，空的視角用另一邊補滿（等於兩人合力） */
+function gsMergeIdea(a, b) {
+  const map = {};
+  function put(e) {
+    if (!e || !e.id) return;
+    const cur = map[e.id];
+    if (!cur) { map[e.id] = gsClone(e); return; }
+    const newer = gsNum(e.ts) >= gsNum(cur.ts) ? e : cur;
+    const older = (newer === e) ? cur : e;
+    const out = gsClone(newer);
+    const nl = (newer.lens && typeof newer.lens === 'object') ? newer.lens : {};
+    const ol = (older.lens && typeof older.lens === 'object') ? older.lens : {};
+    const lens = {};
+    Object.keys(nl).concat(Object.keys(ol)).forEach(function (k) {
+      const s1 = String(nl[k] || '').trim(), s2 = String(ol[k] || '').trim();
+      lens[k] = s1.length >= s2.length ? (nl[k] || '') : (ol[k] || '');
+    });
+    out.lens = lens;
+    if (!out.topic && older.topic) out.topic = older.topic;
+    if (!out.ai && older.ai) out.ai = older.ai;
+    if (out.score == null && older.score != null) { out.score = older.score; out.scoreSource = older.scoreSource || ''; }
+    map[e.id] = out;
+  }
+  gsArr(a).forEach(put);
+  gsArr(b).forEach(put);
+  const list = Object.keys(map).map(function (k) { return map[k]; });
+  list.sort(function (x, y) { return gsNum(x.ts) - gsNum(y.ts); });
+  return list;
+}
+
+/** 口說紀錄：用「時間＋模式」去重，保留最近 300 筆 */
+function gsMergeSpeak(a, b) {
+  const seen = {};
+  const out = [];
+  gsArr(a).concat(gsArr(b)).forEach(function (r) {
+    if (!r || typeof r !== 'object') return;
+    const k = gsNum(r.at) + '|' + String(r.mode || '');
+    if (seen[k]) return;
+    seen[k] = true;
+    out.push(gsClone(r));
+  });
+  out.sort(function (x, y) { return gsNum(x.at) - gsNum(y.at); });
+  return out.slice(-300);
+}
+
+/** AI 單字庫：字串或物件都接受，去重後最多 500 筆 */
+function gsMergePlainList(a, b) {
+  const seen = {};
+  const out = [];
+  gsArr(a).concat(gsArr(b)).forEach(function (v) {
+    const k = (v && typeof v === 'object') ? String(v.word || JSON.stringify(v)).toLowerCase() : String(v).toLowerCase();
+    if (!k || seen[k]) return;
+    seen[k] = true;
+    out.push(gsClone(v));
+  });
+  return out.slice(-500);
+}
+
+/** 把兩份資料合併成一份 */
+function gsMergeAll(localData, remoteData) {
+  const mergers = {};
+  mergers[LS_WORDBOOK] = gsMergeWordbook;
+  mergers[LS_KEYS.WRONG] = gsMergeWrong;
+  mergers[LS_KEYS.HISTORY] = gsMergeHistory;
+  mergers[LS_KEYS.STATS] = gsMergeStats;
+  mergers[LS_AFFIX] = gsMergeMapMax;
+  mergers[LS_IDEA] = gsMergeIdea;
+  mergers[LS_SPEAK] = gsMergeSpeak;
+  mergers[LS_AIWORDS] = gsMergePlainList;
+  mergers[LS_PRONBAD] = gsMergeMapMax;
+
+  const A = (localData && typeof localData === 'object') ? localData : {};
+  const B = (remoteData && typeof remoteData === 'object') ? remoteData : {};
+  const out = {};
+  GSYNC_KEYS.forEach(function (k) {
+    /* null / undefined 一律視為「這邊沒有這筆資料」，避免把 null 合併進去又寫回本機 */
+    const va = Object.prototype.hasOwnProperty.call(A, k) ? A[k] : undefined;
+    const vb = Object.prototype.hasOwnProperty.call(B, k) ? B[k] : undefined;
+    const aOk = (va !== undefined && va !== null);
+    const bOk = (vb !== undefined && vb !== null);
+    if (!aOk && !bOk) return;
+    if (!aOk) { out[k] = gsClone(vb); return; }
+    if (!bOk) { out[k] = gsClone(va); return; }
+    const fn = mergers[k];
+    out[k] = fn ? fn(va, vb) : va;
+  });
+  return out;
+}
+
+/* =================================================================================
+   三、快照（本機／雲端共用同一種格式）
+   ================================================================================= */
+function gsSnapshot() {
+  const data = {};
+  GSYNC_KEYS.forEach(function (k) {
+    const v = lsGet(k, undefined);
+    if (v !== undefined) data[k] = v;
+  });
+  return {
+    app: 'word-explorer',
+    schema: 1,
+    savedAt: Date.now(),
+    device: { id: gsDeviceId(), name: gsDeviceName() },
+    data: data
+  };
+}
+
+/** 把合併後的資料寫回本機（寫入期間不再標記為需要同步，避免無限循環） */
+function gsApply(data) {
+  if (!data || typeof data !== 'object') return 0;
+  gsApplying = true;
+  let n = 0;
+  try {
+    GSYNC_KEYS.forEach(function (k) {
+      if (!Object.prototype.hasOwnProperty.call(data, k)) return;
+      if (lsSet(k, data[k])) n++;
+    });
+  } finally {
+    gsApplying = false;
+  }
+  try { updateLearningStats(); } catch (e) { /* 忽略 */ }
+  try { updateSrsBadge(); } catch (e) { /* 忽略 */ }
+  try { wbUpdateBadge(); } catch (e) { /* 忽略 */ }
+  try { renderHistory(); } catch (e) { /* 忽略 */ }
+  try {
+    const tab = (typeof state !== 'undefined' && state) ? state.activeTab : '';
+    if (tab === 'srs') renderSRS();
+    else if (tab === 'affix') renderAffix();
+    else if (tab === 'wordbook' && !wbState.reviewing) renderWordbook();
+    else if (tab === 'idea') renderIdea();
+  } catch (e) { /* 忽略 */ }
+  return n;
+}
+
+function gsSnapCounts() {
+  return {
+    books: wbGetAll().length,
+    wrong: getWrongDb().length,
+    history: getHistory().length,
+    affix: Object.keys(affixLearnedMap()).length
+  };
+}
+function gsSnapScore(c) {
+  c = c || {};
+  return gsNum(c.books) * 4 + gsNum(c.wrong) * 2 + gsNum(c.history) + gsNum(c.affix);
+}
+
+/** 每天最多寫一次本機快照；若目前資料比快照更完整就順便更新 */
+function gsSnapshotLocal() {
+  const prev = lsGet(LS_GSNAP, null);
+  const cur = gsSnapCounts();
+  const fresh = !!(prev && prev.at && (Date.now() - gsNum(prev.at)) < 20 * 3600 * 1000);
+  if (fresh && gsSnapScore(cur) <= gsSnapScore(prev.counts)) return;
+  const data = {};
+  GSNAP_KEYS.forEach(function (k) {
+    const v = lsGet(k, undefined);
+    if (v !== undefined) data[k] = v;
+  });
+  lsSet(LS_GSNAP, { at: Date.now(), counts: cur, data: data });
+}
+
+function gsRestoreSnapshot() {
+  const snap = lsGet(LS_GSNAP, null);
+  if (!snap || !snap.data) { showToast('這台裝置還沒有本機快照。', 'info', 3000); return; }
+  weConfirm('要把 ' + gsFmtTime(snap.at) + ' 的本機快照合併回來嗎？\n\n' +
+            '快照：單詞本 ' + gsNum(snap.counts && snap.counts.books) + ' 個、錯題 ' + gsNum(snap.counts && snap.counts.wrong) + ' 個。\n' +
+            '合併只會補回缺少的字，不會刪掉現在的任何紀錄。',
+            { emoji: '🩹', okText: '合併回來' }).then(function (ok) {
+    if (!ok) return;
+    const local = gsSnapshot();
+    const merged = gsMergeAll(local.data, snap.data);
+    const n = gsApply(merged);
+    showToast('🩹 已從本機快照合併 ' + n + ' 類資料回來。', 'info', 4500);
+    renderWordbook();
+  });
+}
+
+/* =================================================================================
+   四、Google 登入（Google Identity Services，直接從瀏覽器取得存取權杖）
+   ================================================================================= */
+function gsLoadScript() {
+  if (typeof window !== 'undefined' && window.google && window.google.accounts && window.google.accounts.oauth2) {
+    return Promise.resolve();
+  }
+  if (gsScriptPromise) return gsScriptPromise;
+  gsScriptPromise = new Promise(function (resolve, reject) {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    s.onload = function () { resolve(); };
+    s.onerror = function () {
+      gsScriptPromise = null;
+      reject(new Error('無法載入 Google 登入元件，請確認網路連線'));
+    };
+    document.head.appendChild(s);
+  });
+  return gsScriptPromise;
+}
+
+function gsTokenValid() {
+  return !!gsToken && Date.now() < (gsTokenAt + gsTokenTtl - 60000);
+}
+
+function gsInitTokenClient() {
+  const cid = gsClientId();
+  if (gsTokenClient && gsTokenClientId === cid) return;
+  gsTokenClientId = cid;
+  gsTokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: cid,
+    scope: GSYNC_SCOPE,
+    callback: function (resp) {
+      const p = gsPending;
+      gsPending = null;
+      if (!p) return;
+      if (!resp || resp.error) {
+        p.reject(new Error((resp && (resp.error_description || resp.error)) || 'Google 授權失敗'));
+        return;
+      }
+      gsToken = resp.access_token || '';
+      gsTokenAt = Date.now();
+      gsTokenTtl = (gsNum(resp.expires_in) || 3600) * 1000;
+      p.resolve(gsToken);
+    },
+    error_callback: function (err) {
+      const p = gsPending;
+      gsPending = null;
+      if (!p) return;
+      const t = (err && (err.type || err.message)) || '';
+      p.reject(new Error(t === 'popup_closed' ? '登入視窗被關閉了' : ('Google 登入中斷' + (t ? '（' + t + '）' : ''))));
+    }
+  });
+}
+
+/** 取得存取權杖；interactive=true 時會真的跳登入視窗 */
+function gsGetToken(interactive) {
+  if (gsTokenValid()) return Promise.resolve(gsToken);
+  return gsLoadScript().then(function () {
+    if (!(window.google && window.google.accounts && window.google.accounts.oauth2)) {
+      throw new Error('Google 登入元件未就緒，請重新整理後再試');
+    }
+    gsInitTokenClient();
+    return new Promise(function (resolve, reject) {
+      gsPending = { resolve: resolve, reject: reject };
+      try {
+        gsTokenClient.requestAccessToken({ prompt: interactive ? 'consent select_account' : '' });
+      } catch (e) {
+        gsPending = null;
+        reject(e);
+      }
+    });
+  });
+}
+
+async function gsFetchProfile() {
+  try {
+    const r = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: 'Bearer ' + gsToken }
+    });
+    if (!r.ok) return {};
+    return await r.json();
+  } catch (e) {
+    return {};
+  }
+}
+
+/* =================================================================================
+   五、Google Drive API（appDataFolder：只有本 App 看得到的隱藏資料夾）
+   ================================================================================= */
+async function gsDriveFetch(url, opts, retried) {
+  const token = await gsGetToken(false);
+  const o = opts || {};
+  const headers = Object.assign({}, o.headers || {});
+  headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(url, {
+    method: o.method || 'GET',
+    headers: headers,
+    body: o.body
+  });
+  if (r.status === 401 && !retried) {
+    gsToken = '';
+    return gsDriveFetch(url, opts, true);
+  }
+  if (!r.ok) {
+    let extra = '';
+    try { const t = await r.text(); extra = t ? '：' + String(t).slice(0, 120) : ''; } catch (e) { /* 忽略 */ }
+    throw new Error('Google 雲端硬碟回應 ' + r.status + extra);
+  }
+  return r;
+}
+
+async function gsFindRemoteFile() {
+  const q = encodeURIComponent("name='" + GSYNC_FILE + "' and trashed=false");
+  const url = GSYNC_API + '/files?spaces=appDataFolder&q=' + q +
+              '&fields=' + encodeURIComponent('files(id,name,modifiedTime,size)') + '&pageSize=1';
+  const r = await gsDriveFetch(url, { method: 'GET' });
+  const j = await r.json();
+  const files = (j && j.files) || [];
+  return files.length ? files[0] : null;
+}
+
+async function gsDownloadRemote(id) {
+  const r = await gsDriveFetch(GSYNC_API + '/files/' + encodeURIComponent(id) + '?alt=media', { method: 'GET' });
+  const txt = await r.text();
+  if (!txt) return null;
+  return JSON.parse(txt);
+}
+
+async function gsUploadRemote(payload) {
+  const body = JSON.stringify(payload);
+  const found = await gsFindRemoteFile();
+  const mediaUrl = function (fileId) {
+    return GSYNC_UPLOAD + '/files/' + encodeURIComponent(fileId) + '?uploadType=media';
+  };
+  const mediaOpts = {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: body
+  };
+  if (found) {
+    await gsDriveFetch(mediaUrl(found.id), mediaOpts);
+    return found.id;
+  }
+  const createRes = await gsDriveFetch(GSYNC_API + '/files?fields=id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ name: GSYNC_FILE, parents: ['appDataFolder'], mimeType: 'application/json' })
+  });
+  const meta = await createRes.json();
+  if (!meta || !meta.id) throw new Error('建立雲端檔案失敗');
+  await gsDriveFetch(mediaUrl(meta.id), mediaOpts);
+  return meta.id;
+}
+
+/* =================================================================================
+   六、同步主流程
+   ================================================================================= */
+async function gsyncSync(opts) {
+  const o = opts || {};
+  if (gsSyncing) return { ok: false, reason: 'busy' };
+  if (!gsSignedIn()) {
+    if (!o.silent) showToast('請先用 Google 登入，才能備份到雲端。', 'info', 4000);
+    return { ok: false, reason: 'signed-out' };
+  }
+  if (!gsClientId()) {
+    if (!o.silent) showToast('尚未設定 Google 用戶端 ID。', 'warn', 4500);
+    return { ok: false, reason: 'no-client-id' };
+  }
+
+  gsSyncing = true;
+  gsSet({ syncing: true });
+  if (!o.silent) showToast('☁️ 正在同步…', 'info', 2500);
+  try {
+    let remote = null;
+    const found = await gsFindRemoteFile();
+    if (found) {
+      try { remote = await gsDownloadRemote(found.id); } catch (e) { remote = null; }
+    }
+    const local = gsSnapshot();
+    const merged = gsMergeAll(local.data, remote && remote.data ? remote.data : {});
+    gsApply(merged);
+    const payload = {
+      app: 'word-explorer',
+      schema: 1,
+      savedAt: Date.now(),
+      device: { id: gsDeviceId(), name: gsDeviceName() },
+      data: merged
+    };
+    await gsUploadRemote(payload);
+    gsSet({ lastSyncAt: Date.now(), lastError: '', syncing: false, lastPushAt: Date.now() });
+    if (typeof wbGetAll === 'function') { try { wbUpdateBadge(); } catch (e) { /* 忽略 */ } }
+    if (!o.silent) {
+      showToast('☁️ 同步完成：單詞本 ' + wbGetAll().length + ' 個字、錯題 ' + getWrongDb().length + ' 個。', 'info', 4000);
+      if (state.activeTab === 'wordbook' && !wbState.reviewing) renderWordbook();
+    }
+    return { ok: true };
+  } catch (err) {
+    gsSet({ lastError: gsMsg(err), syncing: false });
+    if (!o.silent) showToast('雲端同步失敗：' + gsMsg(err), 'error', 6000);
+    else console.warn('[gsync] 背景同步失敗：', err);
+    return { ok: false, reason: 'error', error: err };
+  } finally {
+    gsSyncing = false;
+  }
+}
+
+/** 資料被寫入時排程同步（6 秒防抖，避免每次小改動都打一次 API） */
+function gsyncOnWrite(key) {
+  try {
+    if (gsApplying) return;
+    if (!key || !GSYNC_KEYSET[key]) return;
+    const s = gsGet();
+    if (!s.email) return;
+    if (s.auto === false) return;
+    if (gsDirtyTimer) clearTimeout(gsDirtyTimer);
+    gsDirtyTimer = setTimeout(function () {
+      gsDirtyTimer = null;
+      gsyncSync({ silent: true });
+    }, 6000);
+  } catch (e) { /* 忽略：同步永遠不該影響主要功能 */ }
+}
+
+/** 使用者按下「用 Google 登入」 */
+async function gsyncSignIn() {
+  if (!gsClientId()) {
+    showToast('請先貼上 Google 用戶端 ID（下方有取得步驟）。', 'warn', 5000);
+    return;
+  }
+  try {
+    showToast('正在開啟 Google 登入…', 'info', 3000);
+    await gsGetToken(true);
+    const p = await gsFetchProfile();
+    gsSet({
+      email: p.email || '已登入',
+      name: p.name || '',
+      picture: p.picture || '',
+      auto: true,
+      showHelp: false,
+      lastError: ''
+    });
+    showToast('✅ 已登入 ' + esc(p.email || ''), 'info', 3500);
+    if (state.activeTab === 'wordbook') renderWordbook();
+    const res = await gsyncSync({ silent: true });
+    if (res.ok) showToast('☁️ 資料已備份到你的 Google 雲端硬碟。', 'info', 4500);
+    if (state.activeTab === 'wordbook') renderWordbook();
+  } catch (err) {
+    const m = gsMsg(err);
+    gsSet({ lastError: m });
+    showToast('Google 登入失敗：' + esc(m) + '。若在 App 裡打不開登入視窗，請改用 Chrome 開同一個網址登入一次。', 'error', 9000);
+    if (state.activeTab === 'wordbook') renderWordbook();
+  }
+}
+
+function gsyncSignOut() {
+  weConfirm('要登出雲端備份嗎？\n\n這台裝置上的資料<b>不會</b>被刪除，只是停止自動備份。', {
+    emoji: '☁️', okText: '登出'
+  }).then(function (ok) {
+    if (!ok) return;
+    gsToken = '';
+    gsSet({ email: '', name: '', picture: '', auto: false, syncing: false });
+    showToast('已登出雲端備份，本機資料保留。', 'info', 3500);
+    renderWordbook();
+  });
+}
+
+/* ---------- 離線備份檔（不需要 Google 帳號） ---------- */
+function gsyncExportFile() {
+  try {
+    const payload = gsSnapshot();
+    payload.exportedAt = Date.now();
+    const text = JSON.stringify(payload, null, 2);
+    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '單字探險家備份-' + todayKey() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 3000);
+    showToast('📥 已開始下載備份檔（單詞本 ' + wbGetAll().length + ' 個字）。', 'info', 4000);
+  } catch (e) {
+    showToast('匯出失敗：' + gsMsg(e), 'error', 5000);
+  }
+}
+
+function gsyncImportFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function () {
+    try {
+      const parsed = JSON.parse(String(reader.result || '{}'));
+      const data = (parsed && parsed.data) ? parsed.data : parsed;
+      if (!data || typeof data !== 'object') throw new Error('檔案格式不正確');
+      const before = gsSnapCounts();
+      const merged = gsMergeAll(gsSnapshot().data, data);
+      gsApply(merged);
+      const after = gsSnapCounts();
+      showToast('📤 已還原並合併備份：單詞本 ' + before.books + ' → ' + after.books + ' 個字、錯題 ' +
+                before.wrong + ' → ' + after.wrong + ' 個。', 'info', 6000);
+      renderWordbook();
+    } catch (e) {
+      showToast('備份檔讀取失敗：' + gsMsg(e), 'error', 6000);
+    }
+  };
+  reader.onerror = function () { showToast('讀取檔案失敗。', 'error', 4000); };
+  reader.readAsText(file);
+}
+
+/* =================================================================================
+   七、畫面：單詞本最上方的「雲端備份」卡片
+   ================================================================================= */
+function gsyncHelpHtml() {
+  return '' +
+    '<details class="mt-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF] p-3">' +
+      '<summary class="cursor-pointer font-extrabold text-sm text-[#6C4BF6]">📖 怎麼取得 Google 用戶端 ID？（只需做一次）</summary>' +
+      '<div class="mt-3 text-xs font-bold text-[#3A3750]/85 leading-relaxed space-y-2">' +
+        '<p>整件事只需要做一次，之後所有使用者都能直接用 Google 登入（他們不需要做這些步驟）。</p>' +
+        '<p><b>1.</b> 用電腦開 <b>console.cloud.google.com</b>，左上角「選取專案」→「新增專案」，名稱隨便填（例：word-explorer）。</p>' +
+        '<p><b>2.</b> 左側「API 和服務」→「程式庫」→ 搜尋 <b>Google Drive API</b> → 按「啟用」。</p>' +
+        '<p><b>3.</b> 左側「API 和服務」→「OAuth 同意畫面」（新版叫「Google 授權平台」）：使用者類型選「外部」→ 填 App 名稱與你的 email → 儲存。</p>' +
+        '<p><b>4.</b> 同一頁的「目標對象／測試使用者」→ 把你自己的 Gmail 加進去（測試階段只有名單內的人能登入）。</p>' +
+        '<p><b>5.</b> 左側「憑證」→「建立憑證」→「OAuth 用戶端 ID」→ 應用程式類型選 <b>網頁應用程式</b>。</p>' +
+        '<p><b>6.</b> 「已授權的 JavaScript 來源」填 <b>https://owikdowjfodi.github.io</b>（結尾不要加斜線、不要加 /app）。</p>' +
+        '<p><b>7.</b> 建立後複製「用戶端 ID」（長得像 <b>123456789012-abc123.apps.googleusercontent.com</b>），貼到下面按儲存。</p>' +
+        '<p><b>8.</b> 回頭按「用 Google 登入」授權一次，之後就會自動同步。</p>' +
+        '<p class="text-[#96701A]">⚠️ 測試階段只有你加入名單的帳號能登入，而且會看到「Google 尚未驗證這個應用程式」的警告（按「進階」→「繼續前往」即可）。要讓所有使用者都能登入而不跳警告，要在授權平台按「發布應用程式」並送 Google 驗證。</p>' +
+      '</div>' +
+    '</details>';
+}
+
+function gsyncCardHtml() {
+  const s = gsGet();
+  const signed = !!s.email;
+  const hasClient = !!gsClientId();
+  const counts = gsSnapCounts();
+  const snap = lsGet(LS_GSNAP, null);
+
+  const chips = '' +
+    '<div class="flex flex-wrap items-center gap-2 mt-3">' +
+      '<span class="stat-chip">📒 單詞本 <b class="text-[#6C4BF6]">' + counts.books + '</b></span>' +
+      '<span class="stat-chip">❌ 錯題 <b class="text-[#E0242A]">' + counts.wrong + '</b></span>' +
+      '<span class="stat-chip">🕘 查詢 <b class="text-[#00B4A6]">' + counts.history + '</b></span>' +
+      (signed
+        ? '<span class="stat-chip">' + (s.syncing ? '☁️ 同步中…' : (s.lastSyncAt ? '✅ 上次同步 ' + gsFmtTime(s.lastSyncAt) : '☁️ 尚未同步')) + '</span>'
+        : '<span class="stat-chip">⚠️ 只存在這台裝置</span>') +
+    '</div>';
+
+  let actions = '';
+  if (signed) {
+    actions =
+      '<button class="we-btn we-btn-blue we-btn-sm" data-gs="sync">🔄 立即同步</button>' +
+      '<label class="inline-flex items-center gap-2 text-xs font-extrabold text-[#3A3750] px-2">' +
+        '<input type="checkbox" id="gs-auto" ' + (s.auto === false ? '' : 'checked') + '> 自動同步' +
+      '</label>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-gs="signout">登出</button>';
+  } else {
+    /* 還沒設定用戶端 ID 時，先引導「貼上 ID」這一步，避免使用者按了登入卻一定失敗 */
+    actions = hasClient
+      ? '<button class="we-btn we-btn-blue we-btn-sm" data-gs="signin">🔐 用 Google 登入並備份</button>'
+      : '<span class="text-xs font-extrabold text-[#96701A]">請先完成下面第 ① 步（貼上用戶端 ID）</span>';
+  }
+  actions +=
+    '<button class="we-btn we-btn-ghost we-btn-sm" data-gs="export">📥 下載備份檔</button>' +
+    '<button class="we-btn we-btn-ghost we-btn-sm" data-gs="import">📤 用備份檔還原</button>' +
+    (snap && snap.data
+      ? '<button class="we-btn we-btn-ghost we-btn-sm" data-gs="snapshot">🩹 還原 ' + gsFmtTime(snap.at) + ' 快照</button>'
+      : '');
+
+  const clientRow = hasClient
+    ? ''
+    : '<div class="mt-3 p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D]">' +
+        '<p class="text-xs font-extrabold text-[#96701A] mb-2">① 先貼上 Google OAuth 用戶端 ID（只需設定一次）</p>' +
+        '<div class="flex flex-col sm:flex-row gap-2">' +
+          '<input id="gs-client" class="we-input flex-1" placeholder="123456789012-xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">' +
+          '<button class="we-btn we-btn-sm sm:w-32" data-gs="save-client">儲存</button>' +
+        '</div>' +
+      '</div>';
+
+  const errRow = s.lastError
+    ? '<p class="mt-2 text-xs font-extrabold text-[#E0242A]">⚠️ ' + esc(s.lastError) + '</p>'
+    : '';
+
+  const autoRow = signed
+    ? '<p class="mt-2 text-xs font-bold text-[#A5A2B8]">☁️ 已登入 <b class="text-[#3A3750]">' + esc(s.email) + '</b>；資料存在你自己的 Google 雲端硬碟（隱藏資料夾，開發者看不到）。</p>'
+    : '';
+
+  return '' +
+    '<div class="we-card p-4 sm:p-5 mb-4">' +
+      '<div class="flex items-start gap-3">' +
+        '<div class="text-3xl leading-none">☁️</div>' +
+        '<div class="min-w-0 flex-1">' +
+          '<h3 class="font-extrabold text-base sm:text-lg">雲端備份 <span class="text-xs font-extrabold text-[#A5A2B8]">（換手機、清資料都不怕）</span></h3>' +
+          '<p class="text-xs sm:text-sm font-bold text-[#3A3750]/75 mt-1 leading-relaxed">' +
+            '這些紀錄現在<b class="text-[#E0242A]">只存在這台裝置的瀏覽器裡</b>。清除瀏覽資料、換手機或手機空間不足被系統清理時會整批消失。' +
+            '登入 Google 之後會自動備份到你自己的雲端硬碟，換裝置登入同一個帳號就會<b class="text-[#6C4BF6]">合併回來（只增不減）</b>。' +
+          '</p>' +
+          chips +
+          '<div class="mt-3 flex flex-wrap items-center gap-2">' + actions + '</div>' +
+          autoRow +
+          errRow +
+          clientRow +
+          gsyncHelpHtml() +
+          '<input type="file" id="gs-file" accept=".json,application/json" class="hidden">' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+/** 卡片上的按鈕全部走這裡 */
+function gsyncAction(action) {
+  if (action === 'signin') { gsyncSignIn(); return; }
+  if (action === 'signout') { gsyncSignOut(); return; }
+  if (action === 'sync') { gsyncSync({ silent: false }); return; }
+  if (action === 'export') { gsyncExportFile(); return; }
+  if (action === 'import') {
+    const f = $('#gs-file');
+    if (f) f.click();
+    return;
+  }
+  if (action === 'snapshot') { gsRestoreSnapshot(); return; }
+  if (action === 'save-client') {
+    const input = $('#gs-client');
+    const v = input ? String(input.value || '').trim() : '';
+    if (!/^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(v)) {
+      showToast('用戶端 ID 格式看起來不對，結尾應該是 .apps.googleusercontent.com', 'warn', 6000);
+      return;
+    }
+    gsSet({ clientId: v });
+    gsTokenClient = null;
+    gsTokenClientId = '';
+    showToast('✅ 已儲存用戶端 ID，現在可以按「用 Google 登入」了。', 'info', 4000);
+    renderWordbook();
+    return;
+  }
+}
+
+/* =================================================================================
+   八、啟動：申請持久化儲存、寫本機快照、必要時自動同步
+   ================================================================================= */
+async function requestPersistStorage() {
+  try {
+    if (!navigator.storage || typeof navigator.storage.persist !== 'function') return false;
+    let already = false;
+    if (typeof navigator.storage.persisted === 'function') {
+      try { already = await navigator.storage.persisted(); } catch (e) { already = false; }
+    }
+    if (already) { gsSet({ persisted: true }); return true; }
+    const ok = await navigator.storage.persist();
+    gsSet({ persisted: !!ok });
+    return !!ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function gsyncBoot() {
+  try { gsDeviceId(); } catch (e) { /* 忽略 */ }
+  try { gsSnapshotLocal(); } catch (e) { /* 忽略 */ }
+  try { requestPersistStorage(); } catch (e) { /* 忽略 */ }
+  try {
+    const s = gsGet();
+    if (s.email && s.auto !== false) {
+      setTimeout(function () { gsyncSync({ silent: true }); }, 5000);
+    }
+  } catch (e) { /* 忽略 */ }
 }
 
 function init() {
@@ -9086,6 +9957,9 @@ function init() {
   updateLearningStats();
   updateSrsBadge();
   wbUpdateBadge();
+
+  // ☁️ 雲端備份：申請「持久化儲存」（降低被瀏覽器清掉的機率）、寫每日本機快照、已登入就自動同步
+  gsyncBoot();
 
   // 每日測驗：今天若已有紀錄就直接載入；沒有則先顯示「連網生成中」畫面（不阻塞首頁）
   state.daily = getStoredDailyRecord();

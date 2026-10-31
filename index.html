@@ -471,6 +471,37 @@
   .rd-scrim.on { opacity: 1; pointer-events: auto; }
   body.rd-lock { overflow: hidden; }
   @media (max-width: 400px) { .rd-doc { font-size: .97rem; line-height: 1.95; padding: 1rem; } }
+/* ---------- 段落翻譯與多義詞典（v2.1） ---------- */
+.rd-para { margin: 0 0 .4rem; }
+.rd-para-tools { display: flex; flex-wrap: wrap; gap: .35rem; margin: .15rem 0 .5rem; }
+.rd-mini {
+  font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px;
+  border: 1.5px solid var(--we-line); background: #fff; color: #6B6880;
+  cursor: pointer; line-height: 1.6;
+}
+.rd-mini:hover { border-color: var(--we-brand); color: var(--we-brand); }
+.rd-zh {
+  margin: .15rem 0 .8rem; padding: .55rem .8rem; border-radius: .9rem;
+  background: #F3F1FF; border-left: 4px solid var(--we-brand);
+  font-size: 14px; font-weight: 700; line-height: 1.8; color: #3C3A4A;
+}
+.gd-box {
+  padding: .6rem .75rem; border-radius: .9rem;
+  background: #F5F6FB; border: 1.5px solid var(--we-line);
+}
+.gd-title { font-size: 11px; font-weight: 800; color: #A5A2B8; margin-bottom: .35rem; }
+.gd-row { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .25rem; }
+.gd-row:last-child { margin-bottom: 0; }
+.gd-pos {
+  flex: none; font-size: 10px; font-weight: 800; color: #6C4BF6;
+  background: #EDE9FF; border-radius: 999px; padding: 1px 7px; line-height: 1.7;
+}
+.gd-terms { font-size: 13px; font-weight: 700; color: #3C3A4A; line-height: 1.65; }
+.gd-def { margin-bottom: .5rem; }
+.gd-def:last-child { margin-bottom: 0; }
+.gd-def-en { font-size: 12px; font-weight: 700; color: #6B6880; line-height: 1.55; }
+.gd-def-zh { font-size: 13.5px; font-weight: 800; color: #3C3A4A; line-height: 1.7; }
+
 </style>
 </head>
 
@@ -542,6 +573,17 @@
 
       <!-- ★ 新增：最近查詢紀錄 -->
       <div id="search-history" class="mt-3"></div>
+
+      <!-- ★ v2.1：整段／整句翻譯（貼上就整段翻成繁體中文） -->
+      <div class="mt-4 pt-4 border-t-2 border-[#E4E2EF]">
+        <p class="text-sm font-extrabold mb-2">📝 整段／整句翻譯<span class="text-xs text-[#A5A2B8] font-bold ml-2">貼上英文段落，整段翻成繁體中文</span></p>
+        <textarea id="lex-block-input" class="we-input" rows="3" placeholder="貼上一段英文（或一整句），按下面的按鈕整段翻成繁體中文"></textarea>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <button id="btn-lex-block" class="we-btn we-btn-sm">🌐 翻譯整段</button>
+          <button id="btn-lex-block-clear" class="we-btn we-btn-ghost we-btn-sm">清空</button>
+        </div>
+        <div id="lex-block-out" class="mt-3"></div>
+      </div>
     </div>
 
     <!-- 查詢結果 -->
@@ -707,7 +749,7 @@
   </nav>
 
   <div class="we-drawer-foot">
-    <p>🦊 單字探險家 <span id="nav-version">v2.0</span></p>
+    <p>🦊 單字探險家 <span id="nav-version">v2.1</span></p>
     <p class="mt-0.5">介面、圖示與配色皆為本專案原創設計</p>
   </div>
 </aside>
@@ -1823,6 +1865,320 @@ async function translateZh(text) {
 }
 
 /* ---------------------------------------------------------------------------
+   6-5b. 多義詞典與整句／整段翻譯（v2.1）
+   ★ 全部在內部自動進行，不讓使用者選供應商：
+     - Google 翻譯（translate_a/single 的 dt=bd 詞典模式）→ 主要意思／次要意思／詞性
+     - dictionaryapi.dev（免費英英詞典）→ 網路英文釋義
+     - 英文釋義再交給 translateZh() 做中文語譯
+     - 整句／整段：translateText() 自動切段後逐段翻
+   --------------------------------------------------------------------------- */
+const LS_GDICT = 'gdict_cache';
+const GDICT_TTL_MS = 60 * 24 * 60 * 60 * 1000;   // 60 天
+const GDICT_SHORT_TTL_MS = 30 * 60 * 1000;        // 30 分鐘（資料不完整時的短快取）
+const GDICT_MAX = 600;
+const GDICT_POS_ZH = {
+  noun: '名詞', verb: '動詞', adjective: '形容詞', adverb: '副詞', pronoun: '代名詞',
+  preposition: '介系詞', conjunction: '連接詞', interjection: '感嘆詞', exclamation: '感嘆詞',
+  determiner: '限定詞', numeral: '數詞', article: '冠詞', auxiliary: '助動詞', modal: '助動詞',
+  particle: '小品詞', prefix: '字首', suffix: '字尾', phrase: '片語', idiom: '習語',
+  abbreviation: '縮寫', 'proper noun': '專有名詞'
+};
+const TRANSLATE_CHUNK_MAX = 1500;
+
+function gdictLoad() {
+  try {
+    const raw = lsGet(LS_GDICT, {});
+    return (raw && typeof raw === 'object') ? raw : {};
+  } catch (e) { return {}; }
+}
+function gdictSave(map) {
+  try { lsSet(LS_GDICT, map); } catch (e) { /* 容量滿了就放棄快取，不影響功能 */ }
+}
+function gdictGet(word) {
+  const k = String(word || '').trim().toLowerCase();
+  if (!k) return null;
+  const hit = gdictLoad()[k];
+  if (!hit) return null;
+  const ttl = hit.shortTtl ? GDICT_SHORT_TTL_MS : GDICT_TTL_MS;
+  if (Date.now() - (hit.ts || 0) > ttl) return null;
+  return hit;
+}
+function gdictSet(word, data) {
+  const k = String(word || '').trim().toLowerCase();
+  if (!k || !data) return;
+  const map = gdictLoad();
+  data.ts = Date.now();
+  map[k] = data;
+  const keys = Object.keys(map);
+  if (keys.length > GDICT_MAX) {
+    keys.sort(function (a, b) { return (map[a].ts || 0) - (map[b].ts || 0); });
+    for (let i = 0; i < keys.length - GDICT_MAX; i++) delete map[keys[i]];
+  }
+  gdictSave(map);
+}
+function gdictPosZh(pos) {
+  const p = String(pos || '').trim().toLowerCase();
+  return GDICT_POS_ZH[p] || (p ? p : '');
+}
+
+/** Google 翻譯詞典模式：主要意思 + 各詞性的次要意思（都是繁體中文） */
+async function gdictGoogle(word) {
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&dt=bd&dj=1&q=' +
+    encodeURIComponent(word);
+  const json = await fetchJson(url, 14000);
+  const out = { main: '', senses: [] };
+  if (json && Array.isArray(json.sentences)) {
+    out.main = json.sentences.map(function (s) { return s && s.trans ? s.trans : ''; }).join('').trim();
+  }
+  if (json && Array.isArray(json.dict)) {
+    json.dict.forEach(function (d) {
+      if (!d) return;
+      const terms = Array.isArray(d.terms) ? d.terms.filter(Boolean) : [];
+      if (!terms.length) return;
+      out.senses.push({ pos: gdictPosZh(d.pos), terms: terms.slice(0, 8) });
+    });
+  }
+  return out;
+}
+
+/** dictionaryapi.dev：網路英文釋義（免費、無金鑰） */
+async function gdictEnglish(word, limit) {
+  const max = limit || 3;
+  const url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word);
+  const json = await fetchJson(url, 14000);
+  const out = [];
+  if (!Array.isArray(json)) return out;
+  for (let i = 0; i < json.length && out.length < max; i++) {
+    const meanings = (json[i] && json[i].meanings) || [];
+    for (let j = 0; j < meanings.length && out.length < max; j++) {
+      const m = meanings[j] || {};
+      const defs = m.definitions || [];
+      if (!defs.length) continue;
+      const d = defs[0] || {};
+      const en = String(d.definition || '').trim();
+      if (!en) continue;
+      out.push({
+        pos: gdictPosZh(m.partOfSpeech),
+        en: en,
+        example: String(d.example || '').trim()
+      });
+    }
+  }
+  return out;
+}
+
+/** 取得一個字的完整詞典資料（含快取）；英文釋義會在背景翻成中文 */
+async function gWordInfo(word) {
+  const k = String(word || '').trim().toLowerCase().replace(/[^a-z'\u2019\-]/g, '');
+  if (!k) return null;
+  const hit = gdictGet(k);
+  if (hit) return hit;
+
+  const data = { main: '', senses: [], defs: [] };
+  await Promise.all([
+    gdictGoogle(k).then(function (r) { data.main = r.main; data.senses = r.senses; }).catch(function () {}),
+    gdictEnglish(k, 3).then(function (r) { data.defs = r; }).catch(function () {})
+  ]);
+
+  /* 英文釋義 → 中文語譯（逐條翻，失敗就留空不擋畫面） */
+  if (data.defs.length) {
+    await Promise.all(data.defs.map(function (d) {
+      return translateZh(d.en).then(function (zh) { d.zh = String(zh || '').trim(); }).catch(function () { d.zh = ''; });
+    }));
+  }
+
+  if (!data.defs.length) data.shortTtl = true;   // 暫時抓不到英文釋義：30 分鐘後重試
+  if (data.main || data.senses.length || data.defs.length) gdictSet(k, data);
+  return data;
+}
+
+/** 把長文字切成 <=1500 字元的幾段（盡量切在句子邊界） */
+function translateSplit(text) {
+  const s = String(text || '').trim();
+  if (!s) return [];
+  if (s.length <= TRANSLATE_CHUNK_MAX) return [s];
+  const sentences = readerSplitSentences(s);
+  const parts = [];
+  let cur = '';
+  sentences.forEach(function (sen) {
+    if (!sen) return;
+    if ((cur + ' ' + sen).length > TRANSLATE_CHUNK_MAX && cur) { parts.push(cur.trim()); cur = sen; }
+    else cur += (cur ? ' ' : '') + sen;
+  });
+  if (cur.trim()) parts.push(cur.trim());
+  /* 單句仍超長 → 硬切 */
+  const out = [];
+  parts.forEach(function (p) {
+    if (p.length <= TRANSLATE_CHUNK_MAX) { out.push(p); return; }
+    for (let i = 0; i < p.length; i += TRANSLATE_CHUNK_MAX) out.push(p.slice(i, i + TRANSLATE_CHUNK_MAX));
+  });
+  return out;
+}
+
+/** 整句／整段翻譯（自動切段，內部就走 Google 翻譯） */
+async function translateText(text) {
+  const chunks = translateSplit(text);
+  if (!chunks.length) return '';
+  if (chunks.length === 1) {
+    try { return String(await translateZh(chunks[0]) || '').trim(); } catch (e) { return ''; }
+  }
+  const out = [];
+  for (let i = 0; i < chunks.length; i++) {
+    try { out.push(String(await translateZh(chunks[i]) || '').trim()); } catch (e) { out.push(''); }
+  }
+  return out.filter(Boolean).join(' ');
+}
+
+/** 各詞性的次要意思（給字卡／查字結果共用） */
+function gdSensesHtml(info) {
+  if (!info || !info.senses || !info.senses.length) return '';
+  const rows = info.senses.slice(0, 5).map(function (s) {
+    return '<div class="gd-row">' +
+      (s.pos ? '<span class="gd-pos">' + esc(s.pos) + '</span>' : '') +
+      '<span class="gd-terms">' + esc(s.terms.join('、')) + '</span>' +
+    '</div>';
+  }).join('');
+  return '<div class="gd-box"><p class="gd-title">🧭 其他意思（次要釋義）</p>' + rows + '</div>';
+}
+
+/** 網路英文釋義 + 中文語譯 */
+function gdDefsHtml(info) {
+  if (!info || !info.defs || !info.defs.length) return '';
+  const rows = info.defs.map(function (d) {
+    return '<div class="gd-def">' +
+      '<p class="gd-def-en">' + (d.pos ? '<b>' + esc(d.pos) + '</b>　' : '') + esc(d.en) + '</p>' +
+      (d.zh ? '<p class="gd-def-zh">' + esc(d.zh) + '</p>' : '') +
+    '</div>';
+  }).join('');
+  return '<div class="gd-box mt-2"><p class="gd-title">📖 網路英文釋義（中文語譯）</p>' + rows + '</div>';
+}
+
+/* ---------- 閱讀器：字卡的多義區塊 ---------- */
+function readerExtraHtml() {
+  const st = readerState;
+  let out = '';
+  if (st.extraBusy) {
+    out += '<p class="text-[11px] text-[#A5A2B8] font-bold">🔎 正在查其他意思與英文釋義…</p>';
+  }
+  out += gdSensesHtml(st.extra);
+  out += gdDefsHtml(st.extra);
+  if (st.sentZh) {
+    out += '<div class="gd-box mt-2"><p class="gd-title">📄 整句翻譯</p>' +
+      (st.sentEn ? '<p class="gd-def-en">' + esc(st.sentEn) + '</p>' : '') +
+      '<p class="gd-def-zh">' + esc(st.sentZh) + '</p>' +
+    '</div>';
+  }
+  return out;
+}
+
+async function readerFillExtra(word) {
+  const w = String(word || '').trim();
+  if (!w) return;
+  readerState.extraBusy = true;
+  readerRenderSheet();
+  let info = null;
+  try { info = await gWordInfo(w); } catch (e) { info = null; }
+  if (readerState.selected !== w) return;
+  readerState.extra = info;
+  readerState.extraBusy = false;
+  readerRenderSheet();
+}
+
+async function readerTranslateSentence() {
+  const st = readerState;
+  if (st.sentBusy) return;
+  const src = String(st.sentence || '').trim();
+  if (!src) { showToast('這張字卡沒抓到原句，可以改用文章裡的「翻譯這段」', 'warn', 5000); return; }
+  st.sentBusy = true;
+  st.sentEn = src;
+  readerRenderSheet();
+  let zh = '';
+  try { zh = await translateText(src); } catch (e) { zh = ''; }
+  st.sentBusy = false;
+  if (!zh) { showToast('翻譯服務暫時連不上，請稍後再試', 'warn', 5000); readerRenderSheet(); return; }
+  st.sentZh = zh;
+  if (st.selected) readerRenderSheet();
+}
+
+/* ---------- 閱讀器：整段／整句（文章內） ---------- */
+async function readerTranslatePara(idx, onlySentence) {
+  const st = readerState;
+  const i = parseInt(idx, 10);
+  if (!(i >= 0) || !st.paras[i]) return;
+  if (st.paraBusy === i) return;
+  st.paraBusy = i;
+  readerRender();
+  let src = st.paras[i];
+  if (onlySentence) {
+    const list = readerSplitSentences(src);
+    src = (list && list[0]) ? list[0] : src;
+  }
+  let zh = '';
+  try { zh = await translateText(src); } catch (e) { zh = ''; }
+  st.paraBusy = -1;
+  if (!zh) { showToast('翻譯服務暫時連不上，請稍後再試', 'warn', 5000); readerRender(); return; }
+  st.paraZh[i] = (onlySentence ? '📄 整句：' : '') + zh;
+  readerRender();
+}
+
+/* ---------- 查字頁：其他意思 + 英文釋義語譯 ---------- */
+async function lexFillExtra(word) {
+  const w = String(word || '').trim().toLowerCase();
+  if (!w) return;
+  let info = null;
+  try { info = await gWordInfo(w); } catch (e) { info = null; }
+  const box = $('#lex-extra');
+  if (!box) return;
+  if ((box.getAttribute('data-word') || '') !== w) return;   // 已經查了別的字
+  if (!info || (!info.senses.length && !info.defs.length)) {
+    box.innerHTML = '<p class="text-[11px] text-[#A5A2B8] font-bold mt-3">（這個字查不到其他意思或網路英文釋義）</p>';
+    return;
+  }
+  let html = '';
+  if (info.senses.length) {
+    html += '<p class="text-sm font-extrabold text-[#A5A2B8] mt-4 mb-2">🧭 其他意思（次要釋義）</p>' + gdSensesHtml(info);
+  }
+  if (info.defs.length) {
+    html += '<p class="text-sm font-extrabold text-[#A5A2B8] mt-4 mb-2">📖 網路英文釋義的中文語譯</p>' + gdDefsHtml(info);
+  }
+  box.innerHTML = html;
+}
+
+/** 查字頁的「整段／整句翻譯」小工具 */
+function lexBindBlock() {
+  const btn = $('#btn-lex-block');
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  const ta = $('#lex-block-input');
+  const out = $('#lex-block-out');
+  const clr = $('#btn-lex-block-clear');
+  if (clr) clr.addEventListener('click', function () {
+    if (ta) ta.value = '';
+    if (out) out.innerHTML = '';
+  });
+  btn.addEventListener('click', async function () {
+    const src = ta ? String(ta.value || '').trim() : '';
+    if (src.length < 2) { showToast('請先貼上一段英文', 'warn'); return; }
+    const old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ 翻譯中…';
+    let zh = '';
+    try { zh = await translateText(src); } catch (e) { zh = ''; }
+    btn.disabled = false;
+    btn.textContent = old;
+    if (!out) return;
+    if (!zh) {
+      out.innerHTML = '<p class="text-sm font-bold text-[#E0242A]">翻譯服務暫時連不上，請稍後再試。</p>';
+      return;
+    }
+    out.innerHTML = '<div class="p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
+      '<p class="text-[11px] font-extrabold text-[#A5A2B8] mb-1">翻譯結果（原文 ' + src.length + ' 字元）</p>' +
+      '<p class="text-base font-extrabold leading-relaxed text-[#3C3A4A]">' + esc(zh) + '</p>' +
+    '</div>';
+  });
+}
+
+/* ---------------------------------------------------------------------------
    6-6. 結構拆解：規則詞綴引擎 + 維基詞典語源原文當作佐證
    --------------------------------------------------------------------------- */
 function analyzeStructure(rawWord, etymologyEn) {
@@ -2302,6 +2658,7 @@ function renderWordResult(entry) {
       (entry.meaningDetail && entry.meaningDetail !== entry.meaning
         ? '<p class="mt-3 text-sm font-bold leading-relaxed text-[#3C3A4A]/80">📝 中文詳解：' + esc(entry.meaningDetail) + '</p>'
         : '') +
+      '<div id="lex-extra" data-word="' + esc(entry.word) + '"></div>' +
       ((entry.defs && entry.defs.length)
         ? '<div class="mt-4 p-3 rounded-2xl bg-[#F5F6FB] border-2 border-[#E4E2EF]">' +
             '<p class="text-xs font-extrabold text-[#A5A2B8] mb-2">📖 英文原義（線上語料庫原文）</p>' +
@@ -2420,7 +2777,8 @@ function renderWordResult(entry) {
     });
   }
 
-  state.lastEntry = entry;                 // 供後續功能重用
+  lexFillExtra(entry.word);                // 其他意思＋英文釋義中文語譯
+state.lastEntry = entry;                 // 供後續功能重用
   resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -10302,7 +10660,15 @@ const readerState = {
   sentence: '',        // 這個字所在的句子（給 AI 用）
   aiOut: '',
   aiWord: '',
-  note: ''
+  note: '',
+  /* v2.1：多義詞典與整句／整段翻譯 */
+  extra: null,          // gWordInfo() 結果（其他意思＋英文釋義）
+  extraBusy: false,
+  sentZh: '',           // 整句翻譯結果
+  sentEn: '',           // 整句原文
+  sentBusy: false,
+  paraZh: {},           // 段落索引 → 中文翻譯
+  paraBusy: -1          // 正在翻的段落索引
 };
 
 /* ---------- 讀寫（文件清單） ---------- */
@@ -10510,6 +10876,13 @@ function readerOpenText(name, text) {
   res.words.forEach(function (e) { readerState.scoreMap.set(e.word, e.score); });
   readerState.selected = '';
   readerState.showList = false;
+  readerState.extra = null;
+  readerState.extraBusy = false;
+  readerState.sentZh = '';
+  readerState.sentEn = '';
+  readerState.sentBusy = false;
+  readerState.paraZh = {};
+  readerState.paraBusy = -1;
 
   if (readerState.hard.length) {
     showToast('找到 ' + readerState.hard.length + ' 個難字（共 ' + res.words.length + ' 個不同單字）');
@@ -10538,6 +10911,13 @@ function readerOpenSaved(id) {
   res.words.forEach(function (e) { readerState.scoreMap.set(e.word, e.score); });
   readerState.selected = '';
   readerState.showList = false;
+  readerState.extra = null;
+  readerState.extraBusy = false;
+  readerState.sentZh = '';
+  readerState.sentEn = '';
+  readerState.sentBusy = false;
+  readerState.paraZh = {};
+  readerState.paraBusy = -1;
   readerRender();
 }
 
@@ -10698,7 +11078,17 @@ function readerDocHtml() {
   '</div>' +
   (st.showList ? readerHardListHtml() : '') +
   '<div class="rd-doc" id="rd-doc">' + st.paras.map(function (p, i) {
-    return '<p data-rd-p="' + i + '">' + readerParaHtml(p) + '</p>';
+    const zhP = (st.paraZh && st.paraZh[i]) ? st.paraZh[i] : '';
+    const busyP = st.paraBusy === i;
+    return '<div class="rd-para" data-rd-p="' + i + '">' +
+      '<p>' + readerParaHtml(p) + '</p>' +
+      '<div class="rd-para-tools">' +
+        '<button class="rd-mini" data-rd-act="para" data-rd-p="' + i + '">' + (busyP ? '⏳ 翻譯中…' : (zhP ? '✅ 已翻譯' : '🌐 翻譯這段')) + '</button>' +
+        '<button class="rd-mini" data-rd-act="sentence" data-rd-p="' + i + '">📄 翻譯第一句</button>' +
+        (zhP ? '<button class="rd-mini" data-rd-act="para-off" data-rd-p="' + i + '">收起譯文</button>' : '') +
+      '</div>' +
+      (zhP ? '<div class="rd-zh">' + esc(zhP) + '</div>' : '') +
+    '</div>';
   }).join('') + '</div>' +
   '<p class="text-[11px] text-[#A5A2B8] font-bold mt-3 leading-relaxed">👆 點文章裡任何一個英文單字 → 開字卡：中文釋義、🔊 發音、📒 加入單詞本、🔍 完整拆解、🤖 AI 解釋這句。加進單詞本的字可以永遠重複複習。</p>';
 }
@@ -10776,6 +11166,7 @@ function readerSheetHtml() {
         '</div>' +
         (phonetic ? '<p class="text-sm font-bold text-[#6B6880] mt-1">' + esc(phonetic) + '</p>' : '') +
         '<p class="text-base font-extrabold mt-2">' + (busyZh ? '<span class="text-[#A5A2B8]">查中文中…</span>' : (zh ? esc(zh) : '<span class="text-[#A5A2B8]">（暫時查不到中文，可按 🔍 完整拆解試試）</span>')) + '</p>' +
+        '<div id="rd-extra" class="mt-2">' + readerExtraHtml() + '</div>' +
       '</div>' +
       '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="close" aria-label="關閉字卡">✕</button>' +
     '</div>' +
@@ -10785,6 +11176,7 @@ function readerSheetHtml() {
       '<button class="we-btn we-btn-sm ' + (inBook ? 'we-btn-ghost' : '') + '" data-rd-sheet="book" ' + (busyBook ? 'disabled' : '') + '>' + (inBook ? '✅ 已在單詞本' : (busyBook ? '加入中…' : '📒 加入單詞本')) + '</button>' +
       '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="break">🔍 完整拆解</button>' +
       '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="ai" ' + (busyAi ? 'disabled' : '') + '>' + (busyAi ? '🤖 思考中…' : '🤖 AI 解釋這句') + '</button>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="sent" ' + (st.sentBusy ? 'disabled' : '') + '>' + (st.sentBusy ? '📄 翻譯中…' : '📄 整句翻譯') + '</button>' +
     '</div>' +
 
     (st.sentence ? '<p class="text-[11px] text-[#A5A2B8] font-bold mt-3 leading-relaxed">📌 原句：' + esc(st.sentence.slice(0, 220)) + '</p>' : '') +
@@ -10862,6 +11254,14 @@ function readerBind() {
       if (act === 'toggle-hard') { readerState.showHard = !readerState.showHard; readerRender(); return; }
       if (act === 'toggle-list') { readerState.showList = !readerState.showList; readerRender(); return; }
       if (act === 'add-hard') { readerAddHardBatch(); return; }
+      if (act === 'para') { readerTranslatePara(hit.getAttribute('data-rd-p'), false); return; }
+      if (act === 'sentence') { readerTranslatePara(hit.getAttribute('data-rd-p'), true); return; }
+      if (act === 'para-off') {
+        const pi = parseInt(hit.getAttribute('data-rd-p'), 10);
+        if (readerState.paraZh) delete readerState.paraZh[pi];
+        readerRender();
+        return;
+      }
     }
 
     box.addEventListener('pointerdown', function (ev) {
@@ -10935,6 +11335,7 @@ function readerBind() {
       if (act === 'book') { readerAddSelectedToBook(); return; }
       if (act === 'break') { readerBreakdown(readerState.selected); return; }
       if (act === 'ai') { readerAiExplain(); return; }
+      if (act === 'sent') { readerTranslateSentence(); return; }
     }
     sheet.addEventListener('pointerdown', function () { sDownAt = Date.now(); }, { passive: true });
     let sTimer = null;
@@ -11004,6 +11405,11 @@ async function readerOpenSheet(word, sentence) {
   readerState.sentence = sentence || '';
   readerState.aiOut = '';
   readerState.aiWord = '';
+  readerState.extra = null;
+  readerState.extraBusy = true;
+  readerState.sentZh = '';
+  readerState.sentEn = '';
+  readerState.sentBusy = false;
   readerRenderSheet();
 
   if (!zhGet(word)) {
@@ -11013,6 +11419,9 @@ async function readerOpenSheet(word, sentence) {
     readerState.busy = '';
     if (readerState.selected === word) readerRenderSheet();
   }
+
+  /* 背景補上「其他意思」與「網路英文釋義的中文語譯」，不擋字卡顯示 */
+  readerFillExtra(word);
 }
 
 /** 取得中文釋義（先看本機快取，沒有就上網翻） */
@@ -11150,6 +11559,9 @@ function init() {
   $$('#nav-list [data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
+
+  // 查字頁的「整段／整句翻譯」工具（v2.1）
+  lexBindBlock();
 
   /* 深層連結：支援 index.html#quiz / #srs / #lexicon
      （manifest 的 shortcuts 與「加到主畫面」都用得到），並支援瀏覽器上一頁／下一頁 */

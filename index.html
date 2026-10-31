@@ -452,6 +452,25 @@
   .af-opt.right { background: #D9F6E7; border-color: #0F7A54; }
   .af-opt.wrong { background: #FFE1DF; border-color: #E03E43; }
   @media (max-width: 400px) { .af-ex { font-size: .76rem; padding: .3rem .5rem; } }
+  /* ---------- 📄 閱讀文件（Reader，v2.0 新增） ---------- */
+  .rd-drop { border: 2px dashed #C7C3E0; border-radius: 1.1rem; background: #FBFAFF; padding: 1.6rem 1rem; text-align: center; }
+  .rd-drop.over { border-color: #6C4BF6; background: #F3EEFF; }
+  .rd-doc { background: #fff; border: 1px solid var(--we-line); border-radius: 1rem; padding: 1.1rem 1.2rem; line-height: 2.05; font-size: 1.02rem; font-weight: 600; color: #2E2C3D; }
+  .rd-doc p { margin: 0 0 .9rem; }
+  .rd-w { cursor: pointer; border-radius: .3rem; padding: 0 .06rem; transition: background .12s; touch-action: manipulation; -webkit-tap-highlight-color: rgba(108,75,246,.2); }
+  .rd-w:active { background: #E4DBFF; }
+  .rd-w:hover { background: #EFEAFF; }
+  .rd-hw { background: #FFF1D6; box-shadow: inset 0 -2px 0 #FFB020; font-weight: 900; }
+  .rd-hw:hover { background: #FFE3B0; }
+  .rd-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  .rd-hwchip { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .55rem; border-radius: .7rem; border: 2px solid var(--we-line); background: #fff; font-size: .82rem; font-weight: 900; color: #1F1E2B; }
+  .rd-hwchip:hover { border-color: #C7C3E0; }
+  .rd-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 92; max-height: 74vh; overflow-y: auto; background: #fff; border-top: 1px solid var(--we-line); border-radius: 1.2rem 1.2rem 0 0; box-shadow: 0 -12px 40px rgba(31,30,43,.18); transform: translateY(102%); transition: transform .25s ease; padding: 1rem 1rem 1.5rem; }
+  .rd-sheet.on { transform: translateY(0); }
+  .rd-scrim { position: fixed; inset: 0; z-index: 91; background: rgba(21,20,31,.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .rd-scrim.on { opacity: 1; pointer-events: auto; }
+  body.rd-lock { overflow: hidden; }
+  @media (max-width: 400px) { .rd-doc { font-size: .97rem; line-height: 1.95; padding: 1rem; } }
 </style>
 </head>
 
@@ -614,6 +633,20 @@
     <div id="wordbook-body"></div>
   </section>
 
+  <!-- ==========================================================
+       分頁 9：閱讀文件（Reader）v2.0 新增
+       上傳文件 → 自動標難字 → 點字查中文／加入單詞本
+       ========================================================== -->
+  <section id="panel-reader" class="hidden">
+    <div class="text-center mb-6">
+      <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">📄 閱讀文件</h2>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">上傳文章自動標出難字 · 點任何一個字就查中文、聽發音、加進單詞本</p>
+    </div>
+    <div id="reader-body"></div>
+    <div class="rd-scrim" id="rd-scrim"></div>
+    <div class="rd-sheet" id="rd-sheet" role="dialog" aria-label="單字卡"></div>
+  </section>
+
 </main>
 
 <!-- ============================================================
@@ -655,6 +688,10 @@
       <span class="we-nav-txt"><span>單詞本</span><span class="we-nav-sub">查過的字自動留下，永不刪除</span></span>
       <span id="wb-badge-menu" class="hidden ml-auto min-w-[22px] h-[22px] px-1 rounded-full bg-[#6C4BF6] text-white text-[11px] font-extrabold flex items-center justify-center">0</span>
     </button>
+    <button class="we-nav-item" data-tab="reader">
+      <span class="we-nav-ico">📄</span>
+      <span class="we-nav-txt"><span>閱讀文件</span><span class="we-nav-sub">上傳文章自動標難字，點字就查</span></span>
+    </button>
     <button class="we-nav-item" data-tab="speak">
       <span class="we-nav-ico">🎤</span>
       <span class="we-nav-txt"><span>AI 口說教練</span><span class="we-nav-sub">錄音、逐字糾正、四項評分</span></span>
@@ -670,7 +707,7 @@
   </nav>
 
   <div class="we-drawer-foot">
-    <p>🦊 單字探險家 <span id="nav-version">v1.8</span></p>
+    <p>🦊 單字探險家 <span id="nav-version">v2.0</span></p>
     <p class="mt-0.5">介面、圖示與配色皆為本專案原創設計</p>
   </div>
 </aside>
@@ -1375,7 +1412,7 @@ function closeNav() {
 
 function switchTab(tab) {
   state.activeTab = tab;
-  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'wordbook', 'idea', 'playbook'].forEach(t => {
+  ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'wordbook', 'reader', 'idea', 'playbook'].forEach(t => {
     const panel = $('#panel-' + t);
     if (!panel) return;
     panel.classList.toggle('hidden', t !== tab);
@@ -1383,6 +1420,14 @@ function switchTab(tab) {
       panel.classList.remove('animate-fade');
       void panel.offsetWidth; // 強制重繪以重播動畫
       panel.classList.add('animate-fade');
+      /* ⚠️ 動畫跑完一定要把 class 拿掉：帶 transform 的分頁會變成「fixed 子元素的定位祖先」，
+         讓 position:fixed 的字卡／遮罩以整份文件高度定位（長文章時字卡會跑到畫面外，
+         使用者只看到一片變暗）。 */
+      if (panel._afTimer) clearTimeout(panel._afTimer);
+      panel._afTimer = setTimeout(function () {
+        panel._afTimer = null;
+        panel.classList.remove('animate-fade');
+      }, 420);
     }
   });
 
@@ -1394,6 +1439,7 @@ function switchTab(tab) {
   if (tab === 'srs')  renderSRS();
   if (tab === 'speak') renderSpeakTab();
   if (tab === 'wordbook') renderWordbook();
+  if (tab === 'reader') renderReader();
   if (tab === 'idea') renderIdea();
   if (tab === 'playbook') renderPlaybook();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1414,7 +1460,7 @@ function applyHashRoute() {
   const raw = String(location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
   if (!raw) return false;
   /* 允許 #quiz、#srs、#lexicon 等寫法 */
-  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix' || raw === 'idea' || raw === 'wordbook') ? raw : null;
+  const tab = (raw === 'quiz' || raw === 'srs' || raw === 'lexicon' || raw === 'speak' || raw === 'playbook' || raw === 'affix' || raw === 'idea' || raw === 'wordbook' || raw === 'reader') ? raw : null;
   if (!tab || tab === state.activeTab) return false;
   switchTab(tab);
   return true;
@@ -8549,7 +8595,8 @@ const WB_SOURCE_META = [
   { id: 'quiz_wrong', label: '❌ 答錯過',   cls: 'bg-[#FFE3E5] text-[#E0242A]' },
   { id: 'quiz_right', label: '✅ 答對過',   cls: 'bg-[#CDF7E4] text-[#0E8F63]' },
   { id: 'srs_wrong',  label: '🧠 複習卡住', cls: 'bg-[#FFF1D6] text-[#96701A]' },
-  { id: 'manual',     label: '✍️ 手動加入', cls: 'bg-[#F5F6FB] text-[#6B6880]' }
+  { id: 'manual',     label: '✍️ 手動加入', cls: 'bg-[#F5F6FB] text-[#6B6880]' },
+  { id: 'reader',     label: '📄 閱讀時加入', cls: 'bg-[#E4F6FF] text-[#0B6E93]' }
 ];
 
 /** 單詞本畫面狀態（只存在記憶體，重整就回到預設） */
@@ -9890,6 +9937,1203 @@ function gsyncBoot() {
       setTimeout(function () { gsyncSync({ silent: true }); }, 5000);
     }
   } catch (e) { /* 忽略 */ }
+}
+
+/* =================================================================================
+   v2.0：常見字頻率表（閱讀器判斷難字用）
+   ================================================================================= */
+/* ---------- 常用字頻率表（前 5000 名，用於閱讀器判斷難字） ----------
+   來源：google-10000-english（美國當代英語語料頻率排序），只取前 5000 名。
+   用「字串 + split」寫法，比 5000 個物件的陣列小很多，載入也快。
+   --------------------------------------------------------------------------- */
+const COMMON_LIST = (
+  'the of and to a in for is on that by this with i you it ' +
+  'not or be are from at as your all have new more an was we will ' +
+  'home can us about if page my has search free but our one other do no ' +
+  'information time they site he up may what which their news out use any there see ' +
+  'only so his when contact here business who web also now help get pm view online ' +
+  'c e first am been would how were me s services some these click its like ' +
+  'service x than find price date back top people had list name just over state year ' +
+  'day into email two health n world re next used go b work last most products ' +
+  'music buy data make them should product system post her city t add policy number such ' +
+  'please available copyright support message after best software then jan good video well d where info ' +
+  'rights public books high school through m each links she review years order very privacy book ' +
+  'items company r read group need many user said de does set under general research university ' +
+  'january mail full map reviews program life know games way days management p part could great ' +
+  'united hotel real f item international center ebay must store travel comments made development report off ' +
+  'member details line terms before hotels did send right type because local those using results office ' +
+  'education national car design take posted internet address community within states area want phone dvd shipping ' +
+  'reserved subject between forum family l long based w code show o even black check special ' +
+  'prices website index being women much sign file link open today technology south case project same ' +
+  'pages uk version section own found sports house related security both g county american photo game ' +
+  'members power while care network down computer systems three total place end following download h him ' +
+  'without per access think north resources current posts big media law control water history pictures size ' +
+  'art personal since including guide shop directory board location change white text small rating rate government ' +
+  'children during usa return students v shopping account times sites level digital profile previous form events ' +
+  'love old john main call hours image department title description non k y insurance another why ' +
+  'shall property class cd still money quality every listing content country private little visit save tools ' +
+  'low reply customer december compare movies include college value article york man card jobs provide j ' +
+  'food source author different press u learn sale around print course job canada process teen room ' +
+  'stock training too credit point join science men categories advanced west sales look english left team ' +
+  'estate box conditions select windows photos gay thread week category note live large gallery table register ' +
+  'however june october november market library really action start series model features air industry plan human ' +
+  'provided tv yes required second hot accessories cost movie forums march la september better say questions ' +
+  'july yahoo going medical test friend come dec server pc study application cart staff articles san ' +
+  'feedback again play looking issues april never users complete street topic comment financial things working against ' +
+  'standard tax person below mobile less got blog party payment equipment login student let programs offers ' +
+  'legal above recent park stores side act problem red give memory performance social q august quote ' +
+  'language story sell options experience rates create key body young america important field few east paper ' +
+  'single ii age activities club example girls additional password z latest something road gift question changes ' +
+  'night ca hard texas oct pay four poker status browse issue range building seller court february ' +
+  'always result audio light write war nov offer blue groups al easy given files event release ' +
+  'analysis request fax china making picture needs possible might professional yet month major star areas future ' +
+  'space committee hand sun cards problems london washington meeting rss become interest id child keep enter ' +
+  'california share similar garden schools million added reference companies listed baby learning energy run delivery net ' +
+  'popular term film stories put computers journal reports co try welcome central images president notice original ' +
+  'head radio until cell color self council away includes track australia discussion archive once others entertainment ' +
+  'agreement format least society months log safety friends sure faq trade edition cars messages marketing tell ' +
+  'further updated association able having provides david fun already green studies close common drive specific several ' +
+  'gold feb living sep collection called short arts lot ask display limited powered solutions means director ' +
+  'daily beach past natural whether due et electronics five upon period planning database says official weather ' +
+  'mar land average done technical window france pro region island record direct microsoft conference environment records ' +
+  'st district calendar costs style url front statement update parts aug ever downloads early miles sound ' +
+  'resource present applications either ago document word works material bill apr written talk federal hosting rules ' +
+  'final adult tickets thing centre requirements via cheap kids finance true minutes else mark third rock ' +
+  'gifts europe reading topics bad individual tips plus auto cover usually edit together videos percent fast ' +
+  'function fact unit getting global tech meet far economic en player projects lyrics often subscribe submit ' +
+  'germany amount watch included feel though bank risk thanks everything deals various words linux jul production ' +
+  'commercial james weight town heart advertising received choose treatment newsletter archives points knowledge magazine error camera ' +
+  'jun girl currently construction toys registered clear golf receive domain methods chapter makes protection policies loan ' +
+  'wide beauty manager india position taken sort listings models michael known half cases step engineering florida ' +
+  'simple quick none wireless license paul friday lake whole annual published later basic sony shows corporate ' +
+  'google church method purchase customers active response practice hardware figure materials fire holiday chat enough designed ' +
+  'along among death writing speed html countries loss face brand discount higher effects created remember standards ' +
+  'oil bit yellow political increase advertise kingdom base near environmental thought stuff french storage oh japan ' +
+  'doing loans shoes entry stay nature orders availability africa summary turn mean growth notes agency king ' +
+  'monday european activity copy although drug pics western income force cash employment overall bay river commission ' +
+  'ad package contents seen players engine port album regional stop supplies started administration bar institute views ' +
+  'plans double dog build screen exchange types soon sponsored lines electronic continue across benefits needed season ' +
+  'apply someone held ny anything printer condition effective believe organization effect asked eur mind sunday selection ' +
+  'casino pdf lost tour menu volume cross anyone mortgage hope silver corporation wish inside solution mature ' +
+  'role rather weeks addition came supply nothing certain usr executive running lower necessary union jewelry according ' +
+  'dc clothing mon com particular fine names robert homepage hour gas skills six bush islands advice ' +
+  'career military rental decision leave british teens pre huge sat woman facilities zip bid kind sellers ' +
+  'middle move cable opportunities taking values division coming tuesday object lesbian appropriate machine logo length actually ' +
+  'nice score statistics client ok returns capital follow sample investment sent shown saturday christmas england culture ' +
+  'band flash ms lead george choice went starting registration fri thursday courses consumer hi airport foreign ' +
+  'artist outside furniture levels channel letter mode phones ideas wednesday structure fund summer allow degree contract ' +
+  'button releases wed homes super male matter custom virginia almost took located multiple asian distribution editor ' +
+  'inn industrial cause potential song cnet ltd los hp focus late fall featured idea rooms female ' +
+  'responsible inc communications win associated thomas primary cancer numbers reason tool browser spring foundation answer voice ' +
+  'eg friendly schedule documents communication purpose feature bed comes police everyone independent ip approach cameras brown ' +
+  'physical operating hill maps medicine deal hold ratings chicago forms glass happy tue smith wanted developed ' +
+  'thank safe unique survey prior telephone sport ready feed animal sources mexico population pa regular secure ' +
+  'navigation operations therefore simply evidence station christian round paypal favorite understand option master valley recently probably ' +
+  'thu rentals sea built publications blood cut worldwide improve connection publisher hall larger anti networks earth ' +
+  'parents nokia impact transfer introduction kitchen strong tel carolina wedding properties hospital ground overview ship accommodation ' +
+  'owners disease tx excellent paid italy perfect hair opportunity kit classic basis command cities william express ' +
+  'award distance tree peter assessment ensure thus wall ie involved el extra especially interface partners budget ' +
+  'rated guides success maximum ma operation existing quite selected boy amazon patients restaurants beautiful warning wine ' +
+  'locations horse vote forward flowers stars significant lists technologies owner retail animals useful directly manufacturer ways ' +
+  'est son providing rule mac housing takes iii gmt bring catalog searches max trying mother authority ' +
+  'considered told xml traffic programme joined input strategy feet agent valid bin modern senior ireland teaching ' +
+  'door grand testing trial charge units instead canadian cool normal wrote enterprise ships entire educational md ' +
+  'leading metal positive fl fitness chinese opinion mb asia football abstract uses output funds mr greater ' +
+  'likely develop employees artists alternative processing responsibility resolution java guest seems publication pass relations trust van ' +
+  'contains session multi photography republic fees components vacation century academic assistance completed skin graphics indian prev ' +
+  'ads mary il expected ring grade dating pacific mountain organizations pop filter mailing vehicle longer consider ' +
+  'int northern behind panel floor german buying match proposed default require iraq boys outdoor deep morning ' +
+  'otherwise allows rest protein plant reported hit transportation mm pool mini politics partner disclaimer authors boards ' +
+  'faculty parties fish membership mission eye string sense modified pack released stage internal goods recommended born ' +
+  'unless richard detailed japanese race approved background target except character usb maintenance ability maybe functions ed ' +
+  'moving brands places php pretty trademarks phentermine spain southern yourself etc winter battery youth pressure submitted ' +
+  'boston debt keywords medium television interested core break purposes throughout sets dance wood msn itself defined ' +
+  'papers playing awards fee studio reader virtual device established answers rent las remote dark programming external ' +
+  'apple le regarding instructions min offered theory enjoy remove aid surface minimum visual host variety teachers ' +
+  'isbn martin manual block subjects agents increased repair fair civil steel understanding songs fixed wrong beginning ' +
+  'hands associates finally az updates desktop classes paris ohio gets sector capacity requires jersey un fat ' +
+  'fully father electric saw instruments quotes officer driver businesses dead respect unknown specified restaurant mike trip ' +
+  'pst worth mi procedures poor teacher eyes relationship workers farm georgia peace traditional campus tom showing ' +
+  'creative coast benefit progress funding devices lord grant sub agree fiction hear sometimes watches careers beyond ' +
+  'goes families led museum themselves fan transport interesting blogs wife evaluation accepted former implementation ten hits ' +
+  'zone complex th cat galleries references die presented jack flat flow agencies literature respective parent spanish ' +
+  'michigan columbia setting dr scale stand economy highest helpful monthly critical frame musical definition secretary angeles ' +
+  'networking path australian employee chief gives kb bottom magazines packages detail francisco laws changed pet heard ' +
+  'begin individuals colorado royal clean switch russian largest african guy titles relevant guidelines justice connect bible ' +
+  'dev cup basket applied weekly vol installation described demand pp suite vegas na square chris attention ' +
+  'advance skip diet army auction gear lee os difference allowed correct charles nation selling lots piece ' +
+  'sheet firm seven older illinois regulations elements species jump cells module resort facility random pricing dvds ' +
+  'certificate minister motion looks fashion directions visitors documentation monitor trading forest calls whose coverage couple giving ' +
+  'chance vision ball ending clients actions listen discuss accept automotive naked goal successful sold wind communities ' +
+  'clinical situation sciences markets lowest highly publishing appear emergency developing lives currency leather determine temperature palm ' +
+  'announcements patient actual historical stone bob commerce ringtones perhaps persons difficult scientific satellite fit tests village ' +
+  'accounts amateur ex met pain xbox particularly factors coffee www settings buyer cultural steve easily oral ' +
+  'ford poster edge functional root au fi closed holidays ice pink zealand balance monitoring graduate replies ' +
+  'shot nc architecture initial label thinking scott llc sec recommend canon league waste minute bus provider ' +
+  'optional dictionary cold accounting manufacturing sections chair fishing effort phase fields bag fantasy po letters motor ' +
+  'va professor context install shirt apparel generally continued foot mass crime count breast techniques ibm rd ' +
+  'johnson sc quickly dollars websites religion claim driving permission surgery patch heat wild measures generation kansas ' +
+  'miss chemical doctor task reduce brought himself nor component enable exercise bug santa mid guarantee leader ' +
+  'diamond israel se processes soft servers alone meetings seconds jones arizona keyword interests flight congress fuel ' +
+  'username walk produced italian paperback classifieds wait supported pocket saint rose freedom argument competition creating jim ' +
+  'drugs joint premium providers fresh characters attorney upgrade di factor growing thousands km stream apartments pick ' +
+  'hearing eastern auctions therapy entries dates generated signed upper administrative serious prime samsung limit began louis ' +
+  'steps errors shops del efforts informed ga ac thoughts creek ft worked quantity urban practices sorted ' +
+  'reporting essential myself tours platform load affiliate labor immediately admin nursing defense machines designated tags heavy ' +
+  'covered recovery joe guys integrated configuration merchant comprehensive expert universal protect drop solid cds presentation languages ' +
+  'became orange compliance vehicles prevent theme rich im campaign marine improvement vs guitar finding pennsylvania examples ' +
+  'ipod saying spirit ar claims challenge motorola acceptance strategies mo seem affairs touch intended towards sa ' +
+  'goals hire election suggest branch charges serve affiliates reasons magic mount smart talking gave ones latin ' +
+  'multimedia xp avoid certified manage corner rank computing oregon element birth virus abuse interactive requests separate ' +
+  'quarter procedure leadership tables define racing religious facts breakfast kong column plants faith chain developer identify ' +
+  'avenue missing died approximately domestic sitemap recommendations moved houston reach comparison mental viewed moment extended sequence ' +
+  'inch attack sorry centers opening damage lab reserve recipes cvs gamma plastic produce snow placed truth ' +
+  'counter failure follows eu weekend dollar camp ontario automatically des minnesota films bridge native fill williams ' +
+  'movement printing baseball owned approval draft chart played contacts cc jesus readers clubs lcd wa jackson ' +
+  'equal adventure matching offering shirts profit leaders posters institutions assistant variable ave dj advertisement expect parking ' +
+  'headlines yesterday compared determined wholesale workshop russia gone codes kinds extension seattle statements golden completely teams ' +
+  'fort cm wi lighting senate forces funny brother gene turned portable tried electrical applicable disc returned ' +
+  'pattern ct boat named theatre laser earlier manufacturers sponsor classical icon warranty dedicated indiana direction harry ' +
+  'basketball objects ends delete evening assembly nuclear taxes mouse signal criminal issued brain sexual wisconsin powerful ' +
+  'dream obtained false da cast flower felt personnel passed supplied identified falls pic soul aids opinions ' +
+  'promote stated stats hawaii professionals appears carry flag decided nj covers hr em advantage hello designs ' +
+  'maintain tourism priority newsletters adults clips savings iv graphic atom payments rw estimated binding brief ended ' +
+  'winning eight anonymous iron straight script served wants miscellaneous prepared void dining alert integration atlanta dakota ' +
+  'tag interview mix framework disk installed queen vhs credits clearly fix handle sweet desk criteria pubmed ' +
+  'dave massachusetts diego hong vice associate ne truck behavior enlarge ray frequently revenue measure changing votes ' +
+  'du duty looked discussions bear gain festival laboratory ocean flights experts signs lack depth iowa whatever ' +
+  'logged laptop vintage train exactly dry explore maryland spa concept nearly eligible checkout reality forgot handling ' +
+  'origin knew gaming feeds billion destination scotland faster intelligence dallas bought con ups nations route followed ' +
+  'specifications broken tripadvisor frank alaska zoom blow battle residential anime speak decisions industries protocol query clip ' +
+  'partnership editorial nt expression es equity provisions speech wire principles suggestions rural shared sounds replacement tape ' +
+  'strategic judge spam economics acid bytes cent forced compatible fight apartment height null zero speaker filed ' +
+  'gb netherlands obtain bc consulting recreation offices designer remain managed pr failed marriage roll korea banks ' +
+  'fr participants secret bath aa kelly leads negative austin favorites toronto theater springs missouri andrew var ' +
+  'perform healthy translation estimates font assets injury mt joseph ministry drivers lawyer figures married protected proposal ' +
+  'sharing philadelphia portal waiting birthday beta fail gratis banking officials brian toward won slightly assist conduct ' +
+  'contained lingerie legislation calling parameters jazz serving bags profiles miami comics matters houses doc postal relationships ' +
+  'tennessee wear controls breaking combined ultimate wales representative frequency introduced minor finish departments residents noted displayed ' +
+  'mom reduced physics rare spent performed extreme samples davis daniel bars reviewed row oz forecast removed ' +
+  'helps singles administrator cycle amounts contain accuracy dual rise usd sleep mg bird pharmacy brazil creation ' +
+  'static scene hunter addresses lady crystal famous writer chairman violence fans oklahoma speakers drink academy dynamic ' +
+  'gender eat permanent agriculture dell cleaning constitutes portfolio practical delivered collectibles infrastructure exclusive seat concerns colour ' +
+  'vendor originally intel utilities philosophy regulation officers reduction aim bids referred supports nutrition recording regions junior ' +
+  'toll les cape ann rings meaning tip secondary wonderful mine ladies henry ticket announced guess agreed ' +
+  'prevention whom ski soccer math import posting presence instant mentioned automatic healthcare viewing maintained ch increasing ' +
+  'majority connected christ dan dogs sd directors aspects austria ahead moon participation scheme utility preview fly ' +
+  'manner matrix containing combination devel amendment despite strength guaranteed turkey libraries proper distributed degrees singapore enterprises ' +
+  'delta fear seeking inches phoenix rs convention shares principal daughter standing comfort colors wars cisco ordering ' +
+  'kept alpha appeal cruise bonus certification previously hey bookmark buildings specials beat disney household batteries adobe ' +
+  'smoking bbc becomes drives arms alabama tea improved trees avg achieve positions dress subscription dealer contemporary ' +
+  'sky utah nearby rom carried happen exposure panasonic hide permalink signature gambling refer miller provision outdoors ' +
+  'clothes caused luxury babes frames certainly indeed newspaper toy circuit layer printed slow removal easier src ' +
+  'liability trademark hip printers faqs nine adding kentucky mostly eric spot taylor trackback prints spend factory ' +
+  'interior revised grow americans optical promotion relative amazing clock dot hiv identity suites conversion feeling hidden ' +
+  'reasonable victoria serial relief revision broadband influence ratio pda importance rain onto dsl planet webmaster copies ' +
+  'recipe zum permit seeing proof dna diff tennis bass prescription bedroom empty instance hole pets ride ' +
+  'licensed orlando specifically tim bureau maine sql represent conservation pair ideal specs recorded don pieces finished ' +
+  'parks dinner lawyers sydney stress cream ss runs trends yeah discover ap patterns boxes louisiana hills ' +
+  'javascript fourth nm advisor mn marketplace nd evil aware wilson shape evolution irish certificates objectives stations ' +
+  'suggested gps op remains acc greatest firms concerned euro operator structures generic encyclopedia usage cap ink ' +
+  'charts continuing mixed census interracial peak tn competitive exist wheel transit suppliers salt compact poetry lights ' +
+  'tracking angel bell keeping preparation attempt receiving matches accordance width noise engines forget array discussed accurate ' +
+  'stephen elizabeth climate reservations pin playstation alcohol greek instruction managing annotation sister raw differences walking explain ' +
+  'smaller newest establish gnu happened expressed jeff extent sharp lesbians ben lane paragraph kill mathematics aol ' +
+  'compensation ce export managers aircraft modules sweden conflict conducted versions employer occur percentage knows mississippi describe ' +
+  'concern backup requested citizens connecticut heritage personals immediate holding trouble spread coach kevin agricultural expand supporting ' +
+  'audience assigned jordan collections ages participate plug specialist cook affect virgin experienced investigation raised hat institution ' +
+  'directed dealers searching sporting helping perl affected lib bike totally plate expenses indicate blonde ab proceedings ' +
+  'favourite transmission anderson utc characteristics der lose organic seek experiences albums cheats extremely verzeichnis contracts guests ' +
+  'hosted diseases concerning developers equivalent chemistry tony neighborhood nevada kits thailand variables agenda anyway continues tracks ' +
+  'advisory cam curriculum logic template prince circle soil grants anywhere psychology responses atlantic wet circumstances edward ' +
+  'investor identification ram leaving wildlife appliances matt elementary cooking speaking sponsors fox unlimited respond sizes plain ' +
+  'exit entered iran arm keys launch wave checking costa belgium printable holy acts guidance mesh trail ' +
+  'enforcement symbol crafts highway buddy hardcover observed dean setup poll booking glossary fiscal celebrity styles denver ' +
+  'unix filled bond channels ericsson appendix notify blues chocolate pub portion scope hampshire supplier cables cotton ' +
+  'bluetooth controlled requirement authorities biology dental killed border ancient debate representatives starts pregnancy causes arkansas biography ' +
+  'leisure attractions learned transactions notebook explorer historic attached opened tm husband disabled authorized crazy upcoming britain ' +
+  'concert retirement scores financing efficiency sp comedy adopted efficient weblog linear commitment specialty bears jean hop ' +
+  'carrier edited constant visa mouth jewish meter linked portland interviews concepts nh gun reflect pure deliver ' +
+  'wonder lessons fruit begins qualified reform lens alerts treated discovery draw mysql classified relating assume confidence ' +
+  'alliance fm confirm warm neither lewis howard offline leaves engineer lifestyle consistent replace clearance connections inventory ' +
+  'converter organisation babe checks reached becoming safari objective indicated sugar crew legs sam stick securities allen ' +
+  'pdt relation enabled genre slide montana volunteer tested rear democratic enhance switzerland exact bound parameter adapter ' +
+  'processor node formal dimensions contribute lock hockey storm micro colleges laptops mile showed challenges editors mens ' +
+  'threads bowl supreme brothers recognition presents ref tank submission dolls estimate encourage navy kid regulatory inspection ' +
+  'consumers cancel limits territory transaction manchester weapons paint delay pilot outlet contributions continuous db czech resulting ' +
+  'cambridge initiative novel pan execution disability increases ultra winner idaho contractor ph episode examination potter dish ' +
+  'plays bulletin ia pt indicates modify oxford adam truly epinions painting committed extensive affordable universe candidate ' +
+  'databases patent slot psp outstanding ha eating perspective planned watching lodge messenger mirror tournament consideration ds ' +
+  'discounts sterling sessions kernel stocks buyers journals gray catalogue ea jennifer antonio charged broad taiwan und ' +
+  'chosen demo greece lg swiss sarah clark labour hate terminal publishers nights behalf caribbean liquid rice ' +
+  'nebraska loop salary reservation foods gourmet guard properly orleans saving nfl remaining empire resume twenty newly ' +
+  'raise prepare avatar gary depending illegal expansion vary hundreds rome arab lincoln helped premier tomorrow purchased ' +
+  'milk decide consent drama visiting performing downtown keyboard contest collected nw bands boot suitable ff absolutely ' +
+  'millions lunch audit push chamber guinea findings muscle featuring iso implement clicking scheduled polls typical tower ' +
+  'yours sum misc calculator significantly chicken temporary attend shower alan sending jason tonight dear sufficient holdem ' +
+  'shell province catholic oak vat awareness vancouver governor beer seemed contribution measurement swimming spyware formula constitution ' +
+  'packaging solar jose catch jane pakistan ps reliable consultation northwest sir doubt earn finder unable periods ' +
+  'classroom tasks democracy attacks kim wallpaper merchandise const resistance doors symptoms resorts biggest memorial visitor twin ' +
+  'forth insert baltimore gateway ky dont alumni drawing candidates charlotte ordered biological fighting transition happens preferences ' +
+  'spy romance instrument bruce split themes powers heaven br bits pregnant twice classification focused egypt physician ' +
+  'hollywood bargain wikipedia cellular norway vermont asking blocks normally lo spiritual hunting diabetes suit ml shift ' +
+  'chip res sit bodies photographs cutting wow simon writers marks flexible loved favourites mapping numerous relatively ' +
+  'birds satisfaction represents char indexed pittsburgh superior preferred saved paying cartoon shots intellectual moore granted choices ' +
+  'carbon spending comfortable magnetic interaction listening effectively registry crisis outlook massive denmark employed bright treat header ' +
+  'cs poverty formed piano echo que grid sheets patrick experimental puerto revolution consolidation displays plasma allowing ' +
+  'earnings voip mystery landscape dependent mechanical journey delaware bidding consultants risks banner applicant charter fig barbara ' +
+  'cooperation counties acquisition ports implemented sf directories recognized dreams blogger notification kg licensing stands teach occurred ' +
+  'textbooks rapid pull hairy diversity cleveland ut reverse deposit seminar investments latina nasa wheels specify accessibility ' +
+  'dutch sensitive templates formats tab depends boots holds router concrete si editing poland folder womens css ' +
+  'completion upload pulse universities technique contractors voting courts notices subscriptions calculate mc detroit alexander broadcast converted ' +
+  'metro toshiba anniversary improvements strip specification pearl accident nick accessible accessory resident plot qty possibly airline ' +
+  'typically representation regard pump exists arrangements smooth conferences uniprotkb strike consumption birmingham flashing lp narrow afternoon ' +
+  'threat surveys sitting putting consultant controller ownership committees legislative researchers vietnam trailer anne castle gardens missed ' +
+  'malaysia unsubscribe antique labels willing bio molecular acting heads stored exam logos residence attorneys antiques density ' +
+  'hundred ryan operators strange sustainable philippines statistical beds mention innovation pcs employers grey parallel honda amended ' +
+  'operate bills bold bathroom stable opera definitions von doctors lesson cinema asset ag scan elections drinking ' +
+  'reaction blank enhanced entitled severe generate stainless newspapers hospitals vi deluxe humor aged monitors exception lived ' +
+  'duration bulk successfully indonesia pursuant sci fabric edt visits primarily tight domains capabilities pmid contrast recommendation ' +
+  'flying recruitment sin berlin cute organized ba para siemens adoption improving cr expensive meant capture pounds ' +
+  'buffalo organisations plane pg explained seed programmes desire expertise mechanism camping ee jewellery meets welfare peer ' +
+  'caught eventually marked driven measured medline bottle agreements considering innovative marshall massage rubber conclusion closing tampa ' +
+  'thousand meat legend grace susan ing ks adams python monster alex bang villa bone columns disorders ' +
+  'bugs collaboration hamilton detection ftp cookies inner formation tutorial med engineers entity cruises gate holder proposals ' +
+  'moderator sw tutorials settlement portugal lawrence roman duties valuable tone collectables ethics forever dragon busy captain ' +
+  'fantastic imagine brings heating leg neck hd wing governments purchasing scripts abc stereo appointed taste dealing ' +
+  'commit tiny operational rail airlines liberal livecam jay trips gap sides tube turns corresponding descriptions cache ' +
+  'belt jacket determination animation oracle er matthew lease productions aviation hobbies proud excess disaster console commands ' +
+  'jr telecommunications instructor giant achieved injuries shipped seats approaches biz alarm voltage anthony nintendo usual loading ' +
+  'stamps appeared franklin angle rob vinyl highlights mining designers melbourne ongoing worst imaging betting scientists liberty ' +
+  'wyoming blackjack argentina era convert possibility analyst commissioner dangerous garage exciting reliability thongs gcc unfortunately respectively ' +
+  'volunteers attachment ringtone finland morgan derived pleasure honor asp oriented eagle desktops pants columbus nurse prayer ' +
+  'appointment workshops hurricane quiet luck postage producer represented mortgages dial responsibilities cheese comic carefully jet productivity ' +
+  'investors crown par underground diagnosis maker crack principle picks vacations gang semester calculated fetish applies casinos ' +
+  'appearance smoke apache filters incorporated nv craft cake notebooks apart fellow blind lounge mad algorithm semi ' +
+  'coins andy gross strongly cafe valentine hilton ken proteins horror su exp familiar capable douglas debian ' +
+  'till involving pen investing christopher admission epson shoe elected carrying victory sand madison terrorism joy editions ' +
+  'cpu mainly ethnic ran parliament actor finds seal situations fifth allocated citizen vertical corrections structural municipal ' +
+  'describes prize sr occurs jon absolute disabilities consists anytime substance prohibited addressed lies pipe soldiers nr ' +
+  'guardian lecture simulation layout initiatives ill concentration classics lbs lay interpretation horses lol dirty deck wayne ' +
+  'donate taught bankruptcy mp worker optimization alive temple substances prove discovered wings breaks genetic restrictions participating ' +
+  'waters promise thin exhibition prefer ridge cabinet modem harris mph bringing sick dose evaluate tiffany tropical ' +
+  'collect bet composition toyota streets nationwide vector definitely shaved turning buffer purple existence commentary larry limousines ' +
+  'developments def immigration destinations lets mutual pipeline necessarily syntax li attribute prison skill chairs nl everyday ' +
+  'apparently surrounding mountains moves popularity inquiry ethernet checked exhibit throw trend sierra visible cats desert postposted ' +
+  'ya oldest rhode nba coordinator obviously mercury steven handbook greg navigate worse summit victims epa spaces ' +
+  'fundamental burning escape coupons somewhat receiver substantial tr progressive cialis bb boats glance scottish championship arcade ' +
+  'richmond sacramento impossible ron russell tells obvious fiber depression graph covering platinum judgment bedrooms talks filing ' +
+  'foster modeling passing awarded testimonials trials tissue nz memorabilia clinton masters bonds cartridge alberta explanation folk ' +
+  'org commons cincinnati subsection fraud electricity permitted spectrum arrival okay pottery emphasis roger aspect workplace awesome ' +
+  'mexican confirmed counts priced wallpapers hist crash lift desired inter closer assumes heights shadow riding infection ' +
+  'firefox lisa expense grove eligibility venture clinic korean healing princess mall entering packet spray studios involvement ' +
+  'dad buttons placement observations vbulletin funded thompson winners extend roads subsequent pat dublin rolling fell motorcycle ' +
+  'yard disclosure establishment memories nelson te arrived creates faces tourist av mayor murder sean adequate senator ' +
+  'yield presentations grades cartoons pour digest reg lodging tion dust hence wiki entirely replaced radar rescue ' +
+  'undergraduate losses combat reducing stopped occupation lakes donations associations citysearch closely radiation diary seriously kings shooting ' +
+  'kent adds nsw ear flags pci baker launched elsewhere pollution conservative guestbook shock effectiveness walls abroad ' +
+  'ebony tie ward drawn arthur ian visited roof walker demonstrate atmosphere suggests kiss beast ra operated ' +
+  'experiment targets overseas purchases dodge counsel federation pizza invited yards assignment chemicals gordon mod farmers rc ' +
+  'queries bmw rush ukraine absence nearest cluster vendors mpeg whereas yoga serves woods surprise lamp rico ' +
+  'partial shoppers phil everybody couples nashville ranking jokes cst http ceo simpson twiki sublime counseling palace ' +
+  'acceptable satisfied glad wins measurements verify globe trusted copper milwaukee rack medication warehouse shareware ec rep ' +
+  'dicke kerry receipt supposed ordinary nobody ghost violation configure stability mit applying southwest boss pride institutional ' +
+  'expectations independence knowing reporter metabolism keith champion cloudy linda ross personally chile anna plenty solo sentence ' +
+  'throat ignore maria uniform excellence wealth tall rm somewhere vacuum dancing attributes recognize brass writes plaza ' +
+  'pdas outcomes survival quest publish sri screening toe thumbnail trans jonathan whenever nova lifetime api pioneer ' +
+  'booty forgotten acrobat plates acres venue athletic thermal essays behaviour vital telling fairly coastal config cf ' +
+  'charity intelligent edinburgh vt excel modes obligation campbell wake stupid harbor hungary traveler urw segment realize ' +
+  'regardless lan enemy puzzle rising aluminum wells wishlist opens insight sms restricted republican secrets lucky latter ' +
+  'merchants thick trailers repeat syndrome philips attendance penalty drum glasses enables nec iraqi builder vista jessica ' +
+  'chips terry flood foto ease arguments amsterdam arena adventures pupils stewart announcement tabs outcome appreciate expanded ' +
+  'casual grown polish lovely extras gm centres jerry clause smile lands ri troops indoor bulgaria armed ' +
+  'broker charger regularly believed pine cooling tend gulf rt rick trucks cp mechanisms divorce laura shopper ' +
+  'tokyo partly nikon customize tradition candy pills tiger donald folks sensor exposed telecom hunt angels deputy ' +
+  'indicators sealed thai emissions physicians loaded fred complaint scenes experiments afghanistan dd boost spanking scholarship governance ' +
+  'mill founded supplements chronic icons moral den catering aud finger keeps pound locate camcorder pl trained ' +
+  'burn implementing roses labs ourselves bread tobacco wooden motors tough roberts incident gonna dynamics lie crm ' +
+  'rf conversation decrease chest pension billy revenues emerging worship capability ak fe craig herself producing churches ' +
+  'precision damages reserves contributed solve shorts reproduction minority td diverse amp ingredients sb ah johnny sole ' +
+  'franchise recorder complaints facing sm nancy promotions tones passion rehabilitation maintaining sight laid clay defence patches ' +
+  'weak refund usc towns environments trembl divided blvd reception amd wise emails cyprus wv odds correctly ' +
+  'insider seminars consequences makers hearts geography appearing integrity worry ns discrimination eve carter legacy marc pleased ' +
+  'danger vitamin widely processed phrase genuine raising implications functionality paradise hybrid reads roles intermediate emotional sons ' +
+  'leaf pad glory platforms ja bigger billing diesel versus combine overnight geographic exceed bs rod saudi ' +
+  'fault cuba hrs preliminary districts introduce silk promotional'
+).split(' ');
+
+/** 常用字 → 頻率名次（1 = 最常用；不在表內代表是很罕見的字） */
+const COMMON_RANK = (function () {
+  const map = Object.create(null);
+  COMMON_LIST.forEach(function (w, i) { if (w) map[w] = i + 1; });
+  return map;
+})();
+
+/* =================================================================================
+   【模組十一：📄 閱讀文件（Reader）】v2.0 新增
+   ① 使用者上傳文件（txt / md / srt / vtt / csv / html / pdf / docx）或直接貼上文字
+   ② 用「常用字頻率＋長度＋音節＋構字」自動標出難字（0–12 分，≥5 分算難字）
+   ③ 點文章裡任何一個單字 → 開字卡：中文釋義、發音、加入單詞本、完整拆解、AI 解釋這句
+
+   ★ 設計原則：
+     - 文件只存在你自己的裝置（localStorage `reader_docs`，最多 4 份、每份 8 萬字），
+       不會上傳、也不會放進雲端備份（檔案太大）；但從閱讀器加進單詞本的字會照常同步。
+     - 標出的「難字」只是建議，不會自動塞進單詞本；要不要收錄完全由使用者決定。
+   ================================================================================= */
+
+const LS_READER = 'reader_docs';
+const READER_MAX_DOCS = 4;          // 最多保留幾份文件
+const READER_MAX_CHARS = 80000;     // 單份文件最多收幾個字元
+const READER_HARD_SCORE = 5;        // 幾分以上算「難字」
+
+/** 閱讀器畫面狀態（只存在記憶體；文件內容才寫進 localStorage） */
+const readerState = {
+  docId: '',
+  name: '',
+  text: '',
+  paras: [],
+  words: [],
+  hard: [],
+  scoreMap: null,
+  showHard: true,
+  showList: false,
+  busy: '',            // '' | 'load' | 'zh' | 'ai' | 'book'
+  selected: '',        // 字卡上的單字
+  sentence: '',        // 這個字所在的句子（給 AI 用）
+  aiOut: '',
+  aiWord: '',
+  note: ''
+};
+
+/* ---------- 讀寫（文件清單） ---------- */
+
+function readerGetDocs() {
+  const raw = lsGet(LS_READER, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(function (d) { return d && d.id && typeof d.text === 'string'; });
+}
+
+function readerSaveDocs(list) {
+  const arr = (Array.isArray(list) ? list : []).slice(0, READER_MAX_DOCS).map(function (d) {
+    return { id: d.id, name: d.name, text: String(d.text || '').slice(0, READER_MAX_CHARS), at: d.at || Date.now(), chars: (d.text || '').length };
+  });
+  lsSet(LS_READER, arr);
+}
+
+function readerNewId() {
+  return 'rd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+/* ---------- 難字評分 ---------- */
+
+/** 粗估音節數（給難度評分用，不需要百分之百準確） */
+function readerSyllables(word) {
+  const s = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!s) return 0;
+  const groups = s.match(/[aeiouy]+/g);
+  let n = groups ? groups.length : 0;
+  if (n > 1 && /e$/.test(s)) n -= 1;          // 字尾不發音的 e
+  return Math.max(1, n);
+}
+
+/** 單字難度 0–12 分：不在常用 5000 名 +6，越冷門、越長、音節越多、越像學術字就越高 */
+function readerScore(word, knownSet) {
+  const w = String(word || '').toLowerCase();
+  if (!w) return 0;
+  let s = 0;
+
+  const rank = COMMON_RANK[w] || 0;
+  if (!rank) s += 6;
+  else if (rank > 3000) s += 3;
+  else if (rank > 1500) s += 2;
+  else if (rank > 800) s += 1;
+
+  if (w.length >= 12) s += 3;
+  else if (w.length >= 9) s += 2;
+  else if (w.length >= 7) s += 1;
+
+  const syl = readerSyllables(w);
+  if (syl >= 4) s += 2;
+  else if (syl >= 3) s += 1;
+
+  if (/[zqxjvk]/.test(w)) s += 1;
+  if (/(tion|sion|cious|tious|ous|ity|ment|ance|ence|ify|ise|ize|ology|graphy|esque|aceous)$/.test(w)) s += 1;
+
+  // 已經在單詞本裡的字，代表你正在學 → 不算那麼難
+  if (knownSet && knownSet.has(w)) s -= 2;
+
+  return Math.max(0, Math.min(12, s));
+}
+
+/** 分數 → 難度標籤與配色 */
+function readerLevel(score) {
+  if (score >= 8) return { label: '很難', cls: 'bg-[#FFE3E5] text-[#E0242A]' };
+  if (score >= READER_HARD_SCORE) return { label: '偏難', cls: 'bg-[#FFF1D6] text-[#96701A]' };
+  if (score >= 3) return { label: '中等', cls: 'bg-[#EDE9FE] text-[#6C4BF6]' };
+  return { label: '簡單', cls: 'bg-[#CDF7E4] text-[#0E8F63]' };
+}
+
+/** 分析整篇文章：找出所有單字、算難度、挑出難字 */
+function readerAnalyze(text) {
+  const known = new Set();
+  wbGetAll().forEach(function (e) { known.add(String(e.word || '').toLowerCase()); });
+
+  const map = new Map();
+  const re = /[A-Za-z][A-Za-z'’\-]*/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const raw = m[0];
+    const w = raw.toLowerCase().replace(/^[-'’]+|[-'’]+$/g, '');
+    if (w.length < 3) continue;
+    let hit = map.get(w);
+    if (!hit) { hit = { word: w, count: 0, score: 0, known: known.has(w) }; map.set(w, hit); }
+    hit.count += 1;
+  }
+
+  const words = [];
+  map.forEach(function (e) {
+    e.score = readerScore(e.word, known);
+    e.level = readerLevel(e.score);
+    words.push(e);
+  });
+  words.sort(function (a, b) { return b.score - a.score || b.count - a.count || a.word.localeCompare(b.word); });
+
+  const hard = words.filter(function (e) { return e.score >= READER_HARD_SCORE; });
+  return { words: words, hard: hard };
+}
+
+/* ---------- 文件解析 ---------- */
+
+const readerScriptCache = Object.create(null);
+
+/** 需要時才去 CDN 抓 pdf.js / mammoth（第一次用 PDF 或 Word 才下載） */
+function readerLoadScript(src) {
+  if (readerScriptCache[src]) return readerScriptCache[src];
+  readerScriptCache[src] = new Promise(function (resolve, reject) {
+    const el = document.createElement('script');
+    el.src = src;
+    el.async = true;
+    el.onload = function () { resolve(true); };
+    el.onerror = function () { reject(new Error('解析工具載入失敗，請檢查網路連線')); };
+    document.head.appendChild(el);
+  });
+  return readerScriptCache[src];
+}
+
+function readerExtOf(name) {
+  const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/);
+  return m ? m[1] : '';
+}
+
+/** 依副檔名把檔案轉成純文字 */
+async function readerExtractText(file) {
+  const ext = readerExtOf(file.name);
+
+  if (ext === 'pdf') {
+    readerState.note = '正在解析 PDF…';
+    await readerLoadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    const lib = window.pdfjsLib;
+    if (!lib) throw new Error('PDF 解析器沒有載入成功');
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf = await file.arrayBuffer();
+    const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const out = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      readerState.note = '正在解析 PDF… 第 ' + p + ' / ' + pdf.numPages + ' 頁';
+      if (p === 2) readerRender();
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      let line = '';
+      tc.items.forEach(function (it) {
+        line += it.str;
+        if (it.hasEOL) line += '\n';
+      });
+      out.push(line);
+    }
+    return out.join('\n\n');
+  }
+
+  if (ext === 'docx' || ext === 'doc') {
+    readerState.note = '正在解析 Word 檔…';
+    await readerLoadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+    if (!window.mammoth) throw new Error('Word 解析器沒有載入成功');
+    const buf = await file.arrayBuffer();
+    const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+    return (res && res.value) || '';
+  }
+
+  const raw = await file.text();
+
+  if (ext === 'html' || ext === 'htm') {
+    try {
+      const doc = new DOMParser().parseFromString(raw, 'text/html');
+      doc.querySelectorAll('script,style,noscript').forEach(function (n) { n.remove(); });
+      return doc.body ? doc.body.innerText || doc.body.textContent || '' : raw;
+    } catch (e) {
+      return raw.replace(/<[^>]*>/g, ' ');
+    }
+  }
+
+  return raw;
+}
+
+/** 清掉字幕時間軸、多餘空行等雜訊 */
+function readerCleanText(text) {
+  let s = String(text || '').replace(/\r\n?/g, '\n').replace(/\u0000/g, '');
+  s = s.replace(/^\s*\d+\s*$/gm, '');                                           // SRT 的序號行
+  s = s.replace(/^\s*\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}\s*-->.*$/gm, '');           // SRT 時間軸
+  s = s.replace(/^\s*WEBVTT\s*$/gmi, '');                                       // VTT 標頭
+  s = s.replace(/[ \t]+\n/g, '\n');
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+
+/* ---------- 建立／開啟文件 ---------- */
+
+function readerOpenText(name, text) {
+  const clean = readerCleanText(text);
+  if (!clean) { showToast('讀不到文字（如果是掃描版 PDF，請改用複製貼上）', 'warn'); return; }
+  let body = clean;
+  if (body.length > READER_MAX_CHARS) {
+    body = body.slice(0, READER_MAX_CHARS);
+    showToast('文件很長，只取前 ' + READER_MAX_CHARS.toLocaleString() + ' 個字元', 'warn');
+  }
+
+  readerState.docId = readerNewId();
+  readerState.name = name || '未命名文件';
+  readerState.text = body;
+  readerState.paras = body.split(/\n{2,}/).map(function (p) { return p.trim(); }).filter(Boolean);
+  const res = readerAnalyze(body);
+  readerState.words = res.words;
+  readerState.hard = res.hard;
+  readerState.scoreMap = new Map();
+  res.words.forEach(function (e) { readerState.scoreMap.set(e.word, e.score); });
+  readerState.selected = '';
+  readerState.showList = false;
+
+  if (readerState.hard.length) {
+    showToast('找到 ' + readerState.hard.length + ' 個難字（共 ' + res.words.length + ' 個不同單字）');
+  } else {
+    showToast('這份文件沒有特別難的字，全部都在常用 5000 字內或已在你單詞本裡');
+  }
+
+  // 存進「最近開啟」（重複開啟同一份不會一直長大）
+  const docs = readerGetDocs().filter(function (d) { return d.name !== readerState.name; });
+  docs.unshift({ id: readerState.docId, name: readerState.name, text: body, at: Date.now(), chars: body.length });
+  readerSaveDocs(docs);
+  readerRender();
+}
+
+function readerOpenSaved(id) {
+  const doc = readerGetDocs().filter(function (d) { return d.id === id; })[0];
+  if (!doc) { showToast('這份文件已經不在了', 'error'); readerRender(); return; }
+  readerState.docId = doc.id;
+  readerState.name = doc.name;
+  readerState.text = doc.text;
+  readerState.paras = doc.text.split(/\n{2,}/).map(function (p) { return p.trim(); }).filter(Boolean);
+  const res = readerAnalyze(doc.text);
+  readerState.words = res.words;
+  readerState.hard = res.hard;
+  readerState.scoreMap = new Map();
+  res.words.forEach(function (e) { readerState.scoreMap.set(e.word, e.score); });
+  readerState.selected = '';
+  readerState.showList = false;
+  readerRender();
+}
+
+function readerCloseDoc() {
+  readerState.docId = '';
+  readerState.name = '';
+  readerState.text = '';
+  readerState.paras = [];
+  readerState.words = [];
+  readerState.hard = [];
+  readerState.scoreMap = null;
+  readerState.selected = '';
+  readerState.showList = false;
+  readerState.aiOut = '';
+  readerRenderSheet();
+  document.body.classList.remove('rd-lock');
+  readerRender();
+}
+
+/* ---------- 畫面 ---------- */
+
+function readerRender() {
+  const box = $('#reader-body');
+  if (!box) return;
+  box.innerHTML = readerState.busy === 'load' ? readerLoadingHtml()
+    : (readerState.text ? readerDocHtml() : readerHomeHtml());
+  readerRenderSheet();
+  readerBind();
+}
+
+/** switchTab 切到「📄 閱讀文件」分頁時呼叫（對外入口） */
+function renderReader() {
+  readerRender();
+}
+
+/** 字卡與遮罩一定拿得到；真的不在 DOM 裡就自己補上（避免點字完全沒反應） */
+function readerEnsureSheetEls() {
+  let sheet = $('#rd-sheet');
+  let scrim = $('#rd-scrim');
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.id = 'rd-sheet';
+    sheet.className = 'rd-sheet';
+    sheet.setAttribute('role', 'dialog');
+    document.body.appendChild(sheet);
+  }
+  if (!scrim) {
+    scrim = document.createElement('div');
+    scrim.id = 'rd-scrim';
+    scrim.className = 'rd-scrim';
+    document.body.appendChild(scrim);
+    scrim.addEventListener('click', function () {
+      if (Date.now() - (readerState.openAt || 0) < 400) return;
+      readerCloseSheet();
+    });
+  }
+  /* 一定要掛在 body 底下：分頁容器只要殘留 transform（動畫／scale），
+     position:fixed 就會以那個容器（可能好幾千 px 高）為準，字卡會跑到畫面外。 */
+  if (sheet.parentElement !== document.body) document.body.appendChild(sheet);
+  if (scrim.parentElement !== document.body) document.body.appendChild(scrim);
+  return { sheet: sheet, scrim: scrim };
+}
+
+function readerRenderSheet() {
+  const els = readerEnsureSheetEls();
+  const open = !!readerState.selected;
+  els.sheet.classList.toggle('on', open);
+  els.scrim.classList.toggle('on', open);
+  els.sheet.innerHTML = open ? readerSheetHtml() : '';
+  if (open) {
+    if (!readerState.openAt) readerState.openAt = Date.now();
+    document.body.classList.add('rd-lock');
+  } else {
+    readerState.openAt = 0;
+    document.body.classList.remove('rd-lock');
+  }
+}
+
+function readerLoadingHtml() {
+  return '<div class="we-card p-8 text-center">' +
+    '<div class="text-4xl mb-3 animate-spin">⏳</div>' +
+    '<p class="font-extrabold">' + esc(readerState.note || '正在讀取文件…') + '</p>' +
+    '<p class="text-xs text-[#A5A2B8] font-bold mt-1">PDF 會依頁數花一點時間，請稍等。</p>' +
+    '</div>';
+}
+
+function readerHomeHtml() {
+  const docs = readerGetDocs();
+  const listHtml = docs.length ? docs.map(function (d) {
+    const when = d.at ? new Date(d.at).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    return '<div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E4E2EF] bg-white">' +
+      '<span class="text-lg">📄</span>' +
+      '<button class="flex-1 text-left min-w-0" data-rd-doc="' + esc(d.id) + '">' +
+        '<span class="block font-extrabold text-sm truncate">' + esc(d.name) + '</span>' +
+        '<span class="block text-[11px] text-[#A5A2B8] font-bold">' + esc(when) + ' · ' + (d.chars || 0).toLocaleString() + ' 字</span>' +
+      '</button>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-deldoc="' + esc(d.id) + '" title="移除這份文件">🗑️</button>' +
+    '</div>';
+  }).join('') : '<p class="text-xs text-[#A5A2B8] font-bold">還沒有開啟過文件。上傳一份，或貼上一段英文。</p>';
+
+  return '<div class="we-card p-5 sm:p-6 mb-4">' +
+    '<div class="rd-drop" id="rd-drop">' +
+      '<div class="text-4xl mb-2">📄</div>' +
+      '<p class="font-extrabold text-lg">把文件拖進來，或按下面的按鈕</p>' +
+      '<p class="text-xs text-[#A5A2B8] font-bold mt-1 mb-3">支援 .txt / .md / .srt / .vtt / .csv / .html / .pdf / .docx · 單份上限 ' + READER_MAX_CHARS.toLocaleString() + ' 字</p>' +
+      '<div class="flex flex-wrap gap-2 justify-center">' +
+        '<button class="we-btn" data-rd-act="pick">📤 選擇檔案</button>' +
+        '<button class="we-btn we-btn-ghost" data-rd-act="paste-toggle">📋 貼上文字</button>' +
+      '</div>' +
+      '<input type="file" id="rd-file" class="hidden" accept=".txt,.text,.md,.markdown,.srt,.vtt,.csv,.html,.htm,.pdf,.docx,.doc">' +
+    '</div>' +
+
+    '<div id="rd-paste-box" class="hidden mt-3">' +
+      '<textarea id="rd-paste" class="we-input w-full h-40" placeholder="把英文文章貼在這裡…"></textarea>' +
+      '<div class="flex gap-2 mt-2">' +
+        '<button class="we-btn flex-1" data-rd-act="paste-go">開始閱讀 →</button>' +
+        '<button class="we-btn we-btn-ghost" data-rd-act="paste-toggle">取消</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<p class="text-[11px] text-[#A5A2B8] font-bold mt-4 leading-relaxed">🔒 文件只存在你自己的這台裝置（不會上傳、也不會進雲端備份）；但你從文章加進<b class="text-[#6C4BF6]">單詞本</b>的字會照常同步到雲端。</p>' +
+    '</div>' +
+
+    '<div class="we-card p-4 sm:p-5">' +
+      '<h3 class="font-extrabold mb-3">🕘 最近開啟</h3>' +
+      '<div class="space-y-2">' + listHtml + '</div>' +
+    '</div>';
+}
+
+function readerDocHtml() {
+  const st = readerState;
+  const hardCount = st.hard.length;
+  const hardInBook = st.hard.filter(function (e) { return wbHas(e.word); }).length;
+  return '<div class="we-card p-4 sm:p-5 mb-4">' +
+    '<div class="flex items-start gap-3 flex-wrap">' +
+      '<div class="min-w-0 flex-1">' +
+        '<p class="text-[11px] font-extrabold text-[#A5A2B8] uppercase tracking-wider">目前文件</p>' +
+        '<h3 class="font-extrabold text-lg truncate">📄 ' + esc(st.name) + '</h3>' +
+        '<p class="text-xs text-[#A5A2B8] font-bold mt-1">' + st.text.length.toLocaleString() + ' 字元 · ' + st.words.length + ' 個不同單字 · <span class="text-[#E0242A] font-extrabold">' + hardCount + ' 個難字</span>' + (hardInBook ? '（已收 ' + hardInBook + ' 個）' : '') + '</p>' +
+      '</div>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-act="close">✕ 關閉</button>' +
+    '</div>' +
+    '<div class="rd-toolbar mt-3">' +
+      '<button class="we-btn we-btn-sm ' + (st.showHard ? '' : 'we-btn-ghost') + '" data-rd-act="toggle-hard">' + (st.showHard ? '✅ 難字已標色' : '⬜ 標出難字') + '</button>' +
+      '<button class="we-btn we-btn-sm ' + (st.showList ? '' : 'we-btn-ghost') + '" data-rd-act="toggle-list">📊 難字表（' + hardCount + '）</button>' +
+      (hardCount ? '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-act="add-hard">📒 一鍵收前 30 個難字</button>' : '') +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-act="new">📄 換一份文件</button>' +
+      '<span class="flex items-center gap-1 ml-auto">' +
+        '<input id="rd-jump" class="we-input text-sm px-2 py-1" style="width:7.5rem" placeholder="打單字查…" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+        '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-act="jump" title="查這個字">🔍</button>' +
+      '</span>' +
+    '</div>' +
+    '<p class="text-[11px] font-bold mt-2 leading-relaxed ' + (st.words.length ? 'text-[#6B6880]' : 'text-[#E0242A]') + '">' +
+      (st.words.length
+        ? '👆 直接點文章裡的<b>任何一個英文單字</b>（不必是有標色的難字），或在上面的框打一個字按 🔍，就會跳出中文意思與「📒 加入單詞本」。'
+        : '⚠️ 這份文件抓不到英文單字（掃描版 PDF／圖片／編碼異常都會這樣）。請改上傳純文字檔（.txt），或把文字複製貼上來。') +
+    '</p>' +
+  '</div>' +
+  (st.showList ? readerHardListHtml() : '') +
+  '<div class="rd-doc" id="rd-doc">' + st.paras.map(function (p, i) {
+    return '<p data-rd-p="' + i + '">' + readerParaHtml(p) + '</p>';
+  }).join('') + '</div>' +
+  '<p class="text-[11px] text-[#A5A2B8] font-bold mt-3 leading-relaxed">👆 點文章裡任何一個英文單字 → 開字卡：中文釋義、🔊 發音、📒 加入單詞本、🔍 完整拆解、🤖 AI 解釋這句。加進單詞本的字可以永遠重複複習。</p>';
+}
+
+function readerHardListHtml() {
+  const st = readerState;
+  if (!st.hard.length) {
+    return '<div class="we-card p-4 mb-4"><p class="text-sm font-bold text-[#0E8F63]">🎉 這份文件沒有難字。</p></div>';
+  }
+  const chips = st.hard.slice(0, 120).map(function (e) {
+    const inBook = wbHas(e.word);
+    return '<button class="rd-hwchip" data-rd-word="' + esc(e.word) + '" title="' + esc(e.word) + '（' + e.score + ' 分）' + (inBook ? ' · 已在單詞本' : '') + '">' +
+      (inBook ? '✅ ' : '') + esc(e.word) + '<span class="text-[10px] font-extrabold text-[#A5A2B8]">' + e.count + '</span>' +
+    '</button>';
+  }).join(' ');
+  return '<div class="we-card p-4 mb-4">' +
+    '<h3 class="font-extrabold mb-2">📊 難字表<span class="text-xs text-[#A5A2B8] font-bold ml-2">分數越高越難，點字開字卡</span></h3>' +
+    '<div class="flex flex-wrap gap-1.5">' + chips + '</div>' +
+    (st.hard.length > 120 ? '<p class="text-[11px] text-[#A5A2B8] font-bold mt-2">只列出前 120 個。</p>' : '') +
+  '</div>';
+}
+
+/** 把一段文字轉成 HTML：每個英文單字都包成可點的 span，難字會加上底色 */
+function readerParaHtml(para) {
+  const st = readerState;
+  let out = '';
+  let last = 0;
+  const re = /[A-Za-z][A-Za-z'’\-]*/g;
+  let m;
+  while ((m = re.exec(para)) !== null) {
+    out += readerTextChunk(para.slice(last, m.index));
+    const raw = m[0];
+    const w = raw.toLowerCase().replace(/^[-'’]+|[-'’]+$/g, '');
+    let hard = false;
+    if (w.length >= 3 && st.scoreMap) {
+      const sc = st.scoreMap.get(w);
+      hard = (typeof sc === 'number') && sc >= READER_HARD_SCORE;
+    }
+    const cls = 'rd-w' + (hard && st.showHard ? ' rd-hw' : '');
+    if (w.length >= 3) {
+      out += '<span class="' + cls + '" data-rd="w" data-rd-word="' + esc(w) + '">' + esc(raw) + '</span>';
+    } else {
+      out += esc(raw);
+    }
+    last = m.index + raw.length;
+  }
+  out += readerTextChunk(para.slice(last));
+  return out;
+}
+
+function readerTextChunk(s) {
+  return esc(String(s || '')).replace(/\n/g, '<br>');
+}
+
+function readerSheetHtml() {
+  const st = readerState;
+  const w = st.selected;
+  if (!w) return '';
+  const info = st.words.filter(function (e) { return e.word === w; })[0] || { word: w, count: 1, score: 0 };
+  const lv = readerLevel(info.score);
+  const inBook = wbHas(w);
+  const zh = zhGet(w);
+  const cached = cacheGet(w);
+  const phonetic = (cached && (cached.phonetic || cached.phoneticUs || cached.ipa)) || '';
+  const busyZh = st.busy === 'zh';
+  const busyAi = st.busy === 'ai';
+  const busyBook = st.busy === 'book';
+
+  return '<div class="flex items-start gap-2">' +
+      '<div class="min-w-0 flex-1">' +
+        '<div class="flex items-center gap-2 flex-wrap">' +
+          '<h3 class="font-extrabold text-2xl">' + esc(w) + '</h3>' +
+          '<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full ' + lv.cls + '">難度 ' + info.score + '／' + lv.label + '</span>' +
+          '<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-[#F5F6FB] text-[#6B6880]">文中出現 ' + info.count + ' 次</span>' +
+        '</div>' +
+        (phonetic ? '<p class="text-sm font-bold text-[#6B6880] mt-1">' + esc(phonetic) + '</p>' : '') +
+        '<p class="text-base font-extrabold mt-2">' + (busyZh ? '<span class="text-[#A5A2B8]">查中文中…</span>' : (zh ? esc(zh) : '<span class="text-[#A5A2B8]">（暫時查不到中文，可按 🔍 完整拆解試試）</span>')) + '</p>' +
+      '</div>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="close" aria-label="關閉字卡">✕</button>' +
+    '</div>' +
+
+    '<div class="flex flex-wrap gap-2 mt-3">' +
+      '<button class="we-btn we-btn-sm" data-rd-sheet="say">🔊 發音</button>' +
+      '<button class="we-btn we-btn-sm ' + (inBook ? 'we-btn-ghost' : '') + '" data-rd-sheet="book" ' + (busyBook ? 'disabled' : '') + '>' + (inBook ? '✅ 已在單詞本' : (busyBook ? '加入中…' : '📒 加入單詞本')) + '</button>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="break">🔍 完整拆解</button>' +
+      '<button class="we-btn we-btn-ghost we-btn-sm" data-rd-sheet="ai" ' + (busyAi ? 'disabled' : '') + '>' + (busyAi ? '🤖 思考中…' : '🤖 AI 解釋這句') + '</button>' +
+    '</div>' +
+
+    (st.sentence ? '<p class="text-[11px] text-[#A5A2B8] font-bold mt-3 leading-relaxed">📌 原句：' + esc(st.sentence.slice(0, 220)) + '</p>' : '') +
+    (st.aiOut && st.aiWord === w ? '<div class="mt-3 p-3 rounded-xl bg-[#F7F5FF] border border-[#E4E2EF] text-sm leading-relaxed whitespace-pre-wrap font-bold text-[#3C3A4A]">' + esc(st.aiOut) + '</div>' : '');
+}
+
+/* ---------- 互動 ---------- */
+
+function readerBind() {
+  const box = $('#reader-body');
+  if (box && !box._rdBound) {
+    box._rdBound = true;
+
+    /* 手機上「點一下」常因為手指移動幾 px 就被判成捲動 → click 不觸發，
+       所以自己用 pointerdown/pointerup 判斷「點」，click 只當桌機與鍵盤的備援。 */
+    let downX = 0, downY = 0, downAt = 0;
+    let lastHit = null, lastHitAt = 0;
+
+    function readerTapBody(target) {
+      if (!target || !target.closest) return;
+      const hit = target.closest('[data-rd-word],[data-rd-doc],[data-rd-deldoc],[data-rd-act]');
+      if (!hit) return;
+      const now = Date.now();
+      if (hit === lastHit && now - lastHitAt < 600) return;   // pointerup 與 click 只算一次
+      lastHit = hit;
+      lastHitAt = now;
+
+      if (hit.hasAttribute('data-rd-word')) {
+        const w = hit.getAttribute('data-rd-word');
+        const para = hit.closest ? hit.closest('[data-rd-p]') : null;
+        const pIdx = para ? parseInt(para.getAttribute('data-rd-p'), 10) : -1;
+        const raw = (pIdx >= 0 && readerState.paras[pIdx]) ? readerState.paras[pIdx] : '';
+        readerOpenSheet(w, readerSentenceAt(raw, w));
+        return;
+      }
+
+      if (hit.hasAttribute('data-rd-doc')) { readerOpenSaved(hit.getAttribute('data-rd-doc')); return; }
+
+      if (hit.hasAttribute('data-rd-deldoc')) {
+        const id = hit.getAttribute('data-rd-deldoc');
+        weConfirm('要從「最近開啟」移除這份文件嗎？（只影響這台裝置）', { emoji: '🗑️', danger: true, okText: '移除' }).then(function (ok) {
+          if (!ok) return;
+          readerSaveDocs(readerGetDocs().filter(function (d) { return d.id !== id; }));
+          showToast('已移除');
+          readerRender();
+        });
+        return;
+      }
+
+      const act = hit.getAttribute('data-rd-act');
+      if (act === 'pick') { const f = $('#rd-file'); if (f) f.click(); return; }
+      if (act === 'paste-toggle') {
+        const pb = $('#rd-paste-box');
+        if (pb) { pb.classList.toggle('hidden'); if (!pb.classList.contains('hidden')) { const ta = $('#rd-paste'); if (ta) ta.focus(); } }
+        return;
+      }
+      if (act === 'paste-go') {
+        const ta = $('#rd-paste');
+        const txt = ta ? ta.value : '';
+        if (!String(txt).trim()) { showToast('請先貼上一段文字', 'warn'); return; }
+        readerOpenText('貼上的文字', txt);
+        return;
+      }
+      if (act === 'jump') {
+        const inp = $('#rd-jump');
+        const raw = inp ? String(inp.value || '') : '';
+        const w = raw.toLowerCase().replace(/[^a-z]/g, '');
+        if (!w) { showToast('請先打一個英文單字', 'warn'); return; }
+        if (inp) inp.value = '';
+        readerOpenSheet(w, '');
+        return;
+      }
+      if (act === 'close') { readerCloseDoc(); return; }
+      if (act === 'new') { readerCloseDoc(); return; }
+      if (act === 'toggle-hard') { readerState.showHard = !readerState.showHard; readerRender(); return; }
+      if (act === 'toggle-list') { readerState.showList = !readerState.showList; readerRender(); return; }
+      if (act === 'add-hard') { readerAddHardBatch(); return; }
+    }
+
+    box.addEventListener('pointerdown', function (ev) {
+      downX = ev.clientX; downY = ev.clientY; downAt = Date.now();
+    }, { passive: true });
+    let tapTimer = null;
+    box.addEventListener('pointerup', function (ev) {
+      if (ev.pointerType && ev.pointerType !== 'touch') return;   // 滑鼠／觸控筆交給 click
+      const dx = Math.abs(ev.clientX - downX);
+      const dy = Math.abs(ev.clientY - downY);
+      if (dx > 10 || dy > 10 || (Date.now() - downAt) > 800) return;   // 這是捲動，不是點
+      /* 不要在這裡直接開字卡：字卡一開遮罩就會接住緊接著的 click，
+         反而會立刻把自己關掉。先等 260ms，瀏覽器有送 click 就由 click 處理，
+         只有在「點了卻沒有 click」（少數手機把輕點吃掉）時才由這裡補開。 */
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(function () { tapTimer = null; readerTapBody(ev.target); }, 260);
+    }, { passive: true });
+    box.addEventListener('click', function (ev) {
+      if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+      readerTapBody(ev.target);
+    });
+    box.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && ev.target && ev.target.id === 'rd-jump') {
+        ev.preventDefault();
+        readerTapBody(ev.target.closest('[data-rd-act]') || ev.target);
+      }
+    });
+
+    box.addEventListener('change', function (ev) {
+      if (ev.target && ev.target.id === 'rd-file') {
+        const file = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (file) readerOpenFile(file);
+      }
+    });
+
+    // 拖放上傳
+    box.addEventListener('dragover', function (ev) {
+      const zone = ev.target.closest ? ev.target.closest('#rd-drop') : null;
+      if (!zone) return;
+      ev.preventDefault();
+      zone.classList.add('over');
+    });
+    box.addEventListener('dragleave', function (ev) {
+      const zone = ev.target.closest ? ev.target.closest('#rd-drop') : null;
+      if (zone) zone.classList.remove('over');
+    });
+    box.addEventListener('drop', function (ev) {
+      const zone = ev.target.closest ? ev.target.closest('#rd-drop') : null;
+      if (!zone) return;
+      ev.preventDefault();
+      zone.classList.remove('over');
+      const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (file) readerOpenFile(file);
+    });
+  }
+
+  const sheet = readerEnsureSheetEls().sheet;
+  if (sheet && !sheet._rdBound) {
+    sheet._rdBound = true;
+    let sDownAt = 0, sLastBtn = null, sLastAt = 0;
+    function readerTapSheet(target) {
+      const btn = target && target.closest ? target.closest('[data-rd-sheet]') : null;
+      if (!btn) return;
+      const now = Date.now();
+      if (btn === sLastBtn && now - sLastAt < 600) return;
+      sLastBtn = btn; sLastAt = now;
+      const act = btn.getAttribute('data-rd-sheet');
+      if (act === 'close') { readerCloseSheet(); return; }
+      if (act === 'say') { if (readerState.selected) speak(readerState.selected); return; }
+      if (act === 'book') { readerAddSelectedToBook(); return; }
+      if (act === 'break') { readerBreakdown(readerState.selected); return; }
+      if (act === 'ai') { readerAiExplain(); return; }
+    }
+    sheet.addEventListener('pointerdown', function () { sDownAt = Date.now(); }, { passive: true });
+    let sTimer = null;
+    sheet.addEventListener('pointerup', function (ev) {
+      if (ev.pointerType && ev.pointerType !== 'touch') return;
+      if (Date.now() - sDownAt > 800) return;
+      if (sTimer) clearTimeout(sTimer);
+      sTimer = setTimeout(function () { sTimer = null; readerTapSheet(ev.target); }, 260);
+    }, { passive: true });
+    sheet.addEventListener('click', function (ev) {
+      if (sTimer) { clearTimeout(sTimer); sTimer = null; }
+      readerTapSheet(ev.target);
+    });
+  }
+
+  const scrim = $('#rd-scrim');
+  if (scrim && !scrim._rdBound) {
+    scrim._rdBound = true;
+    scrim.addEventListener('click', function () {
+      if (Date.now() - (readerState.openAt || 0) < 400) return;   // 剛開的，別被自己關掉
+      readerCloseSheet();
+    });
+  }
+}
+
+function readerCloseSheet() {
+  readerState.selected = '';
+  readerState.aiOut = '';
+  readerState.aiWord = '';
+  document.body.classList.remove('rd-lock');
+  readerRenderSheet();
+}
+
+/** 把一段文字切成句子（刻意不用 lookbehind 正規式，避免舊版 WebView 直接語法錯誤） */
+function readerSplitSentences(text) {
+  const out = [];
+  String(text || '').split(/\n+/).forEach(function (line) {
+    let buf = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line.charAt(i);
+      buf += ch;
+      if (ch === '.' || ch === '!' || ch === '?' || ch === '。' || ch === '！' || ch === '？') {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+  });
+  return out;
+}
+
+/** 從段落文字裡找出「包含這個字」的那一句，給 AI 當上下文 */
+function readerSentenceAt(para, word) {
+  const text = String(para || '');
+  if (!text) return '';
+  const parts = readerSplitSentences(text);
+  const target = String(word || '').toLowerCase();
+  for (let i = 0; i < parts.length; i++) {
+    const seg = parts[i];
+    if (new RegExp('\\b' + target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(seg)) return seg.trim();
+  }
+  return text.slice(0, 240);
+}
+
+async function readerOpenSheet(word, sentence) {
+  readerState.selected = word;
+  readerState.sentence = sentence || '';
+  readerState.aiOut = '';
+  readerState.aiWord = '';
+  readerRenderSheet();
+
+  if (!zhGet(word)) {
+    readerState.busy = 'zh';
+    readerRenderSheet();
+    await readerEnsureZh(word);
+    readerState.busy = '';
+    if (readerState.selected === word) readerRenderSheet();
+  }
+}
+
+/** 取得中文釋義（先看本機快取，沒有就上網翻） */
+async function readerEnsureZh(word) {
+  const w = String(word || '').trim().toLowerCase();
+  if (!w) return '';
+  const hit = zhGet(w);
+  if (hit) return hit;
+  try {
+    const zh = await translateZh(w);
+    if (zh) { zhSet(w, zh); return zh; }
+  } catch (e) { /* 離線或額度用完，就用空字串 */ }
+  return '';
+}
+
+async function readerAddSelectedToBook() {
+  const w = readerState.selected;
+  if (!w) return;
+  if (wbHas(w)) { showToast('「' + w + '」已經在單詞本裡了'); return; }
+  readerState.busy = 'book';
+  readerRenderSheet();
+  try {
+    const cached = cacheGet(w);
+    let meaning = zhGet(w) || '';
+    if (!meaning) meaning = await readerEnsureZh(w);
+    wbAdd(w, { meaning: meaning, phonetic: (cached && cached.phonetic) || '' }, 'reader');
+    showToast('已加入單詞本：' + w + (meaning ? '（' + meaning + '）' : ''));
+  } catch (e) {
+    showToast('加入失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error');
+  }
+  readerState.busy = '';
+  readerRenderSheet();
+  if (readerState.text) readerRender();
+}
+
+/** 一次把前 30 個難字收進單詞本（先去重） */
+async function readerAddHardBatch() {
+  const list = readerState.hard.filter(function (e) { return !wbHas(e.word); }).slice(0, 30);
+  if (!list.length) { showToast('沒有新的難字可以加入（都已經在單詞本裡了）'); return; }
+  const ok = await weConfirm('把前 ' + list.length + ' 個難字一次加進單詞本？（加進來就永遠不會被刪除）', { emoji: '📒', okText: '全部加入' });
+  if (!ok) return;
+  readerState.busy = '';
+  for (let i = 0; i < list.length; i++) {
+    const e = list[i];
+    const cached = cacheGet(e.word);
+    let meaning = zhGet(e.word) || '';
+    if (!meaning) meaning = await readerEnsureZh(e.word);
+    wbAdd(e.word, { meaning: meaning, phonetic: (cached && cached.phonetic) || '' }, 'reader');
+  }
+  showToast('已加入 ' + list.length + ' 個難字到單詞本');
+  readerRender();
+}
+
+/** 帶到「單字深度拆解」分頁查這個字 */
+function readerBreakdown(word) {
+  const w = String(word || '').trim();
+  if (!w) return;
+  readerCloseSheet();
+  const input = $('#word-input');
+  if (input) input.value = w;
+  switchTab('lexicon');
+  try { handleSearch(); } catch (e) { /* 沒關係，使用者可以自己按查詢 */ }
+}
+
+/** AI 用這個字＋原句解釋（不是逐字翻譯，是講用法） */
+async function readerAiExplain() {
+  const w = readerState.selected;
+  if (!w) return;
+  if (!aiIsReady()) { showToast('AI 目前沒有可用通道，請到設定開啟', 'warn'); return; }
+  readerState.busy = 'ai';
+  readerState.aiOut = '';
+  readerRenderSheet();
+  try {
+    const sys = '你是雅思英文老師。請用繁體中文（台灣用語）解釋使用者指定的單字，不要只給字典翻譯。固定輸出四段：\n1. 這個字在這裡的意思\n2. 文中用法／詞性\n3. 一個更簡單的替換說法\n4. 一個雅思口說或寫作可以用它的例句（英文＋中文）\n只回內容，不要客套話。';
+    const userMsg = '單字：' + w + '\n原文句子：' + (readerState.sentence || '（沒有上下文）');
+    const out = await aiChat([{ role: 'system', content: sys }, { role: 'user', content: userMsg }], { maxTokens: 700, timeoutMs: 90000 });
+    readerState.aiOut = String(out || '').trim() || '（AI 沒有回應）';
+    readerState.aiWord = w;
+  } catch (e) {
+    readerState.aiOut = 'AI 解釋失敗：' + (e && e.message ? e.message : '未知錯誤') + '\n（免金鑰模式偶爾會忙線，過一下再試）';
+    readerState.aiWord = w;
+  }
+  readerState.busy = '';
+  readerRenderSheet();
+}
+
+/** 選檔後的主流程 */
+async function readerOpenFile(file) {
+  if (!file) return;
+  const ext = readerExtOf(file.name);
+  const allowed = ['txt', 'text', 'md', 'markdown', 'srt', 'vtt', 'csv', 'html', 'htm', 'pdf', 'docx', 'doc'];
+  if (allowed.indexOf(ext) < 0) {
+    showToast('這個檔案類型不支援（' + (ext || '未知') + '）。支援：txt / md / srt / vtt / csv / html / pdf / docx', 'error');
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    showToast('檔案太大（超過 25 MB），請先裁剪內容', 'error');
+    return;
+  }
+
+  readerState.busy = 'load';
+  readerState.note = '正在讀取「' + file.name + '」…';
+  readerRender();
+
+  try {
+    const text = await readerExtractText(file);
+    readerState.busy = '';
+    readerState.note = '';
+    readerOpenText(file.name, text);
+  } catch (e) {
+    readerState.busy = '';
+    readerState.note = '';
+    readerRender();
+    showToast('讀取失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error');
+  }
+}
+
+/** 從別的模組呼叫：給一段文字，直接在閱讀器裡分析（例如以後從口說逐字稿匯入） */
+function readerLoadText(name, text) {
+  switchTab('reader');
+  readerOpenText(name || '貼上的文字', text);
 }
 
 function init() {

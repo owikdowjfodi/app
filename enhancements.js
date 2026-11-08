@@ -439,6 +439,8 @@
         if (audioUrl) URL.revokeObjectURL(audioUrl);
         const type = activeRecorder.mimeType || 'audio/webm', blob = new Blob(chunks, { type });
         audioUrl = URL.createObjectURL(blob);
+        api.lastRecording = { blob: blob, type: type, at: Date.now() };
+        root.dispatchEvent(new CustomEvent('we-recorded'));
         const audio = recorderView.querySelector('#up-record-audio'), link = recorderView.querySelector('#up-record-download');
         audio.src = audioUrl; audio.hidden = false; link.href = audioUrl; link.download = 'speaking-' + Date.now() + (type.includes('mp4') ? '.m4a' : type.includes('ogg') ? '.ogg' : '.webm'); link.hidden = false;
         recorderView.querySelector('#up-record-status').textContent = '錄音已完成，可回放或下載；關閉此頁會清除暫存聲音。';
@@ -545,3 +547,10 @@
   api.flushDocuments = () => pendingWrites;
   api.getDocuments = () => docs.slice();
 })(typeof window === 'undefined' ? globalThis : window);
+
+/* v2.3 UI / 學習流程；載入失敗仍可使用原有九個單元。 */
+(function(){
+  if(typeof document==='undefined'||typeof document.createElement!=='function')return;
+  const css=document.createElement('link');css.rel='stylesheet';css.href='experience.css';document.head.append(css);
+  const js=document.createElement('script');js.src='experience.js';js.async=true;js.onerror=function(){console.warn('新版導覽載入失敗，原有單元仍可使用。');};document.head.append(js);
+})();

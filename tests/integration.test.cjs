@@ -44,3 +44,18 @@ test('長文前段預覽不會裁掉完整整理後文字或抽取原文',async(
   assert.ok(stored.text.length>80000);assert.equal(stored.rawText,raw);assert.ok(stored.text.endsWith('END_OF_DOCUMENT'));
   assert.equal(vm.runInContext('readerState.text.length',ctx),80000);
 });
+test('Google 雲端下載失敗時停止同步，不上傳、不誤報成功',async()=>{
+ const {ctx}=app({gsync_settings:{email:'test@example.invalid',clientId:'123-test.apps.googleusercontent.com'}});await ctx.WEUpgrade.documentReady;
+ let writes=0;ctx.gsFindRemoteFile=async()=>({id:'remote'});ctx.gsDownloadRemote=async()=>{throw new Error('offline')};ctx.gsUploadRemote=async()=>{writes++;return 'remote'};
+ const r=await ctx.gsyncSync({silent:true});assert.equal(r.ok,false);assert.equal(writes,0);assert.equal(ctx.gsGet().lastSyncAt,undefined);assert.match(ctx.gsGet().lastError,/offline/);
+});
+test('Google 備份需讀回相同內容才記錄成功；讀回不符保留失敗狀態',async()=>{
+ const {ctx}=app({reader_docs:[{id:'test',name:'test.txt',text:'Test only.',at:1}],we_upgrade_prefs_v1:{includeDocuments:true},gsync_settings:{email:'test@example.invalid',clientId:'123-test.apps.googleusercontent.com'}});await ctx.WEUpgrade.documentReady;
+ ctx.gsFindRemoteFile=async()=>null;let uploaded;ctx.gsUploadRemote=async p=>{uploaded=JSON.parse(JSON.stringify(p));return 'new'};ctx.gsDownloadRemote=async()=>uploaded;
+ assert.equal((await ctx.gsyncSync({silent:true})).ok,true);assert.ok(ctx.gsGet().lastSyncAt);
+ ctx.gsDownloadRemote=async()=>({...uploaded,data:{}});assert.equal((await ctx.gsyncSync({silent:true})).ok,false);assert.match(ctx.gsGet().lastError,/未能確認/);
+});
+test('Google 已存在但無效的雲端備份不會被本機資料覆寫',async()=>{
+ const {ctx}=app({gsync_settings:{email:'test@example.invalid',clientId:'123-test.apps.googleusercontent.com'}});await ctx.WEUpgrade.documentReady;let writes=0;ctx.gsFindRemoteFile=async()=>({id:'remote'});ctx.gsDownloadRemote=async()=>({data:{}});ctx.gsUploadRemote=async()=>{writes++};
+ assert.equal((await ctx.gsyncSync({silent:true})).ok,false);assert.equal(writes,0);assert.match(ctx.gsGet().lastError,/格式/);
+});

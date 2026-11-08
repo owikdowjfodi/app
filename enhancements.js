@@ -234,6 +234,62 @@
     const configured = String((root.WORD_EXPLORER_CONFIG || {}).googleClientId || '').trim();
     return original.gsClientId() || (/^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(configured) ? configured : '');
   };
+  // v2.5: an unreadable remote backup must never be replaced, and success requires readback.
+  gsSet = function(patch) {
+    if (patch && patch.email && patch.email !== gsGet().email) patch = Object.assign({}, patch, {lastSyncAt:0,lastPushAt:0});
+    return original.gsSet(patch);
+  };
+  gsyncSync = async function (opts) {
+  const o = opts || {};
+  if (gsSyncing) return { ok: false, reason: 'busy' };
+  if (!gsSignedIn()) {
+    if (!o.silent) showToast('請先用 Google 登入，才能備份到雲端。', 'info', 4000);
+    return { ok: false, reason: 'signed-out' };
+  }
+  if (!gsClientId()) {
+    if (!o.silent) showToast('尚未設定 Google 用戶端 ID。', 'warn', 4500);
+    return { ok: false, reason: 'no-client-id' };
+  }
+
+  gsSyncing = true;
+  gsSet({ syncing: true });
+  if (!o.silent) showToast('☁️ 正在同步…', 'info', 2500);
+  try {
+    let remote = null;
+    const found = await gsFindRemoteFile();
+    if (found) {
+      remote = await gsDownloadRemote(found.id);
+      if (!remote || remote.app !== 'word-explorer' || remote.schema !== 1 || !remote.data || typeof remote.data !== 'object' || Array.isArray(remote.data)) throw new Error('雲端備份格式不正確，已停止寫入；請先下載本機 JSON 備份。');
+    }
+    const local = gsSnapshot();
+    const merged = gsMergeAll(local.data, remote && remote.data ? remote.data : {});
+    gsApply(merged);
+    const payload = {
+      app: 'word-explorer',
+      schema: 1,
+      savedAt: Date.now(),
+      device: { id: gsDeviceId(), name: gsDeviceName() },
+      data: merged
+    };
+    const uploadedId = await gsUploadRemote(payload);
+    const verified = await gsDownloadRemote(uploadedId);
+    if (!verified || verified.savedAt !== payload.savedAt || verified.device?.id !== payload.device.id || Object.keys(payload.data).some(k => JSON.stringify(verified.data?.[k]) !== JSON.stringify(payload.data[k]))) throw new Error('備份已送出但未能確認雲端內容，請重試同步。');
+    gsSet({ lastSyncAt: Date.now(), lastError: '', syncing: false, lastPushAt: Date.now() });
+    if (typeof wbGetAll === 'function') { try { wbUpdateBadge(); } catch (e) { /* 忽略 */ } }
+    if (!o.silent) {
+      showToast('☁️ 同步完成：單詞本 ' + wbGetAll().length + ' 個字、錯題 ' + getWrongDb().length + ' 個。', 'info', 4000);
+      if (state.activeTab === 'wordbook' && !wbState.reviewing) renderWordbook();
+    }
+    return { ok: true };
+  } catch (err) {
+    gsSet({ lastError: gsMsg(err), syncing: false });
+    if (!o.silent) showToast('雲端同步失敗：' + gsMsg(err), 'error', 6000);
+    else console.warn('[gsync] 背景同步失敗：', err);
+    return { ok: false, reason: 'error', error: err };
+  } finally {
+    gsSyncing = false;
+  }
+};
   gsyncBoot = function () { documentReady.then(() => original.gsyncBoot()); };
   gsUploadRemote = async function (payload) {
     // 關閉文件備份時，保留雲端原有文件，避免單次設定造成遠端內容消失。
@@ -292,7 +348,7 @@
       '<p>最近成功同步：' + esc(time(s.lastSyncAt)) + '<br>最近產生備份下載：' + esc(time(lastExportAt)) + '（完成下載請在瀏覽器確認）</p>' +
       '<p>不包含 API 金鑰、暫存錄音及可重新產生的查字快取。本機快照另沿用原有六類範圍。</p>' +
       (storageFailure ? '<p role="alert">⚠️ ' + esc(storageFailure) + '</p>' : '') +
-      (gsClientId() ? '<p>✅ Google 登入設定已就緒，可使用上方登入按鈕。</p>' : '<p>Google 登入尚未設定；可先用離線備份，或使用原有手動設定。</p>') + dataNotice());
+      (gsClientId() ? '<p>已填 Google Client ID；有效性、來源及授權仍須透過登入與成功同步確認。</p>' : '<p>Google 登入尚未設定；可先用離線備份，或使用原有手動設定。</p>') + dataNotice());
     return base + extra;
   };
   function updateStorage() {
@@ -419,7 +475,7 @@
       recorderView = document.createElement('div'); recorderView.id = 'up-audio-tools';
       recorderView.innerHTML = card('🎧 本機錄音回放與評分說明',
         '<p>本機分數是辨識文字吻合度；AI 四項回饋主要根據轉錄與文字統計，均屬練習參考，並非音素、重音或語調分析。</p>' +
-        '<p>下方錄音獨立於原有辨識功能。按下才要求麥克風權限；最多錄五分鐘，完成後可回放及下載。聲音只留在此頁記憶體，不加入雲端備份。</p>' +
+        '<p>下方錄音獨立於原有辨識功能。按下才要求麥克風權限；最多錄五分鐘，完成後可回放及下載。未按「保存到我的錄音」前，聲音只留在此頁記憶體；保存後留在本機錄音庫，不加入雲端備份。</p>' +
         '<div class="upgrade-actions">' + button('🎙️ 開始本機錄音', 'record-start') + button('⏹️ 停止並回放', 'record-stop', 'disabled') + '</div><p id="up-record-status" role="status">尚未錄音</p><audio id="up-record-audio" controls hidden></audio><a id="up-record-download" hidden>下載錄音</a>' + dataNotice());
     }
     box.insertBefore(recorderView, document.getElementById('speak-ai-status'));
@@ -433,13 +489,13 @@
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (state.activeTab !== 'speak') { stream.getTracks().forEach(t => t.stop()); stream = null; return; }
       recordChunks = []; const chunks = recordChunks; recorder = new MediaRecorder(stream);
-      const activeRecorder = recorder;
+      const activeRecorder = recorder, startedAt=Date.now(), mode=lsGet('we_experience_v23',{}).lastMode||'free';
       recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
       recorder.onstop = () => {
         if (audioUrl) URL.revokeObjectURL(audioUrl);
         const type = activeRecorder.mimeType || 'audio/webm', blob = new Blob(chunks, { type });
         audioUrl = URL.createObjectURL(blob);
-        api.lastRecording = { blob: blob, type: type, at: Date.now() };
+        api.lastRecording = { blob: blob, type: type, at: Date.now(), duration: (Date.now()-startedAt)/1000, mode: mode };
         root.dispatchEvent(new CustomEvent('we-recorded'));
         const audio = recorderView.querySelector('#up-record-audio'), link = recorderView.querySelector('#up-record-download');
         audio.src = audioUrl; audio.hidden = false; link.href = audioUrl; link.download = 'speaking-' + Date.now() + (type.includes('mp4') ? '.m4a' : type.includes('ogg') ? '.ogg' : '.webm'); link.hidden = false;

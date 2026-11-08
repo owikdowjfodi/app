@@ -43,3 +43,18 @@ test('兩端同 ID 不同草稿都保留版本，重複合併不重複新增',()
  const a={draft:{id:'same',topic:'Old',lens:{}},updatedAt:10},b={draft:{id:'same',topic:'New',lens:{}},updatedAt:20};
  const v=preserveDraftVersions({},[a,b]);assert.equal(Object.keys(v).length,2);assert.deepEqual(new Set(Object.values(v).map(e=>e.draft.topic)),new Set(['Old','New']));assert.deepEqual(preserveDraftVersions(v,[a,b]),v);
 });
+const {learningStats,practiceEvents,audioGroups,backupStatus,googleErrorHint}=require('../experience.js');
+test('統計排除保存錄音及未知事件，按七個日曆日計算、不含未來',()=>{
+ const now=+new Date(2026,10,8,20),start=+new Date(2026,10,2),e={a:{id:'a',at:start,kind:'quiz',word:'A',correct:false},b:{id:'b',at:now,kind:'saved-audio'},c:{id:'c',at:now,kind:'speaking'},d:{id:'d',at:now+1,kind:'quiz'},e:{id:'e',at:start-1,kind:'quiz',correct:true}};
+ const r=learningStats(e,now);assert.equal(r.week.length,2);assert.equal(r.answers,1);assert.equal(r.right,0);assert.equal(r.speaking,1);assert.equal(practiceEvents(e,now).length,3);
+});
+test('改善需最後一次錯誤後連對兩次；再次答錯即返回薄弱字',()=>{
+ const now=Date.now(),e={};let i=0;for(const [word,values] of [['apple',[false,true,true]],['park',[false,true]],['old',[false,true,true,false]],['new',[true,true]]])for(const correct of values){i++;e[i]={id:String(i),at:now-1000+i,kind:'quiz',word,correct};}
+ const r=learningStats(e,now,{apple:{tags:['食物']},old:{tags:['科技','生活']}});assert.deepEqual(r.improved.map(e=>e.word),['apple']);assert.deepEqual(r.weak.map(e=>e.word),['old','park']);assert.equal(r.topics.find(t=>t.topic==='科技').wrong,2);assert.equal(r.topics.find(t=>t.topic==='食物').total,3);
+});
+test('錄音按題目與模式分組，舊錄音可用名稱分組，首次最新排序穩定',()=>{
+ const rows=[{id:'b',topic:'Park',mode:'free',at:2},{id:'c',topic:'park',mode:'mock1',at:3},{id:'a',label:' park ',mode:'free',at:1}];const g=audioGroups(rows);assert.equal(g.length,2);assert.deepEqual(g[1].map(r=>r.id),['a','b']);assert.equal(rows[0].id,'b');
+});
+test('Google 狀態不把已填 ID 或已登入當作備份成功，失敗優先顯示',()=>{
+ assert.equal(backupStatus({},''),'missing-client');assert.equal(backupStatus({},'id'),'signed-out');assert.equal(backupStatus({email:'a'},'id'),'pending');assert.equal(backupStatus({email:'a',lastSyncAt:10},'id'),'synced');assert.equal(backupStatus({email:'a',lastSyncAt:10,lastError:'403'},'id'),'error');assert.match(googleErrorHint('origin_mismatch'),/沒有 \/app/);assert.match(googleErrorHint('403'),/Drive API/);
+});

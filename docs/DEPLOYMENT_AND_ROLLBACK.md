@@ -1,3 +1,20 @@
+# v2.5 部署與 Google 設定
+
+Service Worker 外殼版本 v17。若仍見舊版，重新整理／關閉再開；不要清除網站資料。回退可將下列增強檔還原至 v2.4，保留 IndexedDB／localStorage。
+
+Google 設定仍需擁有人：
+
+1. 在 Google Cloud 專案啟用 Drive API，設定 OAuth 同意畫面與測試使用者。
+2. 建立 OAuth「網頁應用程式」Client ID。JavaScript 來源：`https://owikdowjfodi.github.io`，沒有 `/app` 或結尾斜線。
+3. 共用登入填入 app-config.js 的 googleClientId；只在本機使用亦可於單詞本手動填 ID。不要提供 Client Secret。
+4. 用 Google 登入，確認成功同步時間；第二台裝置登入同帳號後核對單字／筆記／草稿。聲音只在本機，需另行下載。
+
+參考：Google 官方 https://developers.google.com/identity/oauth2/web/guides/use-token-model
+
+未提供 ID 前不能完成有效設定、真帳號授權或跨裝置驗證。設定進度明確保留待完成狀態。
+
+---
+
 # 2.4 部署及資料補充
 
 正式發布仍在原 owikdowjfodi/app main 與 GitHub Pages。回復上一版的程式基準為 `43b0d78fcc16fc45af8efe4c5bb9a0395277596d`，需提高 Service Worker 版本重新發佈；不要清除本機資料庫。

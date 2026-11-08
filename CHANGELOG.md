@@ -32,3 +32,8 @@ Google 一鍵登入的程式支援已完成，但網站擁有人尚未提供有�
 本次新增本機錄音回放，沒有聲學／音素 AI 評估後端。原有語音辨識、手動輸入與十種口說模式保留。未新增 OCR；掃描 PDF 仍須先轉成文字。
 
 不要在尚未更新至新版的其他裝置使用舊版備份程式覆寫新版雲端檔；舊版不認識新增的備份類別。
+
+
+## 2.2 正式部署紀錄 — 2026-11-08 19:32:20 HKT
+
+已完成 GitHub App 指定 repository 授權、提交 main 及 GitHub Pages 部署。程式 commit 為 `f3b390cdb88edd3f48783e9371ff9fbfd73ec00a`；五份正式程式檔與測試版雜湊一致，正式頁面已顯示 v2.2。詳見 docs/DEPLOYMENT_VERIFICATION.md。Google OAuth ID 尚待網站擁有人設定。

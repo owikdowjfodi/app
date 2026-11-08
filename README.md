@@ -1,3 +1,5 @@
+> 目前版本為 2.2；本檔原有介紹保留，新增功能、資料流與設定請以 [CHANGELOG](CHANGELOG.md) 及 [部署說明](docs/DEPLOYMENT_AND_ROLLBACK.md) 為準。
+
 # 🦊 單字探險家 Word Explorer
 
 > 用網路大數據即時拆解英文單字 —— 免安裝、免註冊、免後端，打開網頁就能用。
@@ -253,3 +255,15 @@ MIT License，詳見 [LICENSE](LICENSE)。歡迎自由使用、修改、再散�
 
 - 資料來源：[Wiktionary](https://www.wiktionary.org/)（CC BY-SA）、[Datamuse](https://www.datamuse.com/api/)、[MyMemory](https://mymemory.translated.net/)
 - App 圖示、吉祥物「小狐」與整套配色均為本專案**原創設計**，未使用任何第三方商標或素材
+
+## 2.2 增量更新（2026-11-08）
+
+保留原有九個學習單元，新增完整文件版本庫、可選文件備份、筆記／標籤／CSV／Anki 匯出、自適應加練、本機錄音回放；修正測驗底欄跨頁殘留並更新資料使用說明。
+
+- [完整改動記錄](CHANGELOG.md)
+- [功能保留核對表](docs/FEATURE_PRESERVATION.md)
+- [測試報告與驗證限制](docs/TEST_REPORT.md)
+- [Google 設定、部署及回復](docs/DEPLOYMENT_AND_ROLLBACK.md)
+- [原始功能基準](docs/FEATURE_BASELINE.md)
+
+自動檢查：`node --test tests/*.test.cjs`。測試基準已附在 tests/fixtures，下載 ZIP 後亦可執行。Google 共用登入尚需在 app-config.js 提供網站 OAuth Web client ID；不要提交任何 secret 或私人 API 金鑰。

@@ -105,162 +105,28 @@
 </header>
 
 <main>
-
-  <div class="card hl">
-    <h2>一句話總結</h2>
-    <p>
-      <span class="pill">不收集</span><span class="pill">不註冊</span><span class="pill">不追蹤</span>
-      這個 App <strong>沒有後端伺服器</strong>，開發者<strong>不會收到你的任何資料</strong>。
-      你的所有學習紀錄（查詢歷史、錯題、測驗分數）都只存在<strong>你自己的裝置</strong>上。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>1. 我們收集哪些個人資料？</h2>
-    <p><strong>沒有。一個都沒有。</strong></p>
-    <ul>
-      <li>不需要註冊帳號，不要求 email、姓名、電話或生日。</li>
-      <li>沒有廣告 SDK，沒有行為分析（Analytics）SDK，沒有當機回報 SDK。</li>
-      <li>不讀取你的通訊錄、相簿、位置、麥克風或相機。</li>
-      <li>App 不會在背景傳送任何統計數據給開發者。</li>
-    </ul>
-  </div>
-
-  <div class="card">
-    <h2>2. 資料存在哪裡？</h2>
-    <p>
-      全部存在你裝置瀏覽器／App 的 <strong>本機儲存空間（localStorage）</strong>。
-      這些資料不會離開你的裝置，也不會與其他 App 共用。內容如下：
-    </p>
-    <table>
-      <thead>
-        <tr><th>儲存鍵名</th><th>用途</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>wrong_words_db</code></td><td>錯題本：你答錯的單字、答錯次數與時間戳記（用於 7 天後自動複習）</td></tr>
-        <tr><td><code>daily_quiz_record</code></td><td>每日測驗：今天各輪次的題目、你的作答與分數</td></tr>
-        <tr><td><code>learning_stats</code></td><td>學習統計：連續學習天數、累計答題數</td></tr>
-        <tr><td><code>dict_cache</code></td><td>查詢快取：已查過的單字釋義與字源（避免重複連網，30 天後自動失效）</td></tr>
-        <tr><td><code>zh_meaning_cache</code></td><td>中文釋義快取（同上）</td></tr>
-        <tr><td><code>search_history</code></td><td>最近查詢紀錄（最多 12 筆，顯示在你的畫面上）</td></tr>
-      </tbody>
-    </table>
-    <h3>如何刪除？</h3>
-    <ul>
-      <li>App 內：錯題本頁面有「🗑️ 重置全部資料」按鈕；查詢頁面有「清空查詢快取」按鈕。</li>
-      <li>解除安裝 App（或在瀏覽器清除網站資料）會一併刪除上述全部內容。</li>
-      <li>因為資料不在我們的伺服器上，我們<strong>無法</strong>代你刪除，也<strong>無法</strong>幫你取回。</li>
-    </ul>
-    <p class="muted">提醒：本機資料以「網址（origin）」為界。若你日後改用不同的網址開啟，舊紀錄不會跟著搬家。</p>
-  </div>
-
-  <div class="card">
-    <h2>3. 連線到哪些第三方服務？</h2>
-    <p>
-      查單字時，App 會<strong>直接從你的裝置</strong>向以下公開服務發出查詢請求。
-      請求中只包含<strong>你要查的那個英文單字</strong>，不包含任何可識別你身分的資訊。
-      這些服務的伺服器會如同任何網站請求一樣，看到你的 IP 位址與瀏覽器資訊。
-    </p>
-    <table>
-      <thead>
-        <tr><th>服務</th><th>用途</th><th>隱私權政策</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Wikimedia Wiktionary<br><span class="muted">en.wiktionary.org</span></td>
-          <td>英文釋義、字源（Etymology）、音標</td>
-          <td><a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" target="_blank" rel="noopener">Wikimedia 隱私權政策</a></td>
-        </tr>
-        <tr>
-          <td>Datamuse<br><span class="muted">api.datamuse.com</span></td>
-          <td>英文定義、同義詞、拼字建議</td>
-          <td><a href="https://www.datamuse.com/api/" target="_blank" rel="noopener">Datamuse API 說明</a></td>
-        </tr>
-        <tr>
-          <td>Google 翻譯<br><span class="muted">translate.googleapis.com</span></td>
-          <td>把英文釋義翻譯成繁體中文</td>
-          <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 隱私權政策</a></td>
-        </tr>
-        <tr>
-          <td>MyMemory<br><span class="muted">api.mymemory.translated.net</span></td>
-          <td>翻譯備援來源（當主要來源失敗時使用）</td>
-          <td><a href="https://mymemory.translated.net/doc/privacypolicy.php" target="_blank" rel="noopener">MyMemory 隱私權政策</a></td>
-        </tr>
-        <tr>
-          <td>Tailwind CSS CDN<br><span class="muted">cdn.tailwindcss.com</span></td>
-          <td>載入介面樣式</td>
-          <td><a href="https://tailwindcss.com/privacy" target="_blank" rel="noopener">Tailwind 隱私說明</a></td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="muted">
-      這些第三方服務可能依其自身政策記錄請求。我們無法控制、也不會收到這些紀錄。
-      若你完全不想連外，可以開啟飛航模式：App 會自動改用內建的離線備援語料繼續運作。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>4. 語音朗讀功能</h2>
-    <p>
-      點擊單字旁的喇叭圖示時，App 使用你裝置<strong>內建</strong>的語音合成引擎（Web Speech API）發音。
-      發音在你的裝置上完成，<strong>不會</strong>把文字送到任何伺服器，也<strong>不會</strong>存取麥克風。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>5. 兒童隱私</h2>
-    <p>
-      本 App 適合一般大眾與學生使用，內容為英文單字學習。
-      由於我們<strong>不收集任何個人資料</strong>，因此也不會收集兒童的個人資料。
-      本 App 不含廣告、不含應用程式內購買、不含社交功能、不含外部連結至成人內容。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>6. 權限說明</h2>
-    <p>本 App 不需要任何敏感權限。實際使用到的能力如下：</p>
-    <ul>
-      <li><strong>網路存取</strong>：查詢單字釋義與翻譯（必要）。</li>
-      <li><strong>本機儲存</strong>：保存你的學習進度（必要）。</li>
-      <li><strong>文字轉語音</strong>：朗讀單字發音（選用，你按了才會用）。</li>
-    </ul>
-    <p>不要求：定位、相機、麥克風、通訊錄、簡訊、通話紀錄、檔案存取。</p>
-  </div>
-
-  <div class="card">
-    <h2>7. 資料安全</h2>
-    <p>
-      所有查詢都經由 <strong>HTTPS 加密連線</strong>傳輸。
-      由於我們不儲存你的資料，也就沒有「資料外洩」的風險；唯一存放處是你自己的裝置，
-      安全性取決於你裝置本身的鎖定與加密設定。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>8. 政策變更</h2>
-    <p>
-      若本政策有實質變更，我們會更新本頁面並標註新的生效日期。
-      由於本 App 不收集聯絡資訊，我們無法逐一通知使用者，建議你偶爾回來查看本頁。
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>9. 聯絡方式</h2>
-    <p>對本隱私權政策有任何疑問，歡迎透過下列管道聯絡：</p>
-    <ul>
-      <li>GitHub Issues：<a href="https://owikdowjfodi.github.io/app/#lexicon" target="_blank" rel="noopener">專案問題回報頁</a></li>
-      <li>電子郵件：<code>huhh88088@gmail.com</code></li>
-    </ul>
-    <p class="muted">
-      ★ 上架前請務必把上面兩處佔位符換成你真實的專案網址與信箱——
-      Google Play 會人工檢視隱私政策頁，無效的聯絡方式可能導致審核不通過。
-    </p>
-  </div>
-
+  <div class="card hl"><h2>資料由你決定如何使用</h2><p>學習紀錄預設保存在這台裝置。本站沒有配套的學習資料後端；查字、翻譯、語音辨識、AI 及選用 Google 備份會連接不同第三方服務。<strong>本機保存不等於所有功能都離線。</strong></p></div>
+  <div class="card"><h2>1. 帳號及資料</h2><p>一般查字、測驗、閱讀和筆記無需註冊本站帳號。本站程式未加入廣告或行為分析 SDK。選用 Google 備份時會取得帳號姓名、email、頭像及 Drive appDataFolder 授權，用於顯示登入狀態與存取你的備份。網站託管及各第三方服務仍可能記錄 IP、瀏覽器及網路請求。</p><p>本站不要求通訊錄、定位、相機或付款資料。請勿將不適合交給第三方處理的個人資料貼進翻譯或 AI。</p></div>
+  <div class="card"><h2>2. 本機保存、版本及還原</h2><p>單詞本、錯題、每日測驗、查詢紀錄、字根進度、想法、口說文字紀錄、AI 設定、自訂筆記及複習排程，主要保存在 localStorage。完整閱讀文件及其版本保存在 IndexedDB；無法使用時會嘗試本機儲存備援，失敗會提示匯出。</p><p>清除網站資料、無痕模式、瀏覽器回收空間或改用另一個 origin 可能令紀錄無法取得。解除安裝 PWA 不保證刪除瀏覽器內的所有資料；如要完整清除，請使用瀏覽器網站資料設定。</p><p>原有逐字移除、文件移除、快取清理及錯題重置工具保留；「重置全部資料」屬舊版錯題工具，並不表示清除所有新增文件、筆記或雲端備份。請按各分類管理。舊 localStorage 文件在遷移後保留作原始備份。</p><p>最近查詢、原有口說紀錄和部分清單仍沿用既有長度限制；新增文件庫不自動裁切為四份。同名新內容另存版本。文件庫匯出及還原會先顯示合併預覽。</p></div>
+  <div class="card"><h2>3. 甚麼操作會連外？</h2><table><thead><tr><th>操作</th><th>傳送內容／目的地</th></tr></thead><tbody>
+    <tr><td>查字、拼字建議及背景題庫預熱</td><td>單字或詞組傳給 Wiktionary、Datamuse、English Dictionary API 等來源；釋義或字源可能再送往 Google 翻譯／MyMemory 取得繁中資料。</td></tr>
+    <tr><td>整句、整段及閱讀翻譯</td><td>要翻譯的句子、段落或英文釋義送往 Google 翻譯，或失敗時的 MyMemory 備援。</td></tr>
+    <tr><td>AI 口說回饋、角色對話、計畫及五稜鏡</td><td>題目、回答轉錄、上下文、提示詞與相關統計送往 AI 設定所選的供應商；免金鑰通道同樣屬第三方服務。</td></tr>
+    <tr><td>閱讀器 AI 解釋</td><td>選取單字及所在句子送往 AI 供應商，不會因單純開啟文件就將整份原檔交給 AI。</td></tr>
+    <tr><td>Google 登入及同步</td><td>透過 Google Identity Services 取得授權，把學習備份傳到你帳號的 Drive appDataFolder。勾選「把完整閱讀文件加入備份」後，文件文字亦會包含在 JSON 與 Google 同步內。</td></tr>
+    <tr><td>載入網站／文件解析器</td><td>GitHub Pages 提供網站；Tailwind CDN 提供樣式；首次 PDF／Word 解析會從 CDN 下載解析器。文件文字抽取在瀏覽器內進行。</td></tr>
+    <tr><td>IELTS 背景資訊</td><td>向 Wikipedia 讀取公開背景資料；這不是官方評分或成績服務。</td></tr>
+  </tbody></table><p>第三方可依其政策記錄請求，本站無法保證其保存方式或可用性。<a href="https://policies.google.com/privacy" rel="noopener" target="_blank">Google</a>、<a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" rel="noopener" target="_blank">Wikimedia</a>、<a href="https://www.datamuse.com/api/" rel="noopener" target="_blank">Datamuse</a>、<a href="https://mymemory.translated.net/doc/privacypolicy.php" rel="noopener" target="_blank">MyMemory</a>。其他 AI 服務請查看其自身政策。</p></div>
+  <div class="card"><h2>4. 語音辨識、朗讀及本機錄音</h2><p>原有語音辨識使用瀏覽器 Web Speech API，按錄音後要求麥克風權限；依瀏覽器實作，聲音可能交由瀏覽器供應商的遠端服務辨識。文字轉語音亦取決於裝置所選語音，部分語音可能需要連線。</p><p>新增「本機錄音回放」使用 MediaRecorder，按下才要求麥克風，聲音保留在此頁記憶體，可自行播放及下載，不會由本功能上傳，也不加入 Google 備份。停止、切離口說頁、切到背景或五分鐘上限會停止音軌；關閉頁面會失去未下載的錄音。</p><p>辨識文字吻合度不等同音素、重音或語調評估；AI 文字回饋是練習參考，並非正式 IELTS 成績。</p></div>
+  <div class="card"><h2>5. 兒童使用</h2><p>內容適合一般英文學習者。本站沒有廣告、應用程式內購買或社交功能。未成年使用者使用麥克風、外部 AI 或 Google 服務前，應由家長協助了解相關權限及供應商條款；請勿在練習內容加入身分、聯絡或其他敏感資料。</p></div>
+  <div class="card"><h2>6. 權限及可選備份</h2><p>網路用於查詢、翻譯、AI 與資源載入；儲存空間用於進度及文件；麥克風僅在你啟動錄音／辨識時要求。選檔僅讀取你自行選擇或拖入的檔案。</p><p>Google 同步使用 Drive appDataFolder 及基本帳號授權。原有手動 OAuth 設定保留；網站擁有人可統一提供公開 client ID，不能在公開程式放 client secret 或 API 金鑰。</p><p>學習備份包括原有學習類別及新增筆記、自適應排程和當日測驗；文件預設不包含，需自行勾選。不包含 AI 金鑰、查字快取或暫存聲音。本機每日快照仍只涵蓋原有六類關鍵資料。</p><p>關閉文件備份只停止之後上傳新文件，不會自動刪掉雲端已存在的版本。登出會停止自動同步而保留本機資料；如需刪除既有 Google 備份，可在 Google Drive 的應用程式管理中管理其隱藏資料。JSON 下載檔由你自行保管。</p></div>
+  <div class="card"><h2>7. 資料安全及限制</h2><p>正式網站及服務端點使用 HTTPS；本機開發預覽可能使用 localhost HTTP。API 金鑰由你提供，保存在此裝置並在呼叫時直接送給對應供應商，不列入本站同步資料。localStorage 並非加密保管庫，同 origin 程式或裝置使用者可能讀取其內容。請使用有限權限金鑰並保護裝置。</p><p>本站沒有託管你的學習備份，開發者不能代你恢復已遺失的本機內容。任何本機或雲端儲存都無法保證永不遺失，建議定期下載備份。</p></div>
+  <div class="card"><h2>8. 政策變更</h2><p>本頁按實際功能更新；使用新功能前請查看其畫面中的資料使用提示。資料流如有改變，應同步更新本頁。</p></div>
+  <div class="card"><h2>9. 聯絡方式</h2><p><a href="https://github.com/owikdowjfodi/app/issues">GitHub Issues</a> · <a href="mailto:huhh88088@gmail.com">huhh88088@gmail.com</a></p><p class="muted">功能版本：2.2 · 更新日期：2026 年 11 月 8 日。</p></div>
 </main>
 
 <footer>
-  <p><strong>生效日期：</strong>2026 年 10 月 1 日　｜　<strong>版本：</strong>1.1</p>
+  <p><strong>生效日期：</strong>2026 年 11 月 8 日　｜　<strong>版本：</strong>1.1</p>
   <p><a href="./index.html">← 回到單字探險家</a></p>
 </footer>
 

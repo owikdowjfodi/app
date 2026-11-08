@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%89%3C/text%3E%3C/svg%3E">
 
 <!-- ===== SEO / 社群分享標籤 ===== -->
-<meta name="description" content="免安裝的英文單字深度學習系統：即時連網查詢釋義與字源、視覺化詞綴拆解、每日測驗，以及 7 天間隔自動複習。所有學習紀錄只存在你自己的瀏覽器。">
+<meta name="description" content="免安裝的英文單字深度學習系統：即時連網查詢釋義與字源、視覺化詞綴拆解、每日測驗，以及 7 天間隔自動複習。學習紀錄預設保存在裝置，可選用雲端備份；翻譯與 AI 功能會連線到第三方。">
 <meta name="theme-color" content="#6C4BF6">
 <meta property="og:type" content="website">
 <meta property="og:title" content="🦊 單字探險家 ｜ 智慧英文單字深度學習與動態複習系統">
@@ -622,7 +622,7 @@
   <section id="panel-speak" class="hidden">
     <div class="text-center mb-6">
       <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">🎤 AI 口說教練</h2>
-      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">雅思口說隨機出題 ・ 即時糾正發音 ・ AI 評價你的想法與用字</p>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">雅思口說隨機出題 ・ 辨識文字比對與口說回饋 ・ AI 評價你的想法與用字</p>
     </div>
     <div id="speak-ai-status" class="mb-4"></div>
     <div id="speak-home"></div>
@@ -647,7 +647,7 @@
   <section id="panel-playbook" class="hidden">
     <div class="text-center mb-6">
       <h2 class="font-extrabold text-2xl sm:text-3xl mb-2">📚 雅思攻略</h2>
-      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">四項評分標準 ・ 高分句型 ・ 連網抓取官方資訊 ・ AI 幫你排讀書計畫</p>
+      <p class="text-sm sm:text-base text-[#A5A2B8] font-bold">四項評分標準 ・ 高分句型 ・ 連網抓取背景資訊 ・ AI 幫你排讀書計畫</p>
     </div>
     <div id="playbook-body"></div>
   </section>
@@ -736,7 +736,7 @@
     </button>
     <button class="we-nav-item" data-tab="speak">
       <span class="we-nav-ico">🎤</span>
-      <span class="we-nav-txt"><span>AI 口說教練</span><span class="we-nav-sub">錄音、逐字糾正、四項評分</span></span>
+      <span class="we-nav-txt"><span>AI 口說教練</span><span class="we-nav-sub">錄音、文字比對、四項回饋</span></span>
     </button>
     <button class="we-nav-item" data-tab="idea">
       <span class="we-nav-ico">💡</span>
@@ -749,7 +749,7 @@
   </nav>
 
   <div class="we-drawer-foot">
-    <p>🦊 單字探險家 <span id="nav-version">v2.1</span></p>
+    <p>🦊 單字探險家 <span id="nav-version">v2.2</span></p>
     <p class="mt-0.5">介面、圖示與配色皆為本專案原創設計</p>
   </div>
 </aside>
@@ -1453,6 +1453,7 @@ function closeNav() {
 }
 
 function switchTab(tab) {
+  hideFeedbackBar(); // v2.2：切頁先收起上一個單元的作答列，作答資料仍保留。
   state.activeTab = tab;
   ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'wordbook', 'reader', 'idea', 'playbook'].forEach(t => {
     const panel = $('#panel-' + t);
@@ -5124,6 +5125,7 @@ function nextReviewQuestion() {
    【全螢幕反饋底欄控制】
    ================================================================================= */
 function showFeedbackBar(opts) {
+  if (state.activeTab !== 'quiz' && state.activeTab !== 'srs') return; // 避免背景出題完成後跨頁彈出
   const bar = $('#feedback-bar');
   const inner = $('#feedback-inner');
   const icon = $('#fb-icon');
@@ -5905,7 +5907,7 @@ function pronScore(targetText, heardText) {
 function pronWordsHtml(words, extras) {
   let html = words.map(function (w) {
     const cls = w.status === 'ok' ? 'pw pw-ok' : (w.status === 'close' ? 'pw pw-close' : 'pw pw-miss');
-    const title = w.status === 'ok' ? '唸對了' : ('聽到的是：' + (w.heard || '（沒聽到）'));
+    const title = w.status === 'ok' ? '辨識文字吻合' : ('聽到的是：' + (w.heard || '（沒聽到）'));
     return '<span class="' + cls + '" title="' + esc(title) + '">' + esc(w.word) + '</span>';
   }).join('');
   if (extras && extras.length) {
@@ -6491,12 +6493,12 @@ function spBindReadBlock(prefix, getTarget, ttsText, onScored) {
     const pct = res.score;
     resultEl.innerHTML = '' +
       '<div class="flex items-center gap-3 flex-wrap mb-2">' +
-        '<span class="text-3xl font-extrabold" style="color:' + spScoreColor(pct) + '">' + pct + '<span class="text-base">/100</span></span>' +
-        '<span class="text-xs font-extrabold text-[#A5A2B8]">' + res.ok + ' 個唸對 ・ ' + res.close + ' 個接近 ・ ' + res.miss + ' 個沒到位</span>' +
+        '<span class="text-sm font-extrabold">辨識文字吻合度</span><span class="text-3xl font-extrabold" style="color:' + spScoreColor(pct) + '">' + pct + '<span class="text-base">/100</span></span>' +
+        '<span class="text-xs font-extrabold text-[#A5A2B8]">' + res.ok + ' 個吻合 ・ ' + res.close + ' 個接近 ・ ' + res.miss + ' 個未吻合</span>' +
         (seconds ? '<span class="text-xs font-extrabold text-[#A5A2B8]">用時 ' + seconds.toFixed(1) + ' 秒</span>' : '') +
       '</div>' +
       '<div class="text-base leading-loose">' + pronWordsHtml(res.words, res.extras) + '</div>' +
-      (res.miss > 0 ? '<p class="text-xs font-bold text-[#E03E43] mt-2">紅色的字是辨識系統沒聽到／聽到別的字，通常代表母音長短、字尾子音或重音位置要再加強。</p>' : '') +
+      (res.miss > 0 ? '<p class="text-xs font-bold text-[#E03E43] mt-2">紅色表示辨識文字未吻合，可能來自辨識誤差、漏字或說法不同；不能單憑這個結果判定音素、重音或語調。</p>' : '') +
       '<p class="text-xs font-bold text-[#A5A2B8] mt-2">辨識結果：' + esc(saidText || '（沒有辨識到任何內容）') + '</p>';
     const bad = res.words.filter(function (w) { return w.status === 'miss'; }).map(function (w) { return w.word; });
     if (bad.length) spLogPronWords(bad);
@@ -8361,7 +8363,7 @@ function renderPlaybook() {
     '</div>' +
 
     '<div class="we-card p-4 mb-4">' +
-      '<h3 class="font-extrabold text-lg mb-2">🌐 連網抓取官方 IELTS 資訊</h3>' +
+      '<h3 class="font-extrabold text-lg mb-2">🌐 IELTS 背景資訊（Wikipedia）</h3>' +
       '<p class="text-xs font-bold text-[#A5A2B8] mb-2">從 Wikipedia 即時取得 IELTS 的考試架構、分數對照與用途（快取 7 天，離線時讀快取）。</p>' +
       '<button class="we-btn we-btn-sm" id="pb-web-btn">🔄 立即抓取／更新</button>' +
       '<div id="pb-web-out" class="mt-3"></div>' +
@@ -11022,7 +11024,7 @@ function readerHomeHtml() {
     '<div class="rd-drop" id="rd-drop">' +
       '<div class="text-4xl mb-2">📄</div>' +
       '<p class="font-extrabold text-lg">把文件拖進來，或按下面的按鈕</p>' +
-      '<p class="text-xs text-[#A5A2B8] font-bold mt-1 mb-3">支援 .txt / .md / .srt / .vtt / .csv / .html / .pdf / .docx · 單份上限 ' + READER_MAX_CHARS.toLocaleString() + ' 字</p>' +
+      '<p class="text-xs text-[#A5A2B8] font-bold mt-1 mb-3">支援 .txt / .md / .srt / .vtt / .csv / .html / .pdf / .docx · 長文預覽門檻 ' + READER_MAX_CHARS.toLocaleString() + ' 字元；完整原文另存文件庫</p>' +
       '<div class="flex flex-wrap gap-2 justify-center">' +
         '<button class="we-btn" data-rd-act="pick">📤 選擇檔案</button>' +
         '<button class="we-btn we-btn-ghost" data-rd-act="paste-toggle">📋 貼上文字</button>' +
@@ -11038,7 +11040,7 @@ function readerHomeHtml() {
       '</div>' +
     '</div>' +
 
-    '<p class="text-[11px] text-[#A5A2B8] font-bold mt-4 leading-relaxed">🔒 文件只存在你自己的這台裝置（不會上傳、也不會進雲端備份）；但你從文章加進<b class="text-[#6C4BF6]">單詞本</b>的字會照常同步到雲端。</p>' +
+    '<p class="text-[11px] text-[#A5A2B8] font-bold mt-4 leading-relaxed">🔒 文件預設只存在這台裝置；可自行選擇包含文件的備份。按翻譯會傳送選取內容給翻譯服務，按 AI 解釋會傳送單字及所在句子給所選 AI。你從文章加進<b class="text-[#6C4BF6]">單詞本</b>的字會照常同步到雲端。</p>' +
     '</div>' +
 
     '<div class="we-card p-4 sm:p-5">' +
@@ -11675,5 +11677,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   });
 }
 </script>
+<script src="app-config.js"></script>
+<script src="enhancements.js"></script>
 </body>
 </html>

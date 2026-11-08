@@ -16,7 +16,7 @@
  * 改版時請把 VERSION 往上加，舊快取會在 activate 時自動清掉。
  * ========================================================================== */
 
-const VERSION = 'v13';
+const VERSION = 'v14';
 const SHELL_CACHE = 'word-explorer-shell-' + VERSION;
 const CDN_CACHE = 'word-explorer-cdn-' + VERSION;
 
@@ -26,6 +26,8 @@ const SHELL_ASSETS = [
   './index.html',
   './manifest.webmanifest',
   './privacy-policy.html',
+  './app-config.js',
+  './enhancements.js',
   './icons/favicon-48.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -62,7 +64,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.map(key => {
-      if (key !== SHELL_CACHE && key !== CDN_CACHE) {
+      if ((key.startsWith('word-explorer-shell-') || key.startsWith('word-explorer-cdn-')) && key !== SHELL_CACHE && key !== CDN_CACHE) {
         console.log('[SW] 刪除舊快取：' + key);
         return caches.delete(key);
       }

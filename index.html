@@ -5314,20 +5314,16 @@ const LS_WEBINFO = 'ielts_web_cache';    // 線上抓回來的雅思資訊快取
 
 /* ---------- 5-2. AI 供應商（全部都是「瀏覽器直連」，不需要後端） ---------- */
 const AI_PROVIDERS = [
-  /* ---- 香港／澳門／台灣可以直接用（建議先試這幾個）---- */
-  { id: 'github',       type: 'openai', label: '⭐ GitHub Models（免費・用你現有的 GitHub 帳號）', base: 'https://models.github.ai/inference',  model: 'openai/gpt-4o-mini',      keyUrl: 'https://github.com/settings/tokens' },
-  { id: 'glm',          type: 'openai', label: '⭐ 智譜 GLM-4-Flash（永久免費・中港台直連）',      base: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash',             keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys' },
-  { id: 'siliconflow',  type: 'openai', label: '⭐ 硅基流動 SiliconFlow（港澳台・小模型免費）',    base: 'https://api.siliconflow.cn/v1',       model: 'Qwen/Qwen3-8B',           keyUrl: 'https://cloud.siliconflow.cn/account/ak' },
-  { id: 'pollinations', type: 'openai', label: '⭐ Pollinations（免註冊・免金鑰・最快能試）',       base: 'https://text.pollinations.ai/openai', model: 'openai',                  keyUrl: 'https://pollinations.ai/', noKey: true },
-  /* ---- 國際主流（⚠️ 香港目前不支援，選了會被擋）---- */
-  { id: 'openai',       type: 'openai', label: 'OpenAI（⚠️ 香港不支援）',                        base: 'https://api.openai.com/v1',           model: 'gpt-4o-mini',             keyUrl: 'https://platform.openai.com/api-keys' },
-  { id: 'gemini',       type: 'gemini', label: 'Google Gemini（⚠️ 香港不支援）',                  base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash', keyUrl: 'https://aistudio.google.com/app/apikey' },
-  { id: 'groq',         type: 'openai', label: 'Groq（⚠️ 香港被地區封鎖）',                       base: 'https://api.groq.com/openai/v1',      model: 'llama-3.3-70b-versatile', keyUrl: 'https://console.groq.com/keys' },
-  { id: 'anthropic',    type: 'anthropic', label: 'Anthropic Claude（⚠️ 香港不支援）',            base: 'https://api.anthropic.com/v1',        model: 'claude-3-5-haiku-latest', keyUrl: 'https://console.anthropic.com/settings/keys' },
-  /* ---- 其他 ---- */
-  { id: 'deepseek',     type: 'openai', label: 'DeepSeek（中港可用・需小額儲值）',                 base: 'https://api.deepseek.com/v1',         model: 'deepseek-chat',           keyUrl: 'https://platform.deepseek.com/api_keys' },
-  { id: 'openrouter',   type: 'openai', label: 'OpenRouter（多模型聚合・部分模型擋中港）',         base: 'https://openrouter.ai/api/v1',        model: 'openai/gpt-4o-mini',      keyUrl: 'https://openrouter.ai/keys' },
-  { id: 'custom',       type: 'openai', label: '自訂（任何 OpenAI 相容端點）',                     base: '',                                    model: '',                        keyUrl: '' }
+  {id:'github',type:'openai',label:'GitHub Models',base:'https://models.github.ai/inference',model:'',keyUrl:'https://github.com/settings/tokens'},
+  {id:'glm',type:'openai',label:'智譜 GLM',base:'https://open.bigmodel.cn/api/paas/v4',model:'',keyUrl:'https://open.bigmodel.cn/usercenter/apikeys'},
+  {id:'siliconflow',type:'openai',label:'SiliconFlow',base:'https://api.siliconflow.cn/v1',model:'',keyUrl:'https://cloud.siliconflow.cn/account/ak'},
+  {id:'openai',type:'openai',label:'OpenAI',base:'https://api.openai.com/v1',model:'',keyUrl:'https://platform.openai.com/api-keys'},
+  {id:'gemini',type:'gemini',label:'Google Gemini',base:'https://generativelanguage.googleapis.com/v1beta',model:'',keyUrl:'https://aistudio.google.com/app/apikey'},
+  {id:'groq',type:'openai',label:'Groq',base:'https://api.groq.com/openai/v1',model:'',keyUrl:'https://console.groq.com/keys'},
+  {id:'anthropic',type:'anthropic',label:'Anthropic Claude',base:'https://api.anthropic.com/v1',model:'',keyUrl:'https://platform.claude.com/settings/keys'},
+  {id:'deepseek',type:'openai',label:'DeepSeek',base:'https://api.deepseek.com/v1',model:'',keyUrl:'https://platform.deepseek.com/api_keys'},
+  {id:'openrouter',type:'openai',label:'OpenRouter',base:'https://openrouter.ai/api/v1',model:'',keyUrl:'https://openrouter.ai/keys'},
+  {id:'custom',type:'openai',label:'自訂 OpenAI 相容 API（本人提供）',base:'',model:'',keyUrl:''}
 ];
 
 /* ---------- 5-3. 預設提示詞（使用者可以在 AI 設定裡自由修改／還原） ---------- */
@@ -5652,68 +5648,46 @@ const AI_WORD_SEED = [
    5-9. AI 設定與呼叫層（瀏覽器直連；沒有後端，金鑰只留在你自己的 localStorage）
    ================================================================================= */
 function aiDefaults() {
-  /* v1.7：預設直接用「免金鑰」的 Pollinations，使用者不用申請任何東西就能用 AI。
-     想用自己的金鑰（品質更好、更穩定）再到 AI 設定裡換。 */
-  return { provider: 'pollinations', apiKey: '', base: '', model: '', temperature: 0.6, maxTokens: 1200, prompts: {} };
+  return {provider:'custom',apiKey:'',base:'',model:'',temperature:0.6,maxTokens:1200,prompts:{},allowedModels:[],approvedConfig:''};
 }
 function aiGetSettings() {
-  const d = aiDefaults();
-  const s = lsGet(LS_AI, null);
-  if (!s || typeof s !== 'object') return d;
-  return {
-    provider: s.provider || d.provider,
-    apiKey: typeof s.apiKey === 'string' ? s.apiKey : '',
-    base: typeof s.base === 'string' ? s.base : '',
-    model: typeof s.model === 'string' ? s.model : '',
-    temperature: (typeof s.temperature === 'number') ? s.temperature : d.temperature,
-    maxTokens: (typeof s.maxTokens === 'number') ? s.maxTokens : d.maxTokens,
-    prompts: (s.prompts && typeof s.prompts === 'object') ? s.prompts : {}
-  };
+  const d=aiDefaults(),s=lsGet(LS_AI,null);
+  if(!s||typeof s!=='object')return d;
+  return {provider:s.provider||d.provider,apiKey:typeof s.apiKey==='string'?s.apiKey:'',base:typeof s.base==='string'?s.base:'',model:typeof s.model==='string'?s.model:'',temperature:typeof s.temperature==='number'?s.temperature:d.temperature,maxTokens:typeof s.maxTokens==='number'?s.maxTokens:d.maxTokens,prompts:s.prompts&&typeof s.prompts==='object'?s.prompts:{},allowedModels:Array.isArray(s.allowedModels)?s.allowedModels.filter(m=>typeof m==='string'):[],approvedConfig:typeof s.approvedConfig==='string'?s.approvedConfig:''};
 }
-function aiSaveSettings(s) { return lsSet(LS_AI, s); }
-function aiProvider(id) { return AI_PROVIDERS.find(function (p) { return p.id === id; }) || AI_PROVIDERS[0]; }
-function aiBase(s) { return String((s.base || aiProvider(s.provider).base || '')).replace(/\/+$/, ''); }
-function aiModel(s) { return s.model || aiProvider(s.provider).model || ''; }
-function aiPrompt(key) {
-  const s = aiGetSettings();
-  const custom = s.prompts ? s.prompts[key] : '';
-  if (typeof custom === 'string' && custom.trim()) return custom;
-  return AI_DEFAULT_PROMPTS[key] || '';
+function aiSaveSettings(s){return lsSet(LS_AI,s);}
+function aiProvider(id){return AI_PROVIDERS.find(p=>p.id===id)||AI_PROVIDERS.find(p=>p.id==='custom');}
+function aiBase(s){return String(s.base||aiProvider(s.provider).base||'').trim().replace(/\/+$/,'');}
+function aiModel(s){return String(s.model||'').trim();}
+// Configuration fingerprint detects changes; it is not an authentication or billing limit.
+function aiApprovalId(s){const text=JSON.stringify([s.provider,aiBase(s),aiModel(s),s.apiKey,s.maxTokens,s.temperature]);let a=2166136261,b=5381;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b,33)^text.charCodeAt(i);}return 'byok-v1-'+(a>>>0).toString(36)+'-'+(b>>>0).toString(36);}
+function aiConfigError(s){
+  const p=AI_PROVIDERS.find(p=>p.id===s.provider);
+  if(!p)return '舊 AI 通道已停用，請重新設定本人 API。';
+  if(!String(s.apiKey||'').trim())return 'AI 尚未啟用：請在 AI 設定填入你自己的 API 金鑰。';
+  let url;try{url=new URL(aiBase(s));}catch{return '請填入有效的 HTTPS API 網址。';}
+  if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)return 'API 網址必須使用 HTTPS，不能包含帳密、查詢參數或片段。';
+  if(p.id!=='custom'&&aiBase(s)!==p.base)return '此供應商只接受其預設 API 網址；其他服務請明確選擇自訂。';
+  if(!aiModel(s)||aiModel(s).length>200||/[\s?#]/.test(aiModel(s)))return '請填入供應商提供的有效模型 ID。';
+  if(!Number.isFinite(s.maxTokens)||s.maxTokens<20||s.maxTokens>8000)return '最大回覆長度需介乎 20 至 8000 tokens。';
+  if(!Number.isFinite(s.temperature)||s.temperature<0||s.temperature>1)return '溫度需介乎 0 至 1。';
+  if(!Array.isArray(s.allowedModels)||s.allowedModels.length!==1||s.allowedModels[0]!==aiModel(s)||s.approvedConfig!==aiApprovalId(s))return '請先核對目前供應商、模型及費用，再於 AI 設定勾選同意並儲存啟用。';
+  return '';
 }
-function aiIsReady() {
-  const e = aiEffective(aiGetSettings());
-  return !!(e.base && e.model);
-}
-function aiKeyHint() {
-  const s = aiGetSettings();
-  const e = aiEffective(s);
-  if (e.keyless) return e.model + '（免金鑰模式）';
-  const p = aiProvider(s.provider);
-  if (!s.apiKey) return p.noKey ? (aiModel(s) + '（免金鑰）') : '尚未設定 API 金鑰';
-  return e.model + '（' + s.apiKey.slice(0, 6) + '…' + s.apiKey.slice(-4) + '）';
-}
-
-/* v1.7：免金鑰自動接手。
-   使用者可能「一家金鑰都沒填」或「填了金鑰卻失效」——這裡讓 AI 永遠有東西可用：
-   只要目前選的供應商需要金鑰卻沒有金鑰，就自動改用免註冊免金鑰的 Pollinations。
-   這代表使用者「完全不申請任何 API」也能使用 AI，而開發者不用付任何費用。 */
-const AI_KEYLESS_ID = 'pollinations';
-function aiKeyless() { return aiProvider(AI_KEYLESS_ID); }
-function aiEffective(s) {
-  const p = aiProvider(s.provider);
-  if (s.apiKey || p.noKey) {
-    return { provider: p, keyless: !!p.noKey && !s.apiKey, base: aiBase(s), model: aiModel(s), type: p.type, apiKey: s.apiKey };
-  }
-  const k = aiKeyless();
-  return { provider: k, keyless: true, base: String(k.base || '').replace(/\/+$/, ''), model: k.model, type: k.type, apiKey: '' };
-}
+function aiPrompt(key){const s=aiGetSettings(),custom=s.prompts?s.prompts[key]:'';return typeof custom==='string'&&custom.trim()?custom:AI_DEFAULT_PROMPTS[key]||'';}
+function aiIsReady(){return !aiConfigError(aiGetSettings());}
+function aiKeyHint(){const s=aiGetSettings();return aiIsReady()?aiProvider(s.provider).label+' · '+aiModel(s)+'（本人 API）':'AI 未啟用 · 本機練習仍可用';}
+// Legacy function name retained for compatibility; no keyless service exists.
+const AI_KEYLESS_ID='';
+function aiKeyless(){return null;}
+function aiEffective(s){const error=aiConfigError(s);return {provider:aiProvider(s.provider),keyless:false,base:error?'':aiBase(s),model:error?'':aiModel(s),type:aiProvider(s.provider).type,apiKey:error?'':s.apiKey,error};}
 
 function aiHttpError(status, data, eff) {
   const msg = (data && data.error && (data.error.message || data.error.status)) || (data && data.message) || '';
   const name = (eff && eff.provider && eff.provider.label) || '';
   if (status === 401) return new Error('API 金鑰無效（HTTP 401）。請確認：①金鑰整串複製、沒有多餘空白 ②金鑰沒有被刪除或過期 ③帳號已完成開通。' + (name ? '（供應商：' + name + '）' : '') + (msg ? ' 伺服器說：' + msg : ''));
   if (status === 403) return new Error('被拒絕（HTTP 403）。常見原因：金鑰沒有這個模型的權限、帳號未實名認證、或所在地區被封鎖。' + (msg ? ' 伺服器說：' + msg : ''));
-  if (status === 402) return new Error('餘額不足（HTTP 402）。這個供應商需要儲值，建議改用免金鑰模式或免費供應商。' + (msg ? ' 伺服器說：' + msg : ''));
+  if (status === 402) return new Error('供應商拒絕請求（HTTP 402）。請自行檢查帳戶額度與計費；本網站不會儲值或切換其他服務。' + (msg ? ' 伺服器說：' + msg : ''));
   if (status === 429) return new Error('超過額度或速率限制（HTTP 429）。稍等 30 秒再試，或到 AI 設定換一個供應商。' + (msg ? ' 伺服器說：' + msg : ''));
   if (status === 404) return new Error('找不到模型或端點（HTTP 404）。請檢查「模型名稱」與「Base URL」是否跟供應商相符。' + (msg ? ' 伺服器說：' + msg : ''));
   return new Error('AI 服務回傳錯誤（HTTP ' + status + '）。' + msg);
@@ -5725,11 +5699,11 @@ async function aiChat(messages, opts) {
   const s = aiGetSettings();
   const eff = aiEffective(s);
   const prov = eff.provider;
-  if (!eff.base || !eff.model) throw new Error('AI 端點沒有設定完整，請到「🤖 AI 設定」檢查。');
+  if (eff.error) throw new Error(eff.error);
   const base = eff.base, model = eff.model, type = eff.type;
   const apiKey = eff.apiKey;
   const temperature = (typeof o.temperature === 'number') ? o.temperature : s.temperature;
-  const maxTokens = o.maxTokens || s.maxTokens || 1200;
+  const maxTokens = Math.max(1, Math.min(s.maxTokens, Number(o.maxTokens) || s.maxTokens));
   const sys = o.system || '';
   const timeoutMs = o.timeoutMs || 90000;
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
@@ -5744,7 +5718,7 @@ async function aiChat(messages, opts) {
       if (sys) body.systemInstruction = { parts: [{ text: sys }] };
       res = await fetch(base + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+        body: JSON.stringify(body), redirect: 'error', signal: ctrl ? ctrl.signal : undefined
       });
       data = await res.json().catch(function () { return null; });
       if (!res.ok) throw aiHttpError(res.status, data, eff);
@@ -5764,7 +5738,7 @@ async function aiChat(messages, opts) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
           'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+        body: JSON.stringify(body), redirect: 'error', signal: ctrl ? ctrl.signal : undefined
       });
       data = await res.json().catch(function () { return null; });
       if (!res.ok) throw aiHttpError(res.status, data, eff);
@@ -5778,7 +5752,7 @@ async function aiChat(messages, opts) {
     res = await fetch(base + '/chat/completions', {
       method: 'POST',
       headers: oaHeaders,
-      body: JSON.stringify({ model: model, messages: msgs, temperature: temperature, max_tokens: maxTokens }),
+      body: JSON.stringify({ model: model, messages: msgs, temperature: temperature, max_tokens: maxTokens }), redirect: 'error',
       signal: ctrl ? ctrl.signal : undefined
     });
     data = await res.json().catch(function () { return null; });
@@ -5790,7 +5764,7 @@ async function aiChat(messages, opts) {
     if (err && err.name === 'AbortError') throw new Error('AI 回應逾時（' + Math.round(timeoutMs / 1000) + ' 秒），請確認網路或換一個模型。');
     if (err instanceof TypeError) {
       throw new Error('連線失敗（fetch 直接失敗）。最可能是這家供應商「不允許瀏覽器直接呼叫」（CORS 被擋）或你的網路封鎖了它。' +
-        (eff.keyless ? '' : '建議到「🤖 AI 設定」按「🎁 免金鑰試用」改用免金鑰模式，或換一家供應商。'));
+        '請在 AI 設定檢查本人 API；不會自動改用其他供應商。');
     }
     throw err;
   } finally {
@@ -6147,197 +6121,41 @@ function spTopPronWords(n) {
 /* =================================================================================
    5-13. AI 設定彈窗（供應商／金鑰／模型／提示詞）
    ================================================================================= */
-function openAiSettings() {
-  const s = aiGetSettings();
-  const existing = document.getElementById('ai-settings-overlay');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'ai-settings-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(40,36,60,.55);z-index:120;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
-
-  const provOptions = AI_PROVIDERS.map(function (p) {
-    return '<option value="' + p.id + '"' + (p.id === s.provider ? ' selected' : '') + '>' + esc(p.label) + '</option>';
-  }).join('');
-
-  const promptKeys = [
-    { k: 'coach', label: '🎯 口說評分教練（最重要）' },
-    { k: 'idea', label: '💡 想法五稜鏡評審' },
-    { k: 'examiner', label: '📝 出題考官' },
-    { k: 'roleplay', label: '🎭 角色扮演對話' },
-    { k: 'word', label: '📚 每日單字出題' },
-    { k: 'plan', label: '🗓️ 讀書計畫規劃' }
-  ];
-  const promptBoxes = promptKeys.map(function (p) {
-    const val = (s.prompts && s.prompts[p.k]) ? s.prompts[p.k] : AI_DEFAULT_PROMPTS[p.k];
-    const isCustom = !!(s.prompts && s.prompts[p.k]);
-    return '<details class="mt-2 we-card-flat p-3">' +
-      '<summary class="cursor-pointer text-sm font-extrabold text-[#4F32C4] select-none">' + p.label +
-        (isCustom ? ' <span class="sp-tagline">已自訂</span>' : ' <span class="sp-tagline">預設</span>') + '</summary>' +
-      '<textarea data-prompt="' + p.k + '" rows="8" class="we-input sp-code mt-2 w-full" style="resize:vertical">' + esc(val) + '</textarea>' +
-      '<button class="we-btn we-btn-ghost we-btn-sm mt-2" data-prompt-reset="' + p.k + '">↩️ 還原這個提示詞</button>' +
-      '</details>';
-  }).join('');
-
-  const prov = aiProvider(s.provider);
-  overlay.innerHTML = '' +
-    '<div class="we-card p-5" style="max-width:44rem;width:100%;margin:1rem 0 4rem">' +
-      '<div class="flex items-start justify-between gap-3 mb-3">' +
-        '<div>' +
-          '<h3 class="font-extrabold text-xl">🤖 AI 設定</h3>' +
-          '<p class="text-xs font-bold text-[#A5A2B8] mt-1">金鑰只存在你自己的裝置（localStorage），直接從瀏覽器連到 AI 供應商，不會經過我們的伺服器。</p>' +
-        '</div>' +
-        '<button class="text-2xl leading-none opacity-50 hover:opacity-100" data-ai-close>✕</button>' +
-      '</div>' +
-
-      '<div class="p-3 rounded-2xl" style="background:#D9F7EA;border:2px solid #7EE0BC">' +
-        '<p class="text-sm font-extrabold" style="color:#0F7A54">🎁 完全不想申請金鑰？</p>' +
-        '<p class="text-xs font-bold mt-1 leading-relaxed" style="color:#0F7A54">' +
-          '按下面的 <b>「🎁 免金鑰試用」</b> 就好：AI 立刻可以用，<b>不用註冊、不用信用卡、不用付任何錢</b>（連開發者也不用付）。' +
-          '缺點是免金鑰的公用模型排隊較久、偶爾會忙線；想更快更穩再自己申請金鑰。' +
-        '</p>' +
-        '<button class="we-btn we-btn-sm mt-2" id="ai-keyless" style="background:#0F7A54">🎁 免金鑰試用</button>' +
-      '</div>' +
-
-      '<div class="p-3 rounded-2xl bg-[#FFF1D6] border-2 border-[#FFC44D] text-xs font-extrabold text-[#96701A] leading-relaxed mb-4">' +
-        '⚠️ 提醒：API 金鑰等於你的錢包。請用「有設定花費上限」的金鑰，不要用主帳號的萬用金鑰。<br>' +
-        '本 App 沒有任何後端，金鑰不會離開這台裝置；但如果你把網頁放在公開網路，請不要在公用電腦上輸入金鑰。' +
-      '</div>' +
-
-      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">供應商</label>' +
-      '<select id="ai-provider" class="we-input w-full mb-3">' + provOptions + '</select>' +
-
-      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">API Base URL</label>' +
-      '<input id="ai-base" class="we-input w-full mb-3 sp-code" value="' + esc(s.base || prov.base) + '" placeholder="https://api.openai.com/v1">' +
-
-      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">模型名稱</label>' +
-      '<input id="ai-model" class="we-input w-full mb-3 sp-code" value="' + esc(s.model || prov.model) + '" placeholder="gpt-4o-mini">' +
-
-      '<label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">API 金鑰</label>' +
-      '<div class="flex gap-2 mb-1">' +
-        '<input id="ai-key" type="password" class="we-input flex-1 sp-code" value="' + esc(s.apiKey) + '" placeholder="貼上你的 API Key" autocomplete="off" spellcheck="false">' +
-        '<button class="we-btn we-btn-ghost we-btn-sm" id="ai-key-eye">👁️</button>' +
-      '</div>' +
-      '<p class="text-xs font-bold text-[#A5A2B8] mb-3">' +
-        (prov.keyUrl ? '申請金鑰：<a class="text-[#6C4BF6] underline" target="_blank" rel="noopener" href="' + prov.keyUrl + '">' + esc(prov.label) + '</a><br>' : '請填入你的端點與模型名稱。<br>') +
-        (prov.id === 'glm' ? '💡 智譜（GLM）出現 <b>401</b> 最常見的原因：複製到的是「API Key 名稱」而不是金鑰本身（金鑰通常以 <code>xxxxx.yyyyy</code> 兩段式呈現，要整串含中間的點一起複製），或多複製了空格。<br>' : '') +
-        (prov.id === 'github' ? '💡 GitHub Models 需要 <b>fine-grained PAT</b>，權限勾 <b>Models: Read-only</b>。用 classic token 會 401。<br>' : '') +
-        '💡 不知道填什麼就按「🎁 免金鑰試用」，一鍵切換到免註冊的免費模型。' +
-      '</p>' +
-
-      '<div class="grid grid-cols-2 gap-3 mb-4">' +
-        '<div><label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">溫度（0-1，越低越嚴謹）</label>' +
-          '<input id="ai-temp" type="number" min="0" max="1" step="0.1" class="we-input w-full" value="' + s.temperature + '"></div>' +
-        '<div><label class="block text-xs font-extrabold text-[#A5A2B8] mb-1">最大回覆長度</label>' +
-          '<input id="ai-max" type="number" min="200" max="8000" step="100" class="we-input w-full" value="' + s.maxTokens + '"></div>' +
-      '</div>' +
-
-      '<div class="flex flex-wrap gap-2 mb-4">' +
-        '<button class="we-btn we-btn-sm" id="ai-test">🔌 測試連線</button>' +
-        '<button class="we-btn we-btn-sm" id="ai-save">💾 儲存設定</button>' +
-        '<button class="we-btn we-btn-ghost we-btn-sm" id="ai-clear-key">🗑️ 清除金鑰</button>' +
-      '</div>' +
-      '<div id="ai-test-out" class="text-sm font-extrabold mb-4"></div>' +
-
-      '<p class="text-xs font-extrabold text-[#A5A2B8] mb-1">提示詞（決定 AI 的角色與輸出格式；想改風格就改這裡）</p>' +
-      promptBoxes +
-    '</div>';
-
-  document.body.appendChild(overlay);
-
-  const close = function () { overlay.remove(); spRenderStatus(); };
-  overlay.querySelector('[data-ai-close]').addEventListener('click', close);
-  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-
-  const provSel = overlay.querySelector('#ai-provider');
-  provSel.addEventListener('change', function () {
-    const p = aiProvider(provSel.value);
-    overlay.querySelector('#ai-base').value = p.base;
-    overlay.querySelector('#ai-model').value = p.model;
-  });
-
-  const keyInput = overlay.querySelector('#ai-key');
-  overlay.querySelector('#ai-key-eye').addEventListener('click', function () {
-    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
-  });
-
-  /* 🎁 免金鑰試用：一鍵切到 Pollinations（免註冊免金鑰），並立刻測連線 */
-  overlay.querySelector('#ai-keyless').addEventListener('click', async function () {
-    const out = overlay.querySelector('#ai-test-out');
-    const k = aiKeyless();
-    provSel.value = k.id;
-    overlay.querySelector('#ai-base').value = k.base;
-    overlay.querySelector('#ai-model').value = k.model;
-    keyInput.value = '';
-    const cur = collect();
-    cur.provider = k.id; cur.base = k.base; cur.model = k.model; cur.apiKey = '';
-    aiSaveSettings(cur);
-    out.innerHTML = '<span class="text-[#96701A]">⏳ 免金鑰模式：正在測試連線…</span>';
-    try {
-      const t = await aiChat([{ role: 'user', content: 'Reply with exactly: OK' }], { temperature: 0, maxTokens: 20, timeoutMs: 45000 });
-      out.innerHTML = '<span style="color:#0F7A54">✅ 免金鑰模式可用！模型回覆：' + esc(String(t).trim().slice(0, 60)) + '</span>';
-      showToast('🎁 已切換到免金鑰模式，不用任何金鑰就能用 AI。', 'info', 4500);
-    } catch (err) {
-      out.innerHTML = '<span style="color:#E03E43">❌ 免金鑰模式暫時連不上：' + esc(err.message) + '（公用服務偶爾忙線，過一分鐘再試一次，或改填自己的金鑰）</span>';
-    }
-    spRenderStatus();
-  });
-
-  overlay.querySelectorAll('[data-prompt-reset]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const k = btn.dataset.promptReset;
-      const ta = overlay.querySelector('[data-prompt="' + k + '"]');
-      ta.value = AI_DEFAULT_PROMPTS[k];
-      const cur = aiGetSettings();
-      if (cur.prompts && cur.prompts[k]) { delete cur.prompts[k]; aiSaveSettings(cur); }
-      showToast('↩️ 已還原「' + k + '」的預設提示詞。', 'info', 3000);
-    });
-  });
-
-  function collect() {
-    const cur = aiGetSettings();
-    cur.provider = provSel.value;
-    cur.base = overlay.querySelector('#ai-base').value.trim();
-    cur.model = overlay.querySelector('#ai-model').value.trim();
-    cur.apiKey = keyInput.value.trim();
-    cur.temperature = Math.max(0, Math.min(1, parseFloat(overlay.querySelector('#ai-temp').value) || 0.6));
-    cur.maxTokens = parseInt(overlay.querySelector('#ai-max').value, 10) || 1200;
-    overlay.querySelectorAll('[data-prompt]').forEach(function (ta) {
-      const k = ta.dataset.prompt;
-      const v = ta.value.trim();
-      if (v && v !== AI_DEFAULT_PROMPTS[k]) cur.prompts[k] = v;
-      else if (cur.prompts) delete cur.prompts[k];
-    });
-    return cur;
-  }
-
-  overlay.querySelector('#ai-save').addEventListener('click', function () {
-    aiSaveSettings(collect());
-    showToast('💾 AI 設定已儲存（只留在這台裝置）。', 'info', 4000);
-    close();
-  });
-
-  overlay.querySelector('#ai-clear-key').addEventListener('click', async function () {
-    if (!(await weConfirm('確定要清除這台裝置上的 API 金鑰嗎？', { emoji: '🗑️', danger: true, okText: '清除金鑰' }))) return;
-    const cur = collect();
-    cur.apiKey = '';
-    aiSaveSettings(cur);
-    keyInput.value = '';
-    showToast('🗑️ 已清除 API 金鑰。', 'info', 3000);
-    spRenderStatus();
-  });
-
-  overlay.querySelector('#ai-test').addEventListener('click', async function () {
-    const out = overlay.querySelector('#ai-test-out');
-    aiSaveSettings(collect());
-    out.innerHTML = '<span class="text-[#96701A]">⏳ 測試中…</span>';
-    try {
-      const t = await aiChat([{ role: 'user', content: 'Reply with exactly: OK' }], { temperature: 0, maxTokens: 20, timeoutMs: 30000 });
-      out.innerHTML = '<span style="color:#0F7A54">✅ 連線成功！模型回覆：' + esc(String(t).trim().slice(0, 60)) + '</span>';
-    } catch (err) {
-      out.innerHTML = '<span style="color:#E03E43">❌ ' + esc(err.message) + '</span>';
-    }
-  });
+function openAiSettings(){
+  const s=aiGetSettings();document.getElementById('ai-settings-overlay')?.remove();
+  const overlay=document.createElement('div');overlay.id='ai-settings-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','ai-settings-title');overlay.style.cssText='position:fixed;inset:0;background:rgba(40,36,60,.55);z-index:120;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
+  const known=AI_PROVIDERS.some(p=>p.id===s.provider),provider=known?s.provider:'custom';
+  const promptKeys=[['coach','口說評分教練'],['idea','五稜鏡生成與評分'],['examiner','模擬考出題'],['roleplay','角色扮演對話'],['word','每日單字及例句'],['plan','讀書計畫']];
+  overlay.innerHTML='<div class="we-card p-5" style="max-width:44rem;width:100%;margin:1rem 0 4rem"><div class="flex justify-between items-start"><h3 id="ai-settings-title" class="font-extrabold text-xl">🤖 本人 API 設定</h3><button type="button" data-ai-close aria-label="關閉 AI 設定">✕</button></div>'+
+    '<p class="mt-3">AI 只使用你自行提供的 API 金鑰。未設定及同意前，AI 請求會被封鎖；口說、閱讀、五稜鏡等入口及本機功能保留。</p>'+
+    '<p class="mt-3" role="note">API 可能由供應商扣除你的餘額或收費，網站不保證模型免費，也不會替你儲值或開通付款。請在供應商設定可強制停止的費用上限；預算通知及下方 tokens 上限並不等於金額上限。</p>'+
+    '<p class="mt-3 text-sm">金鑰儲存在此裝置的瀏覽器，呼叫時會傳送給你核准的 API 服務作認證；不會加入 Google／JSON 學習備份。請勿在公用裝置保存金鑰。</p>'+
+    '<label class="block mt-3" for="ai-provider">API 供應商</label><select id="ai-provider" class="we-input w-full">'+AI_PROVIDERS.map(p=>'<option value="'+p.id+'"'+(p.id===provider?' selected':'')+'>'+esc(p.label)+'</option>').join('')+'</select>'+
+    '<label class="block mt-3" for="ai-base">API Base URL（HTTPS）</label><input id="ai-base" class="we-input w-full sp-code" autocomplete="off" value="'+esc(known?(s.base||aiProvider(provider).base):'')+'" placeholder="由你的供應商提供">'+
+    '<label class="block mt-3" for="ai-model">本人核准的模型 ID</label><input id="ai-model" class="we-input w-full sp-code" autocomplete="off" maxlength="200" value="'+esc(known?s.model:'')+'" placeholder="請自行核對模型價格，再填模型 ID">'+
+    '<p class="text-sm mt-2">每次只核准一個指定模型；不會自動挑選、升級或切換模型。更改網址、模型、金鑰或用量設定後須重新同意。</p>'+
+    '<label class="block mt-3" for="ai-key">你自己的 API 金鑰</label><div class="flex gap-2"><input id="ai-key" type="password" class="we-input flex-1 sp-code" value="'+esc(s.apiKey)+'" autocomplete="off" spellcheck="false" placeholder="貼上本人 API Key"><button type="button" class="we-btn we-btn-ghost we-btn-sm" id="ai-key-eye">顯示／隱藏</button></div>'+
+    '<div class="grid grid-cols-2 gap-3 mt-3"><label>溫度（0–1）<input id="ai-temp" class="we-input w-full" type="number" min="0" max="1" step="0.1" value="'+s.temperature+'"></label><label>每次最大回覆 tokens<input id="ai-max" class="we-input w-full" type="number" min="20" max="8000" step="20" value="'+s.maxTokens+'"></label></div>'+
+    '<label class="flex gap-2 mt-4"><input id="ai-consent" type="checkbox"> <span>我已核對此 API 網址及模型的價格，確認金鑰屬於本人，並同意使用上述設定發送 AI 請求；費用由本人 API 帳戶承擔。</span></label>'+
+    '<p id="ai-approval-state" class="text-sm mt-2" role="status">'+(aiIsReady()?'此裝置已有核准設定；本次儲存變更或測試需重新勾選同意。':'AI 未啟用；舊設定亦須重新核准。')+'</p>'+
+    '<div class="flex flex-wrap gap-2 mt-3"><button type="button" class="we-btn we-btn-sm" id="ai-save">儲存並啟用本人 API</button><button type="button" class="we-btn we-btn-ghost we-btn-sm" id="ai-test">發送測試請求（可能收費）</button><button type="button" class="we-btn we-btn-ghost we-btn-sm" id="ai-pause">停用 AI</button><button type="button" class="we-btn we-btn-ghost we-btn-sm" id="ai-clear-key">清除金鑰</button></div>'+
+    '<p class="mt-2 text-sm">儲存不會發送 AI 請求。「發送測試請求」會傳送一句測試提示及金鑰，可能產生費用；其他 AI 功能亦會發送請求。</p><div id="ai-test-out" class="mt-3" role="status"></div>'+
+    '<details class="mt-4"><summary>自訂各功能提示詞（全部保留）</summary>'+promptKeys.map(([k,label])=>'<label class="block mt-3">'+label+'<textarea class="we-input w-full sp-code" data-prompt="'+k+'" rows="5">'+esc(s.prompts?.[k]||AI_DEFAULT_PROMPTS[k])+'</textarea></label><button type="button" class="we-btn we-btn-ghost we-btn-sm" data-prompt-reset="'+k+'">還原此提示詞</button>').join('')+'</details></div>';
+  document.body.append(overlay);const close=()=>{overlay.remove();spRenderStatus();};overlay.querySelector('[data-ai-close]').onclick=close;overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+  const field=id=>overlay.querySelector('#'+id),output=field('ai-test-out');
+  function confirmApi(message,options){const pending=weConfirm(message,options),prompt=document.body.lastElementChild;if(prompt&&prompt!==overlay)prompt.style.zIndex='140';return pending;}
+  function invalidate(){field('ai-consent').checked=false;field('ai-approval-state').textContent='設定已更改，請重新核對並勾選同意。';}
+  ['ai-base','ai-model','ai-key','ai-temp','ai-max'].forEach(id=>field(id).addEventListener('input',invalidate));
+  field('ai-provider').addEventListener('change',()=>{field('ai-base').value=aiProvider(field('ai-provider').value).base;field('ai-model').value='';field('ai-key').value='';invalidate();});
+  field('ai-key-eye').onclick=()=>{field('ai-key').type=field('ai-key').type==='password'?'text':'password';};
+  function collect(){const cur={...aiGetSettings(),provider:field('ai-provider').value,base:field('ai-base').value.trim(),model:field('ai-model').value.trim(),apiKey:field('ai-key').value.trim(),temperature:Number(field('ai-temp').value),maxTokens:Number(field('ai-max').value),prompts:{...aiGetSettings().prompts},allowedModels:[],approvedConfig:''};overlay.querySelectorAll('[data-prompt]').forEach(ta=>{const k=ta.dataset.prompt,v=ta.value.trim();if(v&&v!==AI_DEFAULT_PROMPTS[k])cur.prompts[k]=v;else delete cur.prompts[k];});if(field('ai-consent').checked){cur.allowedModels=[cur.model];cur.approvedConfig=aiApprovalId(cur);}return cur;}
+  function approved(){const cur=collect(),error=aiConfigError(cur);if(error){output.textContent=error;return null;}return cur;}
+  field('ai-save').onclick=()=>{const cur=approved();if(!cur)return;if(!aiSaveSettings(cur)){output.textContent='儲存失敗；AI 設定未能啟用。';return;}showToast('已儲存本人 API 設定；沒有發送請求。','info');close();};
+  field('ai-pause').onclick=()=>{const cur=aiGetSettings();cur.approvedConfig='';cur.allowedModels=[];if(!aiSaveSettings(cur)){output.textContent='未能儲存停用狀態，請勿繼續 AI 操作。';return;}field('ai-consent').checked=false;output.textContent='AI 已停用，金鑰及學習紀錄保留；新請求會被封鎖。已送出的請求仍可能完成及計費。';spRenderStatus();};
+  field('ai-clear-key').onclick=async()=>{if(!await confirmApi('清除這台裝置的 API 金鑰並停用 AI？學習紀錄會保留。',{okText:'清除金鑰',cancelText:'取消'}))return;const cur=aiGetSettings();cur.apiKey='';cur.approvedConfig='';cur.allowedModels=[];if(!aiSaveSettings(cur)){output.textContent='金鑰未能清除，請停止使用此裝置的 AI 功能。';return;}field('ai-key').value='';invalidate();output.textContent='已清除金鑰並停用 AI。';spRenderStatus();};
+  field('ai-test').onclick=async()=>{const cur=approved();if(!cur)return;const button=field('ai-test');button.disabled=true;const identity=aiApprovalId(cur);try{const yes=await confirmApi('將向 '+aiProvider(cur.provider).label+' 發送真實測試請求。\nAPI：'+aiBase(cur)+'\n模型：'+cur.model+'\n提示：Reply with exactly: OK\n最多輸出 20 tokens（輸入及供應商額外用量仍可能收費）。\n是否使用本人 API 發送？',{okText:'確認發送（可能收費）',cancelText:'取消'});if(!yes){output.textContent='已取消測試；未發送 AI 請求。';return;}const current=approved();if(!current||aiApprovalId(current)!==identity){output.textContent='設定已變更，請重新確認測試。';return;}if(!aiSaveSettings(current)){output.textContent='設定未能儲存，未發送測試。';return;}output.textContent='正在向本人 API 發送測試請求…';const text=await aiChat([{role:'user',content:'Reply with exactly: OK'}],{temperature:0,maxTokens:20,timeoutMs:30000});output.textContent='API 已回應：'+String(text).trim().slice(0,60)+'。這次是真實 API 請求，費用請以供應商帳單為準。';}catch(err){output.textContent='測試未完成：'+err.message+'。已送達供應商的請求仍可能計費。';}finally{button.disabled=false;spRenderStatus();}};
+  overlay.querySelectorAll('[data-prompt-reset]').forEach(button=>button.onclick=()=>{const k=button.dataset.promptReset;overlay.querySelector('[data-prompt="'+k+'"]').value=AI_DEFAULT_PROMPTS[k];});
+  field('ai-provider').focus();
 }
 
 /* =================================================================================
@@ -6350,22 +6168,8 @@ function spRenderStatus() {
   const ready = aiIsReady();
   const recOk = speechRecAvailable();
   const ttsOk = speechSynthAvailable();
-  const chip = eff.keyless
-    ? '<span class="stat-chip" style="background:#D9F7EA;color:#0F7A54">🎁 免金鑰模式已開啟</span>'
-    : '<span class="stat-chip" style="background:#CDF7E4;color:#0F7A54">🤖 AI 已就緒</span>';
-  box.innerHTML = '' +
-    '<div class="we-card-flat p-3 sm:p-4 flex flex-wrap items-center gap-2 justify-between">' +
-      '<div class="flex flex-wrap items-center gap-2">' +
-        chip +
-        '<span class="stat-chip">' + esc(aiKeyHint()) + '</span>' +
-        '<span class="stat-chip">' + (recOk ? '🎙️ 語音辨識可用' : '🎙️ 語音辨識不可用（可手動輸入）') + '</span>' +
-        '<span class="stat-chip">' + (ttsOk ? '🔊 語音朗讀可用' : '🔊 無語音朗讀') + '</span>' +
-      '</div>' +
-      '<button class="we-btn we-btn-sm" id="sp-open-ai">🤖 AI 設定</button>' +
-    '</div>' +
-    (eff.keyless ? '<p class="text-xs font-bold text-[#A5A2B8] mt-2 leading-relaxed">' +
-      '你目前使用 <b>免金鑰的免費模型</b>：不用註冊、不用信用卡、開發者也零花費。' +
-      '公用服務排隊時可能較慢或偶爾忙線，重新按一次通常就好；想要更快更穩定，可在「AI 設定」填自己的金鑰。</p>' : '');
+  const chip='<span class="stat-chip">'+(ready?'🤖 本人 API 已啟用':'🤖 AI 未啟用')+'</span>';
+  box.innerHTML='<div class="we-card-flat p-3 sm:p-4"><div class="flex flex-wrap items-center gap-2">'+chip+'<span class="stat-chip">'+esc(aiKeyHint())+'</span><span class="stat-chip">'+(recOk?'🎙️ 語音辨識可用':'🎙️ 可手動輸入')+'</span><span class="stat-chip">'+(ttsOk?'🔊 語音朗讀可用':'🔊 無語音朗讀')+'</span><button class="we-btn we-btn-sm" id="sp-open-ai">🤖 AI 設定</button></div><p class="text-sm mt-2">'+(ready?'AI 功能會使用你核准的模型及本人金鑰，供應商可能收費。':'請自行提供 API 金鑰並核准模型後啟用 AI。未設定時可用內建題目、手動輸入、本機統計及錄音。')+'</p></div>';
   const btn = $('#sp-open-ai');
   if (btn) btn.addEventListener('click', openAiSettings);
 }
@@ -6816,8 +6620,8 @@ async function spScoreAnswer(set, transcript, seconds) {
 
   if (!aiIsReady()) {
     spStagePrependToFeedback('<div class="we-card p-4" style="border-color:#FFC44D">' +
-      '<p class="font-extrabold text-[#96701A]">⚠️ AI 目前連不上（連免金鑰模式也沒回應）</p>' +
-      '<p class="text-sm font-bold mt-1">上面的字數／語速／填充詞／連接詞都是本機量測，不受影響。可以到「🤖 AI 設定」按「🎁 免金鑰試用」，或填自己的金鑰。</p>' +
+      '<p class="font-extrabold text-[#96701A]">⚠️ AI 尚未啟用或設定未完成</p>' +
+      '<p class="text-sm font-bold mt-1">上面的字數／語速／填充詞／連接詞都是本機量測，不受影響。如要使用 AI 回饋，請到「🤖 AI 設定」提供本人金鑰並核准模型與費用。</p>' +
       '<button class="we-btn we-btn-sm mt-3" id="sp-open-ai-2">🤖 現在設定</button></div>');
     const b = $('#sp-open-ai-2');
     if (b) b.addEventListener('click', openAiSettings);
@@ -8854,7 +8658,7 @@ async function ideaAiBuild() {
   if (!String(d.topic || '').trim()) { showToast('⚠️ 請先寫下題目。', 'warn', 3000); if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#C0392B]">⚠️ 請先寫下題目。</p>'; return; }
   if (ideaState.busy) return;
   ideaState.busy = true;
-  if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⏳ AI 正在用五個角度思考…（免金鑰的公用模型可能要等 10-40 秒）</p>';
+  if (out) out.innerHTML = '<p class="text-sm font-extrabold text-[#96701A]">⏳ AI 正在用五個角度思考…（使用你核准的本人 API，可能收費）</p>';
   try {
     const mine = ideaFilledText(d);
     const user = '題目：' + d.topic + '\n\n' +
@@ -8877,7 +8681,7 @@ async function ideaAiBuild() {
       (d.ai.thesis ? '<p class="text-sm font-bold mt-1">🧭 中心論點：<i>' + esc(d.ai.thesis) + '</i></p>' : '');
   } catch (err) {
     if (out) out.innerHTML = '<p class="text-sm font-extrabold" style="color:#C0392B">❌ ' + esc(err.message) + '</p>' +
-      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">提示：免金鑰的公用模型偶爾忙線，過一分鐘再按一次通常就好；或到「🤖 AI 設定」填自己的金鑰會更穩。</p>';
+      '<p class="text-xs font-bold text-[#A5A2B8] mt-1">請檢查本人 API 設定、模型權限及帳戶額度；重新發送可能再次計費。</p>';
   } finally {
     ideaState.busy = false;
   }
@@ -11503,7 +11307,7 @@ async function readerAiExplain() {
     readerState.aiOut = String(out || '').trim() || '（AI 沒有回應）';
     readerState.aiWord = w;
   } catch (e) {
-    readerState.aiOut = 'AI 解釋失敗：' + (e && e.message ? e.message : '未知錯誤') + '\n（免金鑰模式偶爾會忙線，過一下再試）';
+    readerState.aiOut = 'AI 解釋失敗：' + (e && e.message ? e.message : '未知錯誤') + '\n（請檢查本人 API 設定；重新發送可能再次計費）';
     readerState.aiWord = w;
   }
   readerState.busy = '';

@@ -111,7 +111,7 @@
   <div class="card"><h2>3. 甚麼操作會連外？</h2><table><thead><tr><th>操作</th><th>傳送內容／目的地</th></tr></thead><tbody>
     <tr><td>查字、拼字建議及背景題庫預熱</td><td>單字或詞組傳給 Wiktionary、Datamuse、English Dictionary API 等來源；釋義或字源可能再送往 Google 翻譯／MyMemory 取得繁中資料。</td></tr>
     <tr><td>整句、整段及閱讀翻譯</td><td>要翻譯的句子、段落或英文釋義送往 Google 翻譯，或失敗時的 MyMemory 備援。</td></tr>
-    <tr><td>AI 口說回饋、角色對話、計畫及五稜鏡</td><td>題目、回答轉錄、上下文、提示詞與相關統計送往 AI 設定所選的供應商；免金鑰通道同樣屬第三方服務。</td></tr>
+    <tr><td>AI 口說回饋、角色對話、計畫及五稜鏡</td><td>題目、回答轉錄、上下文、提示詞與相關統計送往 AI 設定所選的供應商。AI 僅接受使用者本人提供的 API 金鑰，核准指定供應商／網址／模型及費用後才可呼叫。金鑰會傳送給該服務作認證，AI 請求可能由供應商收費；測試連線同樣會發送真實請求。</td></tr>
     <tr><td>閱讀器 AI 解釋</td><td>選取單字及所在句子送往 AI 供應商，不會因單純開啟文件就將整份原檔交給 AI。</td></tr>
     <tr><td>Google 登入及同步</td><td>透過 Google Identity Services 取得授權，把學習備份傳到你帳號的 Drive appDataFolder。勾選「把完整閱讀文件加入備份」後，文件文字亦會包含在 JSON 與 Google 同步內。</td></tr>
     <tr><td>載入網站／文件解析器</td><td>GitHub Pages 提供網站；Tailwind CDN 提供樣式；首次 PDF／Word 解析會從 CDN 下載解析器。文件文字抽取在瀏覽器內進行。</td></tr>

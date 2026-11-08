@@ -61,3 +61,8 @@ Google 一鍵登入的程式支援已完成，但網站擁有人尚未提供有�
 ## 2.2 正式部署紀錄 — 2026-11-08 19:32:20 HKT
 
 已完成 GitHub App 指定 repository 授權、提交 main 及 GitHub Pages 部署。程式 commit 為 `f3b390cdb88edd3f48783e9371ff9fbfd73ec00a`；五份正式程式檔與測試版雜湊一致，正式頁面已顯示 v2.2。詳見 docs/DEPLOYMENT_VERIFICATION.md。Google OAuth ID 尚待網站擁有人設定。
+
+
+## 2.3 正式部署紀錄
+
+程式 commit `4c5f343698a502ea831ad016ce86a203fbbd3d2f`；[Pages 部署](https://github.com/owikdowjfodi/app/actions/runs/42486173445) success。七份正式檔案與測試版雜湊一致，正式瀏覽器已確認 v2.3。詳見 docs/DEPLOYMENT_VERIFICATION.md。

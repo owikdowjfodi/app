@@ -1,3 +1,19 @@
+# 2.3 交付及 GitHub 狀態
+
+更新時間：2026-11-08T13:43:46+00:00。
+
+- 已上傳原 repository main，程式 commit `4c5f343698a502ea831ad016ce86a203fbbd3d2f`。
+- [GitHub Pages 執行紀錄](https://github.com/owikdowjfodi/app/actions/runs/42486173445)：completed / success。
+- [正式網站](https://owikdowjfodi.github.io/app/index.html) 已在瀏覽器顯示 v2.3、今日頁及全部九個原單元入口。
+- 七份正式程式檔與通過測試的檔案 SHA-256 一致；index.html 與 2.2 不變。
+- UI 六項及閱讀／草稿／串接／錄音庫／統計增強已加入。16 項自動測試通過。
+- Google OAuth ID 仍待提供；真實 Android／麥克風／Google Drive 同步未實測，詳見 TEST_REPORT.md。
+- 完整 2.3 ZIP 包含原始碼、測試、全部改動文件及完整性清單；舊 2.2 ZIP 留存。
+
+以下為 2.2 歷史交付紀錄。
+
+---
+
 # 交付及 GitHub 狀態
 
 更新時間：2026-11-08 19:32:20 HKT。

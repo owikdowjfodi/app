@@ -1,3 +1,20 @@
+# 2.4 交付及 GitHub 狀態
+
+更新時間：2026-11-08 22:08:23 HKT。
+
+- 原 repository main 已更新；程式 commit `d0bb1d4561807b85295864b216824fa2b94d4112`。
+- [GitHub Pages 部署](https://github.com/owikdowjfodi/app/actions/runs/42488132447)：completed / success。
+- 正式網址：<https://owikdowjfodi.github.io/app/index.html>。
+- 優先完成三項功能深化：學習串接、閱讀進度與標記、五稜鏡草稿與版本。原有 UI、錄音庫及統計保留。
+- 21 項自動測試通過；正式七份程式檔與測試版雜湊一致。
+- 正式瀏覽器確認 v2.4、六個草稿增強控制項、五角度及九個原單元；沒有輸入使用者私人資料。
+- 全套 ZIP 包括原始碼、測試、全部改動記錄及新增 LEARNING_WORKFLOWS.md 使用說明。
+- Google OAuth ID 未提供；真手機、麥克風及 Google Drive 雙端同步仍未實測，詳細界線見 TEST_REPORT.md。
+
+以下保留先前交付記錄。
+
+---
+
 # 2.3 交付及 GitHub 狀態
 
 更新時間：2026-11-08T13:43:46+00:00。

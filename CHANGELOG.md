@@ -79,3 +79,8 @@ Google 一鍵登入的程式支援已完成，但網站擁有人尚未提供有�
 ## 2.3 正式部署紀錄
 
 程式 commit `4c5f343698a502ea831ad016ce86a203fbbd3d2f`；[Pages 部署](https://github.com/owikdowjfodi/app/actions/runs/42486173445) success。七份正式檔案與測試版雜湊一致，正式瀏覽器已確認 v2.3。詳見 docs/DEPLOYMENT_VERIFICATION.md。
+
+
+## 2.4 正式部署紀錄
+
+程式 commit `d0bb1d4561807b85295864b216824fa2b94d4112`；[Pages 執行紀錄](https://github.com/owikdowjfodi/app/actions/runs/42488132447) success。七份正式程式檔與通過測試版本雜湊一致，正式瀏覽器已確認 v2.4。詳見 docs/DEPLOYMENT_VERIFICATION.md。

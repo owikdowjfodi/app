@@ -1,3 +1,27 @@
+# 正式部署驗證 — 2.4
+
+驗證時間：2026-11-08 22:08:23 HKT。
+
+- 程式 commit：`d0bb1d4561807b85295864b216824fa2b94d4112`。
+- [GitHub Pages 執行紀錄](https://github.com/owikdowjfodi/app/actions/runs/42488132447)：completed / success。
+- 發佈前確認 main 為預期的 2.3 commit，採非強制更新及 expected_sha 核對。
+- 正式瀏覽器確認 v2.4、草稿匣／立即存版本／匯出草稿／草稿版本／展開全部／儲存至想法庫，五個角度及九個原單元均在。
+- 未在正式頁輸入學習內容；完整流程測試於獨立本機預覽進行。
+
+| 檔案 | SHA-256 | 與測試版一致 |
+| --- | --- | --- |
+| index.html | `ce7e030efdca27ccb616976427070542d9af20ce51b45ef2dd0d6b7a2e682b70` | 是 |
+| enhancements.js | `d67048e49981767abbff6b15ac4a813c06d8c8e2e4d728e758d55873d96f070e` | 是 |
+| experience.js | `664208a46c21ffe5439921fb00a8e698de932ad3b726560939eee8d556ebb425` | 是 |
+| experience.css | `0a0fd184c9bae3c184dabc79fd03796b5a1d29dd3a790f5f4d58963fe756308e` | 是 |
+| app-config.js | `c460268f422213ca40ec4240a154d5d93d4f6a62f14b736c1b76d3eb2d5693b0` | 是 |
+| sw.js | `3742c1c987c9e3ae0dfb1c4b4744602df69007e0e66b1ff73316168f1e33583d` | 是 |
+| privacy-policy.html | `638ad08a39b39662b1152c6765800dd07454ee57a0220fcc564b3e5aefc5f437` | 是 |
+
+若仍顯示 2.3，請重新整理或完整關閉頁面再開啟，等待新 Service Worker 接手。不要清除網站資料。Android／麥克風／真 Google Drive 等驗證界線見 TEST_REPORT.md。
+
+---
+
 # 正式部署驗證 — 2.3
 
 驗證時間：2026-11-08T13:43:46+00:00。

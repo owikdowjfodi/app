@@ -10,6 +10,8 @@ function app(seed={}){
   ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('function lsGet('));
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../vocabulary.js'),'utf8'),ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../practice.js'),'utf8'),ctx);
   vm.runInContext(inline,ctx);
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../enhancements.js'),'utf8'),ctx);
   return {ctx,memory,scheduled};
@@ -85,4 +87,15 @@ test('已核准請求失敗只呼叫一次，不重試、不切換其他模型�
 });
 test('Gemini 及 Claude 同樣必須核准並使用本人金鑰；停用後一律封鎖',async()=>{
  for(const provider of ['gemini','anthropic']){const {ctx}=app();const base=ctx.aiProvider(provider).base;approvedAI(ctx,{provider,base});let calls=0;ctx.fetch=async(url,options)=>{calls++;assert.equal(options.redirect,'error');if(provider==='gemini'){assert.match(url,/generateContent\?key=/);return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:'OK'}]}}]})}}assert.equal(options.headers['x-api-key'],'QA_ONLY_NOT_A_REAL_KEY');return {ok:true,json:async()=>({content:[{text:'OK'}]})}};assert.equal(await ctx.aiChat([{role:'user',content:'hello'}]),'OK');const s=ctx.aiGetSettings();s.approvedConfig='';ctx.aiSaveSettings(s);await assert.rejects(ctx.aiChat([{role:'user',content:'hello'}]));assert.equal(calls,1);}
+});
+test('三級每日訓練實際抽題、跨級進度接續且保留舊輪次',async()=>{
+ const {ctx}=app();await ctx.WEUpgrade.documentReady;const old=vm.runInContext('new Set(WORD_POOL.concat(IELTS_WORDS))',ctx),all=vm.runInContext('QUIZ_WORDS',ctx);const hard=ctx.quizWordPool('hard');assert.equal(hard.length,259);assert.ok(hard.filter(w=>!old.has(w)).length>=250);
+ vm.runInContext("state.daily=newDailyRecord()",ctx);ctx.ensureMeanings=async()=>{throw new Error('curated easy/hard should not need network')};
+ const easy=await ctx.buildDailyQuiz(null,[],'easy');assert.equal(easy.questions.length,5);assert.equal(easy.difficulty,'easy');assert.ok(easy.questions.every(q=>ctx.quizWordPool('easy').includes(q.word)));
+ ctx.testSession=easy;vm.runInContext('state.daily.sessions.push(testSession)',ctx);ctx.lsSet('we_quiz_level_v27','easy');assert.equal(ctx.currentSession().id,easy.id);const first=easy.questions.map(q=>q.word),second=await ctx.buildDailyQuiz(null,first,'easy');assert.ok(second.questions.every(q=>!first.includes(q.word)));
+ ctx.lsSet('we_quiz_level_v27','hard');assert.equal(ctx.currentSession(),null);const difficult=await ctx.buildDailyQuiz(null,first,'hard');assert.ok(difficult.questions.every(q=>hard.includes(q.word)));assert.equal(difficult.questions.length,5);assert.ok(all.length>old.size);
+ const legacy={id:99,questions:[{word:'oldword'}],answers:[],completed:false};ctx.legacySession=legacy;vm.runInContext('state.daily.sessions.push(legacySession)',ctx);ctx.lsSet('we_quiz_level_v27','legacy');assert.equal(ctx.currentSession().id,99);ctx.lsSet('we_quiz_level_v27','easy');assert.equal(ctx.currentSession().id,easy.id);
+});
+test('詞典真呼叫解析跨詞性所有義項，舊三義快取自動失效，沒有 AI 請求',async()=>{
+ const {ctx}=app({gdict_cache:{charge:{ts:Date.now(),defs:[{en:'old truncated entry'}]}}});await ctx.WEUpgrade.documentReady;assert.equal(ctx.gdictGet('charge'),null);ctx.fetchJson=async url=>{if(url.includes('dictionaryapi'))return [{meanings:[{partOfSpeech:'noun',definitions:[{definition:'A fee.'},{definition:'An accusation.'}]},{partOfSpeech:'verb',definitions:[{definition:'To ask someone for payment.'},{definition:'To move forward rapidly.'}]}]}];return {sentences:[{trans:'費用'}],dict:[]}};ctx.aiChat=async()=>{throw new Error('must not use AI')};const info=await ctx.gWordInfo('charge');assert.equal(info.defs.length,4);assert.equal(info.dictionaryLoaded,true);assert.equal(ctx.gdictGet('charge').schemaVersion,2);assert.match(ctx.gdDefsHtml(info),/An accusation/);assert.match(ctx.gdDefsHtml(info),/verb/);
 });

@@ -446,24 +446,22 @@
       '<div class="upgrade-actions">' + button('開始到期加練', 'adaptive-due', prefs().adaptiveEnabled ? '' : 'disabled') + button('立即加練薄弱字', 'adaptive-weak', prefs().adaptiveEnabled ? '' : 'disabled') + '</div><div id="up-adaptive-session"></div>');
     box.prepend(section);
   }
-  renderSRS = function () { original.renderSRS(); renderAdaptive(); };
+  renderSRS = function () { document.getElementById('srs-body')?.classList.remove('srs-only-review','srs-only-adaptive');original.renderSRS(); renderAdaptive(); };
   function beginAdaptive(weak) {
     const map = seedAdaptive(), bank = wbGetAll(), wrong = getWrongDb();
     const words = new Map(bank.map(e => [e.word.toLowerCase(), e])); wrong.forEach(e => { if (!words.has(e.word.toLowerCase())) words.set(e.word.toLowerCase(), e); });
     const list = Array.from(words.values()).filter(e => weak ? ((e.review || {}).right || 0) < ((e.review || {}).wrong || 0) + 1 : map[e.word.toLowerCase()] && map[e.word.toLowerCase()].dueAt <= Date.now());
     if (!list.length) { showToast('目前沒有需要加練的單字。', 'info'); return; }
+    document.getElementById('srs-body')?.classList.add('srs-only-adaptive');
     currentReview = { list: shuffle(list), index: 0, revealed: false }; paintAdaptive();
   }
-  function paintAdaptive() {
-    const box = document.getElementById('up-adaptive-session');
-    if (!box || !currentReview) return;
-    const item = currentReview.list[currentReview.index];
-    if (!item) {
-      const map = adaptiveMap(), counter = document.getElementById('up-adaptive-count');
-      if (counter) counter.textContent = '到期加練：' + Object.values(map).filter(x => x.dueAt <= Date.now()).length + ' 個；已排程：' + Object.keys(map).length + ' 個。';
-      box.innerHTML = '<p role="status">✅ 本輪加練完成，新的到期時間已保存。</p>'; currentReview = null; return; }
-    box.innerHTML = '<div class="upgrade-practice"><p>第 ' + (currentReview.index + 1) + '／' + currentReview.list.length + ' 個</p><h4 lang="en">' + esc(item.word) + '</h4>' +
-      button('🔊 聽發音', 'adaptive-speak') + (currentReview.revealed ? '<p>' + esc(item.meaning || '未有釋義，可到查字頁補充') + '</p><div class="upgrade-actions">' + button('😎 記住了', 'adaptive-yes') + button('🤔 還沒記住', 'adaptive-no') + '</div>' : button('👀 顯示答案', 'adaptive-reveal')) + button('結束加練', 'adaptive-end') + '</div>';
+  async function paintAdaptive() {
+    const box=document.getElementById('up-adaptive-session'),session=currentReview;if(!box||!session)return;
+    const item=session.list[session.index];if(!item){box.innerHTML='<p>本輪英文默寫加練完成。</p>'+button('回到錯題本','adaptive-end');currentReview=null;return;}
+    const index=session.index;box.innerHTML='<p>正在準備英文釋義…</p>';const prompt=await englishSpellingPrompt(item.word).catch(()=> '');
+    if(currentReview!==session||session.index!==index||!box.isConnected)return;
+    box.innerHTML='<div class="upgrade-practice"><p>英文默寫 '+(index+1)+' / '+session.list.length+'</p>'+(prompt?'<p lang="en">'+esc(prompt)+'</p><label for="up-adaptive-answer">拼寫英文單字</label><input id="up-adaptive-answer" class="we-input" autocomplete="off" autocapitalize="none" spellcheck="false">'+button('檢查拼寫','adaptive-check'):'<p>未有可用英文釋義，本題不計錯。</p>'+button('暫時跳過','adaptive-next'))+button('結束加練','adaptive-end')+'<div id="up-adaptive-feedback" role="status"></div></div>';
+    const input=box.querySelector('input');if(input){input.onkeydown=e=>{if(e.key==='Enter')box.querySelector('[data-upgrade="adaptive-check"]').click();};input.focus();}
   }
 
   // 獨立的本機錄音回放，不取代語音辨識、不將錄音上傳。
@@ -480,6 +478,13 @@
     }
     box.insertBefore(recorderView, document.getElementById('speak-ai-status'));
   }
+  root.addEventListener('we-recorded', () => {
+    const r=api.lastRecording;if(!r?.blob||!recorderView)return;
+    if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(r.blob);
+    const audio=recorderView.querySelector('#up-record-audio'),link=recorderView.querySelector('#up-record-download');
+    audio.src=audioUrl;audio.hidden=false;link.href=audioUrl;link.download='speaking-'+r.at+(r.type.includes('mp4')?'.m4a':r.type.includes('ogg')?'.ogg':'.webm');link.hidden=false;
+    recorderView.querySelector('#up-record-status').textContent='錄音已保留，可回放、下載或保存到我的錄音。';
+  });
   async function startAudio() {
     if (recording || micRequest) return;
     const status = document.getElementById('up-record-status');
@@ -559,6 +564,8 @@
       else saveFile('wordbook-anki-' + todayKey() + '.tsv', '#separator:Tab\n#html:false\n' + rows.map(row => row.map(v => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t')).join('\n'), 'text/tab-separated-values;charset=utf-8');
     }
     if (action === 'adaptive-due' || action === 'adaptive-weak') beginAdaptive(action === 'adaptive-weak');
+    if(action==='adaptive-check'&&currentReview&&!currentReview.answered){const input=document.getElementById('up-adaptive-answer'),answer=input?.value.trim();if(!answer){showToast('請先輸入答案。','info');return;}currentReview.answered=true;const item=currentReview.list[currentReview.index],key=item.word.toLowerCase(),ok=answer.toLowerCase()===key,map=adaptiveMap();map[key]=nextReview(map[key],ok,Date.now());lsSet(ADAPTIVE,map);input.disabled=true;el.disabled=true;document.getElementById('up-adaptive-feedback').innerHTML='<p>'+(ok?'答對了：':'正確答案：')+esc(item.word)+' · '+esc(item.meaning||curriculumEntry(key)?.zh||'')+'</p>'+button('下一題','adaptive-next');root.dispatchEvent(new CustomEvent('we-practice-answer',{detail:{word:item.word,correct:ok}}));}
+    if(action==='adaptive-next'&&currentReview){currentReview.index++;currentReview.answered=false;paintAdaptive();}
     if (action === 'adaptive-speak' && currentReview) speak(currentReview.list[currentReview.index].word);
     if (action === 'adaptive-reveal' && currentReview) { currentReview.revealed = true; paintAdaptive(); }
     if ((action === 'adaptive-yes' || action === 'adaptive-no') && currentReview && currentReview.revealed) {
@@ -566,7 +573,7 @@
       map[key] = nextReview(map[key], action === 'adaptive-yes', Date.now()); lsSet(ADAPTIVE, map);
       currentReview.index++; currentReview.revealed = false; paintAdaptive();
     }
-    if (action === 'adaptive-end') { currentReview = null; renderAdaptive(); }
+    if (action === 'adaptive-end') { currentReview = null; document.getElementById('srs-body')?.classList.remove('srs-only-adaptive');renderAdaptive(); }
     if (action === 'record-start') startAudio();
     if (action === 'record-stop') stopAudio();
   });

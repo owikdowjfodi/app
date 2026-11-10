@@ -770,6 +770,8 @@
   </div>
 </div>
 
+<script src="vocabulary.js"></script>
+<script src="practice.js"></script>
 <script>
 /* =================================================================================
    🦊 單字探險家 — 智慧英文單字深度學習、拆解與動態複習系統
@@ -930,7 +932,7 @@ const IELTS_WORDS = [
 ];
 
 /** 去重並轉小寫，避免清單手誤（★ 已合併 WORD_POOL ＋ IELTS 核心 500 字） */
-const QUIZ_WORDS = Array.from(new Set(WORD_POOL.concat(IELTS_WORDS).map(w => String(w).toLowerCase())));
+const QUIZ_WORDS = Array.from(new Set(WORD_POOL.concat(IELTS_WORDS, (window.WEVocabulary || []).map(x => x.word)).map(w => String(w).toLowerCase())));
 
 /** 查詢結果卡上顯示的快速範例（★ 後三個是習語，用來展示「整組解釋、不拆字」） */
 const QUICK_WORDS = ['contradict', 'autobiography', 'geography', 'retrospect', 'bicycle',
@@ -1453,6 +1455,7 @@ function closeNav() {
 }
 
 function switchTab(tab) {
+  if(state.activeTab==='speak'&&tab!=='speak')cancelActiveSpeech();
   hideFeedbackBar(); // v2.2：切頁先收起上一個單元的作答列，作答資料仍保留。
   state.activeTab = tab;
   ['lexicon', 'affix', 'quiz', 'srs', 'speak', 'wordbook', 'reader', 'idea', 'playbook'].forEach(t => {
@@ -1899,7 +1902,7 @@ function gdictGet(word) {
   const k = String(word || '').trim().toLowerCase();
   if (!k) return null;
   const hit = gdictLoad()[k];
-  if (!hit) return null;
+  if (!hit || hit.schemaVersion !== 2) return null;
   const ttl = hit.shortTtl ? GDICT_SHORT_TTL_MS : GDICT_TTL_MS;
   if (Date.now() - (hit.ts || 0) > ttl) return null;
   return hit;
@@ -1936,7 +1939,7 @@ async function gdictGoogle(word) {
       if (!d) return;
       const terms = Array.isArray(d.terms) ? d.terms.filter(Boolean) : [];
       if (!terms.length) return;
-      out.senses.push({ pos: gdictPosZh(d.pos), terms: terms.slice(0, 8) });
+      out.senses.push({ pos: gdictPosZh(d.pos), terms: terms });
     });
   }
   return out;
@@ -1944,53 +1947,28 @@ async function gdictGoogle(word) {
 
 /** dictionaryapi.dev：網路英文釋義（免費、無金鑰） */
 async function gdictEnglish(word, limit) {
-  const max = limit || 3;
-  const url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word);
-  const json = await fetchJson(url, 14000);
-  const out = [];
-  if (!Array.isArray(json)) return out;
-  for (let i = 0; i < json.length && out.length < max; i++) {
-    const meanings = (json[i] && json[i].meanings) || [];
-    for (let j = 0; j < meanings.length && out.length < max; j++) {
-      const m = meanings[j] || {};
-      const defs = m.definitions || [];
-      if (!defs.length) continue;
-      const d = defs[0] || {};
-      const en = String(d.definition || '').trim();
-      if (!en) continue;
-      out.push({
-        pos: gdictPosZh(m.partOfSpeech),
-        en: en,
-        example: String(d.example || '').trim()
-      });
-    }
-  }
-  return out;
+  const json=await fetchJson('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word),14000);
+  return window.WEPractice.dictionaryDefinitions(json);
 }
 
 /** 取得一個字的完整詞典資料（含快取）；英文釋義會在背景翻成中文 */
+const pendingWordInfo = new Map();
+function curriculumEntry(word){return (window.WEVocabulary||[]).find(x=>x.word===String(word).toLowerCase());}
+function localDefinitions(word){const row=curriculumEntry(word);return row?[{pos:row.pos,en:row.en,zh:row.zh,example:'',source:'本站原創學習釋義'}]:[];}
 async function gWordInfo(word) {
-  const k = String(word || '').trim().toLowerCase().replace(/[^a-z'\u2019\-]/g, '');
-  if (!k) return null;
-  const hit = gdictGet(k);
-  if (hit) return hit;
-
-  const data = { main: '', senses: [], defs: [] };
-  await Promise.all([
-    gdictGoogle(k).then(function (r) { data.main = r.main; data.senses = r.senses; }).catch(function () {}),
-    gdictEnglish(k, 3).then(function (r) { data.defs = r; }).catch(function () {})
-  ]);
-
-  /* 英文釋義 → 中文語譯（逐條翻，失敗就留空不擋畫面） */
-  if (data.defs.length) {
-    await Promise.all(data.defs.map(function (d) {
-      return translateZh(d.en).then(function (zh) { d.zh = String(zh || '').trim(); }).catch(function () { d.zh = ''; });
-    }));
-  }
-
-  if (!data.defs.length) data.shortTtl = true;   // 暫時抓不到英文釋義：30 分鐘後重試
-  if (data.main || data.senses.length || data.defs.length) gdictSet(k, data);
-  return data;
+ const k=String(word||'').trim().toLowerCase();if(!/^[a-z'’-]+$/.test(k))return null;
+ const hit=gdictGet(k);if(hit)return hit;if(pendingWordInfo.has(k))return pendingWordInfo.get(k);
+ const task=(async()=>{const data={schemaVersion:2,main:curriculumEntry(k)?.zh||'',senses:[],defs:[],dictionaryLoaded:false};
+ await Promise.all([gdictGoogle(k).then(r=>{data.main=r.main||data.main;data.senses=r.senses;}).catch(()=>{}),gdictEnglish(k).then(r=>{data.defs=r;data.dictionaryLoaded=r.length>0;}).catch(()=>{})]);
+ if(!data.defs.length)data.defs=localDefinitions(k);
+ data.shortTtl=!data.dictionaryLoaded;data.sourceUrl='https://dictionaryapi.dev/';if(data.main||data.defs.length||data.senses.length)gdictSet(k,data);return data;
+ })().finally(()=>pendingWordInfo.delete(k));pendingWordInfo.set(k,task);return task;
+}
+async function englishSpellingPrompt(word){
+ const local=localDefinitions(word),saved=wbGetAll().find(x=>String(x.word).toLowerCase()===String(word).toLowerCase())?.dictionary;
+ let defs=[...local,...(saved?.defs||[]),...(gdictGet(word)?.defs||[]),...((cacheGet(word)||{}).defs||[])];
+ let prompt=window.WEPractice.spellingDefinition(word,defs);if(prompt)return prompt;
+ const info=await gWordInfo(word);return window.WEPractice.spellingDefinition(word,info?.defs);
 }
 
 /** 把長文字切成 <=1500 字元的幾段（盡量切在句子邊界） */
@@ -2044,15 +2022,16 @@ function gdSensesHtml(info) {
 
 /** 網路英文釋義 + 中文語譯 */
 function gdDefsHtml(info) {
-  if (!info || !info.defs || !info.defs.length) return '';
-  const rows = info.defs.map(function (d) {
-    return '<div class="gd-def">' +
-      '<p class="gd-def-en">' + (d.pos ? '<b>' + esc(d.pos) + '</b>　' : '') + esc(d.en) + '</p>' +
-      (d.zh ? '<p class="gd-def-zh">' + esc(d.zh) + '</p>' : '') +
-    '</div>';
-  }).join('');
-  return '<div class="gd-box mt-2"><p class="gd-title">📖 網路英文釋義（中文語譯）</p>' + rows + '</div>';
+ if(!info?.defs?.length)return '<p>未取得英文詳細義項，請連網後重試。</p>';
+ return '<div class="gd-box"><p class="gd-title">按詞性分類的英文詳細釋義</p><p class="text-xs">'+(info.dictionaryLoaded?'顯示資料來源回傳的全部義項；排列不代表所有字典一致。':'目前只有本機學習義項，完整網路義項未載入。')+'</p>'+window.WEPractice.groupDefinitions(info.defs).map(g=>'<section class="gd-pos-group"><h4>'+esc(g.pos)+' · '+esc(gdictPosZh(g.pos))+'</h4><ol>'+g.defs.map((d,i)=>'<li><p lang="en"><b>'+(i+1)+'.</b> '+esc(d.en)+'</p><p>'+esc(d.zh||'中文詳釋尚未載入')+'</p>'+(d.example?'<p lang="en"><i>'+esc(d.example)+'</i></p>':'')+'</li>').join('')+'</ol></section>').join('')+'<p class="text-xs">來源：'+(info.dictionaryLoaded?'<a href="https://dictionaryapi.dev/" target="_blank" rel="noopener">Free Dictionary API</a>／Wiktionary（<a href="https://en.wiktionary.org/" target="_blank" rel="noopener">原始詞典</a>）；依來源授權提供；':'本站原創學習釋義；')+'編排參考學習字典，並非 Cambridge 官方內容。</p></div>';
 }
+function saveWordbookDictionary(word,info){const all=wbGetAll(),entry=all.find(e=>e.word.toLowerCase()===word.toLowerCase());if(entry){entry.dictionary={...info,updatedAt:Date.now()};wbSaveAll(all);}}
+function wordbookDictionaryHtml(entry){const info=entry.dictionary||gdictGet(entry.word),defs=info?.defs||localDefinitions(entry.word);return '<p class="mt-2" lang="en">'+esc(defs[0]?.en||'英文釋義待載入；展開下方查看全部義項。')+'</p><details class="wb-dictionary" data-wb-dictionary="'+esc(entry.word)+'"><summary>📖 英文詳細意思、其他義項與不同詞性</summary><div class="wb-dictionary-content">'+(info?gdDefsHtml(info):'<p>展開後載入詳細詞典，不使用 AI。</p>')+'</div><button type="button" class="we-btn we-btn-ghost we-btn-sm" data-dict-translate>補充各義項中文語譯</button><button type="button" class="we-btn we-btn-ghost we-btn-sm" data-dict-refresh>重新載入完整詞典</button></details>';}
+let wbDictionaryObserver=null;
+function bindWordbookDictionaries(){wbDictionaryObserver?.disconnect();wbDictionaryObserver=window.IntersectionObserver?new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.dispatchEvent(new Event('we-load-dictionary'));wbDictionaryObserver.unobserve(e.target);}});},{rootMargin:'150px'}):null;document.querySelectorAll('[data-wb-dictionary]').forEach(details=>{let info=null;const target=details.querySelector('.wb-dictionary-content'),word=details.dataset.wbDictionary;async function load(force){if(details.dataset.loading)return;details.dataset.loading='true';if(force){const map=gdictLoad();delete map[word.toLowerCase()];gdictSave(map);}target.innerHTML='<p role="status">正在載入所有英文義項…</p>';try{info=await gWordInfo(word);if(!details.isConnected)return;target.innerHTML=gdDefsHtml(info);if(info?.defs?.length){details.previousElementSibling.textContent=info.defs[0].en;}if(info?.defs?.length)saveWordbookDictionary(word,info);}catch{target.textContent='未能載入，請連網後重試。';}finally{delete details.dataset.loading;}}
+ details.addEventListener('we-load-dictionary',()=>{if(!info)load(false);});wbDictionaryObserver?.observe(details);
+ details.addEventListener('toggle',()=>{if(details.open&&!info)load(false);});details.querySelector('[data-dict-refresh]').onclick=()=>load(true);details.querySelector('[data-dict-translate]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{if(!info)await load(false);if(!info?.defs?.length)return;let i=0;async function worker(){while(i<info.defs.length){const d=info.defs[i++];if(d.zh)continue;try{d.zh=await translateZh(d.en);}catch{d.zh='';}if(details.isConnected)target.innerHTML=gdDefsHtml(info);}}await Promise.all([worker(),worker()]);gdictSet(word,info);saveWordbookDictionary(word,info);}finally{b.disabled=false;}};
+ });}
 
 /* ---------- 閱讀器：字卡的多義區塊 ---------- */
 function readerExtraHtml() {
@@ -4108,11 +4087,11 @@ function migrateDailyRecord(record) {
 }
 
 /** 取得目前進行中的場次（最後一場） */
-function currentSession(record) {
-  const rec = record || state.daily;
-  if (!rec || !Array.isArray(rec.sessions) || !rec.sessions.length) return null;
-  return rec.sessions[rec.sessions.length - 1];
-}
+function quizLevel(){const value=lsGet('we_quiz_level_v27','medium');return ['easy','medium','hard','legacy'].includes(value)?value:'medium';}
+function quizLevelLabel(level){return {easy:'簡單',medium:'中級',hard:'困難',legacy:'原有混合紀錄'}[level]||'原有混合紀錄';}
+function quizWordPool(level){return window.WEPractice.tierPool(QUIZ_WORDS,window.WEVocabulary||[],level||quizLevel());}
+function renderQuizLevels(){const body=$('#quiz-body');if(!body)return;let bar=$('#quiz-level-controls');if(!bar){bar=document.createElement('div');bar.id='quiz-level-controls';bar.className='we-card p-4 mb-4';body.before(bar);}const record=state.daily||getStoredDailyRecord(),levels=['easy','medium','hard'];if(record?.sessions?.some(x=>!x.difficulty))levels.push('legacy');bar.innerHTML='<label for="quiz-level-choice">每日單字難度</label><select id="quiz-level-choice" class="we-input" '+(state.quizLoading?'disabled':'')+'>'+levels.map(level=>'<option value="'+level+'" '+(level===quizLevel()?'selected':'')+'>'+quizLevelLabel(level)+' · '+quizWordPool(level).length+' 字</option>').join('')+'</select><p class="text-xs mt-2">本站教學分級，並非官方 CEFR 認證。各級分開接續；今天出過的字不會重抽。原有進度保留。</p>';bar.querySelector('select').onchange=e=>{if(state.quizLoading)return;lsSet('we_quiz_level_v27',e.target.value);hideFeedbackBar();renderQuiz();};}
+function currentSession(record) {const rec=record||state.daily;if(!rec?.sessions?.length)return null;return rec.sessions.filter(s=>(s.difficulty||'legacy')===quizLevel()).at(-1)||null;}
 
 /** 取得今天所有場次「已經出過題」的單字（聯集，唯讀） */
 function getUsedWords(record) {
@@ -4128,7 +4107,7 @@ function getUsedWords(record) {
 /** 今天還沒練過的單字 */
 function getRemainingWords(record) {
   const used = new Set(getUsedWords(record).map(function (w) { return String(w).toLowerCase(); }));
-  return QUIZ_WORDS.filter(function (w) { return !used.has(w); });
+  return quizWordPool().filter(function (w) { return !used.has(w); });
 }
 
 /**
@@ -4136,19 +4115,23 @@ function getRemainingWords(record) {
  * @param {Function} onProgress 進度回報
  * @param {string[]} excludeWords 今天已經出過題的字（★ 動態排除）
  */
-async function buildDailyQuiz(onProgress, excludeWords) {
+async function buildDailyQuiz(onProgress, excludeWords, level) {
+  level=level||quizLevel();
   /* ★ 模組四核心：動態排除機制 —— 今天出過的字，這一場絕對不再抽 */
   const used = new Set((excludeWords || []).map(function (w) { return String(w).toLowerCase(); }));
-  const available = QUIZ_WORDS.filter(function (w) { return !used.has(w); });
+  const available = quizWordPool(level).filter(function (w) { return !used.has(w); });
   if (available.length < DAILY_QUIZ_SIZE) {
     throw new Error('今天的題庫已經全部練完了（只剩 ' + available.length + ' 個沒練過的字）。' +
                     '可以按「🗑️ 重置今日訓練」重新開始，或明天再來。');
   }
 
   const candidates = shuffle(available).slice(0, Math.min(QUIZ_POOL_FETCH, available.length));
-  const meanings = await ensureMeanings(candidates, onProgress);
+  const localMeanings=Object.fromEntries(candidates.map(w=>[w,curriculumEntry(w)?.zh||zhGet(w)||'']));
+  const missing=candidates.filter(w=>!localMeanings[w]);
+  const remoteMeanings=missing.length?await ensureMeanings(missing,onProgress):{};
+  const meanings={...localMeanings,...remoteMeanings};
   const usable = candidates.filter(function (w) { return meanings[w]; });
-  if (usable.length < 4) {
+  if (usable.length < DAILY_QUIZ_SIZE) {
     throw new Error('線上翻譯服務目前只回傳了 ' + usable.length + ' 個可用釋義，不足以產生「4 選 1」題目。');
   }
 
@@ -4195,7 +4178,8 @@ async function buildDailyQuiz(onProgress, excludeWords) {
     score: 0,
     completed: false,
     createdAt: Date.now(),
-    generatedBy: 'online'   // 題目與釋義全部來自即時連網查詢
+    difficulty: level,
+    generatedBy: 'curriculum-or-online'
   };
 }
 
@@ -4220,7 +4204,7 @@ function quizLoadingHtml(roundNo, usedCount) {
   const title = (round > 1) ? ('正在連線產生第 ' + round + ' 輪題目…') : '正在連線產生今天的題目…';
   const note = (usedCount && usedCount > 0)
     ? ('★ 已自動排除今天練過的 ' + usedCount + ' 個字，這一輪絕對不會重複出題。')
-    : '題目的中文釋義需要即時向線上翻譯服務取得（第一次最慢，之後會走本機快取）。';
+    : '優先使用本機學習釋義及快取；不足時才向公開詞典／翻譯服務查詢，不使用 AI。';
   return '' +
     '<div class="we-card p-5 sm:p-6 animate-fade">' +
       '<div class="flex items-center gap-3 mb-4">' +
@@ -4253,6 +4237,7 @@ function quizErrorHtml(message) {
 
 /** 渲染整個測驗分頁（★ 今天還沒有紀錄時，即時連網生成第 1 輪） */
 async function renderQuiz() {
+  renderQuizLevels();
   const box = $('#quiz-body');
   if (!box) return;
 
@@ -4261,12 +4246,12 @@ async function renderQuiz() {
     state.daily = stored;
     const s = currentSession(state.daily);
     state.quizSessionNo = s ? s.id : 1;
-    paintQuiz();
+    if(s)paintQuiz();else await startNewSession();
     return;
   }
 
   if (!state.daily || state.daily.date !== todayKey()) state.daily = newDailyRecord();
-  if (!state.daily.sessions.length) {
+  if (!currentSession(state.daily)) {
     await startNewSession();
   } else {
     paintQuiz();
@@ -4283,6 +4268,7 @@ async function startNewSession() {
   if (state.quizLoading) return;
   if (!state.daily || state.daily.date !== todayKey()) state.daily = newDailyRecord();
 
+  const level=quizLevel();if(level==='legacy'){showToast('原有輪次可以接續；新增訓練請選簡單、中級或困難。','info');return;}
   const used = getUsedWords(state.daily);
   const remaining = getRemainingWords(state.daily);
   const roundNo = state.daily.sessions.length + 1;
@@ -4295,7 +4281,7 @@ async function startNewSession() {
     return;
   }
 
-  state.quizLoading = true;
+  state.quizLoading = true;renderQuizLevels();
   state.quizSessionNo = roundNo;
   updateProgressBar(0);
   box.innerHTML = quizLoadingHtml(roundNo, used.length);
@@ -4304,7 +4290,7 @@ async function startNewSession() {
     const session = await buildDailyQuiz(function (done, total) {
       const el = $('#quiz-loading-progress');
       if (el) el.textContent = '已取得 ' + done + ' / ' + total + ' 個單字的繁體中文釋義…';
-    }, used);
+    }, used, level);
     state.daily.sessions.push(session);
     state.quizSessionNo = session.id;
     saveDailyRecord();       // 同時更新 usedWords（★ 下一輪動態排除的依據）
@@ -4316,7 +4302,7 @@ async function startNewSession() {
     const retry = $('#quiz-retry');
     if (retry) retry.addEventListener('click', function () { startNewSession(); });
   } finally {
-    state.quizLoading = false;
+    state.quizLoading = false;renderQuizLevels();
   }
 }
 
@@ -4359,6 +4345,7 @@ function paintQuiz() {
   const rec = state.daily;
   if (!box || !rec) return;
   const session = currentSession(rec);
+  renderQuizLevels();
   if (!session) return;
 
   const total = quizSize(session);
@@ -4455,6 +4442,7 @@ function updateCheckButtonState() {
 function checkQuizAnswer() {
   const rec = state.daily;
   const session = currentSession(rec);
+  renderQuizLevels();
   if (!session) return;
   const qIndex = session.answers.length;
   const q = session.questions[qIndex];
@@ -4531,6 +4519,7 @@ function checkQuizAnswer() {
 function continueQuiz() {
   const rec = state.daily;
   const session = currentSession(rec);
+  renderQuizLevels();
   if (!session) return;
   if (session.answers.length >= quizSize(session)) {
     session.completed = true;
@@ -4975,6 +4964,7 @@ function startReviewChallenge() {
 
 /** 渲染複習題（拼寫題 + 提示選項） */
 function renderReviewQuestion() {
+  document.getElementById('srs-body')?.classList.add('srs-only-review');
   const rv = state.review;
   if (!rv) return;
   const panel = $('#review-panel');
@@ -5000,45 +4990,12 @@ function renderReviewQuestion() {
     return;
   }
 
-  const word = rv.words[rv.index];
-  /* ★ 連網模式：釋義與提示優先取自「本機查詢快取 → 錯題本紀錄 → 離線備用語料」，
-     因此就算是完全由網路取得的單字，複習題也一定看得到中文釋義與字首提示。 */
-  const dbItem = getWrongDb().find(i => String(i.word).toLowerCase() === String(word).toLowerCase()) || {};
-  const cached = cacheGet(String(word).toLowerCase());
-  const builtIn = findBuiltInWord(word);
-  const meaning = (cached && cached.meaning) || dbItem.meaning || (builtIn && builtIn.meaning) || '（無釋義）';
-  const structure = (cached && cached.structure) || dbItem.structure || (builtIn && builtIn.structure) || null;
-  const hint = (structure && structure.prefix) ? structure.prefix : '（無提示）';
-
-  panel.className = 'we-card p-6 mb-5 animate-pop';
-  panel.innerHTML = '' +
-    '<div class="flex items-center justify-between mb-3 flex-wrap gap-2">' +
-      '<span class="text-sm font-extrabold text-[#A5A2B8]">複習挑戰 ' + (rv.index + 1) + ' / ' + rv.words.length + '</span>' +
-      '<span class="stat-chip">✅ 連續答對 ' + (rv.results.correct > 0 ? '1' : '0') + ' 次即可畢業</span>' +
-    '</div>' +
-    '<p class="text-xs font-extrabold text-[#A5A2B8] mb-1">請依照中文釋義，拼寫出正確的英文單字：</p>' +
-    '<p class="font-extrabold text-xl sm:text-2xl text-[#00B4A6] mb-4">' + esc(meaning) + '</p>' +
-    '<input id="review-input" class="we-input mb-3" placeholder="在這裡輸入英文單字…" autocomplete="off" spellcheck="false">' +
-    '<div id="review-hint" class="hidden mb-3 p-3 rounded-xl bg-[#FFF1D6] border-2 border-[#FFC44D] font-extrabold text-sm text-[#96701A]">💡 字首提示：' + esc(hint) + '</div>' +
-    '<div class="flex flex-wrap gap-2">' +
-      '<button class="we-btn flex-1" id="btn-review-submit">檢查拼寫</button>' +
-      '<button class="we-btn we-btn-ghost" id="btn-review-hint">💡 提示</button>' +
-      '<button class="we-btn we-btn-blue" id="btn-review-speak">🔊 聽發音</button>' +
-    '</div>' +
-    '<p class="text-[11px] font-bold text-[#A5A2B8] mt-3">※ 拼寫不分大小寫；按 Enter 可直接送出。</p>';
-
-  const input = $('#review-input');
-  input.focus();
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitReviewAnswer(); });
-
-  $('#btn-review-submit').addEventListener('click', submitReviewAnswer);
-  $('#btn-review-speak').addEventListener('click', () => speak(word));
-  $('#btn-review-hint').addEventListener('click', () => {
-    $('#review-hint').classList.remove('hidden');
-    showToast('💡 提示已顯示，試著用字首把單字拼出來！', 'info', 3000);
-  });
-
-  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const word=rv.words[rv.index],index=rv.index;rv.locked=true;
+  panel.className='we-card p-6 mb-5';panel.innerHTML='<p role="status">正在準備英文釋義…</p>';
+  englishSpellingPrompt(word).then(prompt=>{if(state.review!==rv||rv.index!==index||!panel.isConnected)return;if(!prompt){panel.innerHTML='<p>未有可用的英文釋義，請連網後重試；本題不會當作答錯。</p><button id="review-retry" class="we-btn">重試載入</button><button id="review-skip" class="we-btn we-btn-ghost">暫時跳過</button>';$('#review-retry').onclick=renderReviewQuestion;$('#review-skip').onclick=()=>{rv.index++;renderReviewQuestion();};return;}
+  rv.locked=false;panel.innerHTML='<p>英文釋義默寫 '+(index+1)+' / '+rv.words.length+'</p><p lang="en" class="font-extrabold text-xl my-4">'+esc(prompt)+'</p><label for="review-input">拼寫英文單字</label><input id="review-input" class="we-input mb-3" autocomplete="off" autocapitalize="none" spellcheck="false"><button id="btn-review-submit" class="we-btn">檢查拼寫</button><p class="text-xs mt-3">提交後才顯示答案；不提供額外提示。</p>';const input=$('#review-input');input.focus();input.onkeydown=e=>{if(e.key==='Enter')submitReviewAnswer();};$('#btn-review-submit').onclick=submitReviewAnswer;
+  }).catch(()=>{if(state.review===rv&&rv.index===index){panel.innerHTML='<p>英文釋義暫時無法載入，本題不會當作答錯。</p><button id="review-retry" class="we-btn">重試</button>';$('#review-retry').onclick=renderReviewQuestion;}});
+  panel.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 /** 送出複習答案 */
@@ -5947,48 +5904,14 @@ function collapseRepeats(text) {
  * @param {object} opts { lang, continuous, onInterim(text), onFinal(text), onError(code), onEnd(text) }
  * @returns {object|null} { stop() }
  */
+let activeSpeechSession=null;
+function cancelActiveSpeech(){activeSpeechSession?.abort();activeSpeechSession=null;}
 function startRecognition(opts) {
-  const o = opts || {};
-  const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Ctor) { if (o.onError) o.onError('unsupported'); return null; }
-  let rec;
-  try { rec = new Ctor(); } catch (e) { if (o.onError) o.onError('init-failed'); return null; }
-  rec.lang = o.lang || 'en-US';
-  rec.interimResults = true;
-  rec.continuous = !!o.continuous;
-  rec.maxAlternatives = 1;
-  let sessionFinal = '';
-  let stopped = false;
-  function join(a, b) { return (a && b) ? (a + ' ' + b) : (a || b || ''); }
-  rec.onresult = function (ev) {
-    // ⚠️ 不要相信 resultIndex：Android Chrome 常常固定回 0，會讓同一段 final 結果
-    //    被重複累加（使用者實測：說 3 個字變成 30 幾遍）。改成每次都從 ev.results
-    //    重新組出「本次辨識 session 的完整文字」，天生不會重複累加。
-    let fin = '', itr = '';
-    for (let i = 0; i < ev.results.length; i++) {
-      const r = ev.results[i];
-      const t = String((r[0] && r[0].transcript) || '').trim();
-      if (!t) continue;
-      if (r.isFinal) fin = join(fin, t);
-      else itr = join(itr, t);
-    }
-    sessionFinal = fin;
-    if (o.onInterim) o.onInterim(collapseRepeats(join(sessionFinal, itr)));
-  };
-  rec.onerror = function (ev) {
-    const code = (ev && ev.error) || 'error';
-    if (o.onError) o.onError(code);
-  };
-  rec.onend = function () {
-    stopped = true;
-    if (o.onEnd) o.onEnd(collapseRepeats(sessionFinal));
-  };
-  try { rec.start(); } catch (e) { if (o.onError) o.onError('start-failed'); return null; }
-  return {
-    stop: function () { try { if (!stopped) rec.stop(); } catch (e) { /* 忽略 */ } },
-    abort: function () { try { rec.abort(); } catch (e) { /* 忽略 */ } }
-  };
+ const o={continuous:true,...(opts||{})};if(!o.onInterrupted)o.onInterrupted=(text)=>{o.onInterim?.(text);showToast('辨識暫停，內容已保留，未送出；請按結束完成本次，或重新開始。','warn');};cancelActiveSpeech();const Ctor=window.SpeechRecognition||window.webkitSpeechRecognition;
+ const session=window.WEPractice.createSpeechSession(o,{Recognition:Ctor,setTimeout,clearTimeout,captureAudio:()=>window.WEPractice.captureLocalAudio({mediaDevices:navigator.mediaDevices,MediaRecorder:window.MediaRecorder},recording=>{if(window.WEUpgrade){window.WEUpgrade.lastRecording={...recording,mode:lsGet('we_experience_v23',{}).lastMode||'free'};window.dispatchEvent(new CustomEvent('we-recorded'));showToast('本次口說聲音已保留，可回放／保存到我的錄音。','info');}},message=>showToast(message,'warn'))});activeSpeechSession=session;return session;
 }
+window.addEventListener('pagehide',cancelActiveSpeech);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)activeSpeechSession?.interrupt('hidden');});
 
 function speechErrZh(code) {
   const map = {
@@ -6255,6 +6178,7 @@ function spStartMode(mode) {
 /* ---------- 共用：朗讀／錄音區塊 ---------- */
 const spTimers = [];
 function spClearTimers() {
+  cancelActiveSpeech();
   while (spTimers.length) { try { clearInterval(spTimers.pop()); } catch (e) { /* 忽略 */ } }
 }
 function spAddTimer(id) { spTimers.push(id); return id; }
@@ -6551,21 +6475,23 @@ function spRenderMock(set, aiAdvice) {
   const liveEl = $('#sp-mock-live');
   let rec = null, seconds = 0, tick = null, transcript = '';
 
-  function stopAll() {
-    if (rec) { try { rec.stop(); } catch (e) { /* 忽略 */ } rec = null; }
+  function stopAll(cancel) {
+    if (rec) { try { cancel?rec.abort():rec.stop(); } catch (e) { /* 忽略 */ } rec = null; }
     if (tick) { clearInterval(tick); tick = null; }
   }
-  $('#sp-mock-quit').addEventListener('click', function () { stopAll(); spStageTop(); spRenderHome(); });
+  $('#sp-mock-quit').addEventListener('click', function () { stopAll(true); spStageTop(); spRenderHome(); });
 
+  let submitted=false;
   function judge() {
+    if(submitted||state.activeTab!=='speak')return;
     if (!transcript || !transcript.trim()) { showToast('⚠️ 沒有收到任何內容，請再試一次或用手動輸入。', 'warn', 4000); return; }
-    spScoreAnswer(set, transcript, seconds);
+    submitted=true;spScoreAnswer(set, transcript, seconds);
   }
 
   if (recBtn && speechRecAvailable()) {
     recBtn.addEventListener('click', function () {
       if (rec) { stopAll(); return; }
-      transcript = '';
+      transcript = '';submitted=false;
       seconds = 0;
       liveEl.textContent = '';
       timeEl.textContent = spFmtTime(0);
@@ -6573,16 +6499,17 @@ function spRenderMock(set, aiAdvice) {
       tick = spAddTimer(setInterval(function () {
         seconds++;
         timeEl.textContent = spFmtTime(seconds);
-        if (seconds >= set.speakSeconds) { timeEl.classList.add('warn'); stopAll(); judge(); }
+        if (seconds >= set.speakSeconds) { timeEl.classList.add('warn'); stopAll(); }
       }, 1000));
       rec = startRecognition({
-        lang: 'en-US', continuous: true,
+        lang: 'en-US', continuous: true, captureAudio: true,
         onInterim: function (t) { liveEl.innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span></span> ' + esc(t); },
-        onError: function (code) {
-          stopAll();
+        onError: function (code,partial) {
+          transcript=partial||transcript;stopAll(true);
           recBtn.textContent = '🎙️ 開始回答';
           showToast('⚠️ ' + speechErrZh(code), 'warn', 6000);
         },
+        onInterrupted: function(text,reason){transcript=text;if(tick){clearInterval(tick);tick=null;}liveEl.innerHTML='<p>'+esc(text)+'</p><p role="status">辨識暫停，內容已保留，未送出評分。</p><button id="sp-mock-resume" class="we-btn">繼續辨識</button>';$('#sp-mock-resume').onclick=()=>{if(!rec?.resume())return;liveEl.textContent=text;tick=spAddTimer(setInterval(()=>{seconds++;timeEl.textContent=spFmtTime(seconds);if(seconds>=set.speakSeconds)stopAll();},1000));};},
         onEnd: function (finalText) {
           recBtn.textContent = '🎙️ 開始回答';
           transcript = finalText || liveEl.textContent.replace(/[^\x00-\x7F]/g, '').trim();
@@ -6594,9 +6521,9 @@ function spRenderMock(set, aiAdvice) {
     });
   }
   $('#sp-mock-manual').addEventListener('click', function () {
-    const t = window.prompt('把你說的內容打出來（英文）', '');
+    const t = window.prompt('把你說的內容打出來（英文）', transcript); 
     if (t === null || !t.trim()) return;
-    transcript = t.trim();
+    stopAll(true);submitted=false;transcript = t.trim();
     seconds = Math.max(1, Math.round(pronSplit(transcript).length / 2));
     judge();
   });
@@ -7071,7 +6998,7 @@ function spStartFree() {
       if (seconds >= limit) { try { rec.stop(); } catch (e) { /* 忽略 */ } }
     }, 1000));
     rec = startRecognition({
-      lang: 'en-US', continuous: true,
+      lang: 'en-US', continuous: true, captureAudio: true,
       onInterim: function (t) { $('#sp-fr-live').innerHTML = '<span class="sp-rec"><span class="sp-rec-dot"></span></span> ' + esc(t); },
       onError: function (code) {
         if (tick) clearInterval(tick);
@@ -7079,6 +7006,7 @@ function spStartFree() {
         rec = null;
         showToast('⚠️ ' + speechErrZh(code), 'warn', 6000);
       },
+      onInterrupted:function(text){if(tick){clearInterval(tick);tick=null;}transcript=text;$('#sp-fr-live').innerHTML='<p>'+esc(text)+'</p><p>辨識暫停，未提交。可手動停止保存，或繼續。</p><button id="sp-fr-resume" class="we-btn">繼續辨識</button>';$('#sp-fr-resume').onclick=()=>{if(!rec?.resume())return;tick=spAddTimer(setInterval(()=>{seconds++;$('#sp-fr-clock').textContent=spFmtTime(seconds);if(seconds>=limit)rec.stop();},1000));};},
       onEnd: function (finalText) {
         if (tick) clearInterval(tick);
         recBtn.textContent = '🎙️ 開始計時並錄音';
@@ -9010,6 +8938,7 @@ function renderWordbook() {
                 (e.phonetic ? '<span class="text-xs font-bold text-[#A5A2B8]">' + esc(e.phonetic) + '</span>' : '') +
               '</div>' +
               '<p class="text-sm font-extrabold text-[#3A3750] mt-1 leading-relaxed">' + (e.meaning ? esc(e.meaning) : '<span class="text-[#A5A2B8]">（還沒有釋義，查一次就會補上）</span>') + '</p>' +
+              wordbookDictionaryHtml(e) +
               '<div class="mt-2 flex flex-wrap items-center gap-1.5">' + wbSourceChips(e) +
                 (times ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#F5F6FB] text-[#6B6880]">🔁 複習 ' + times + ' 次（對 ' + right + '／錯 ' + wrong + '）</span>' : '') +
               '</div>' +
@@ -9028,7 +8957,7 @@ function renderWordbook() {
   }
 
   box.innerHTML = statChips + hero + gsyncCardHtml() + toolbar + listHtml;
-  wbBind();
+  wbBind();bindWordbookDictionaries();
 }
 
 /* ---------- 畫面：複習模式 ---------- */
@@ -9381,6 +9310,7 @@ function gsMergeWordbook(a, b) {
     const out = gsClone(newer);
     if (!out.meaning && older.meaning) out.meaning = older.meaning;
     if (!out.phonetic && older.phonetic) out.phonetic = older.phonetic;
+    out.dictionary = gsNum(cur.dictionary?.updatedAt) > gsNum(e.dictionary?.updatedAt) ? cur.dictionary : e.dictionary;
     out.sources = gsMergeMapMax(cur.sources, e.sources);
     const at = [gsNum(cur.addedAt), gsNum(e.addedAt)].filter(function (x) { return x > 0; });
     out.addedAt = at.length ? Math.min.apply(null, at) : Date.now();

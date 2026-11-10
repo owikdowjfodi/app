@@ -16,7 +16,7 @@
  * 改版時請把 VERSION 往上加，舊快取會在 activate 時自動清掉。
  * ========================================================================== */
 
-const VERSION = 'v18';
+const VERSION = 'v19';
 const SHELL_CACHE = 'word-explorer-shell-' + VERSION;
 const CDN_CACHE = 'word-explorer-cdn-' + VERSION;
 
@@ -28,6 +28,8 @@ const SHELL_ASSETS = [
   './privacy-policy.html',
   './app-config.js',
   './enhancements.js',
+  './vocabulary.js',
+  './practice.js',
   './experience.js',
   './experience.css',
   './icons/favicon-48.png',

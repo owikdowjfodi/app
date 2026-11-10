@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const current=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+const current=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8')+'\n'+fs.readFileSync(require('node:path').join(__dirname,'../practice.js'),'utf8');
 const baseline=fs.readFileSync(require('node:path').join(__dirname,'fixtures/original-index.html.txt'),'utf8');
 test('原有所有具名函數與九個單元 ID 保留',()=>{
   const names=s=>new Set([...s.matchAll(/function\s+(\w+)\s*\(/g)].map(m=>m[1]));
